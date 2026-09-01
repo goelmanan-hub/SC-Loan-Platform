@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="hi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YojnaSetu — NSFDC Loan Assistance Platform</title>
+    
+    <!-- External Icon Library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- ================= HEADER ================= -->
+    <header class="topbar">
+        <div class="brand">
+            <!-- YojnaSetu SVG Logo (Green and Blue Helping Hands) -->
+            <div class="brand-mark" style="display: flex; align-items: center; justify-content: center;">
+                <svg viewBox="0 0 100 100" width="52" height="52" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Bottom Shadow -->
+                    <ellipse cx="50" cy="92" rx="30" ry="4" fill="#e0e0e0" />
+                    
+                    <!-- Blue arc & hand (Left/Bottom) -->
+                    <path d="M 22 30 A 40 40 0 0 0 75 75 Q 60 75 40 60 Q 45 65 55 60 Q 40 55 35 40 Q 30 50 22 30 Z" fill="#0072bc"/>
+                    <path d="M 22 30 A 40 40 0 0 0 75 75 Q 65 80 40 70 A 35 35 0 0 1 22 30 Z" fill="#00568c"/> <!-- Darker edge shadow -->
+                    
+                    <!-- Green arc & hand (Right/Top) -->
+                    <path d="M 78 70 A 40 40 0 0 0 25 25 Q 40 25 60 40 Q 55 35 45 40 Q 60 45 65 60 Q 70 50 78 70 Z" fill="#39b54a"/>
+                    <path d="M 78 70 A 40 40 0 0 0 25 25 Q 35 20 60 30 A 35 35 0 0 1 78 70 Z" fill="#2a8c36"/> <!-- Darker edge shadow -->
+                </svg>
+            </div>
+
+            <div>
+                <div class="brand-name">YOJNASETU</div>
+                <div class="brand-sub">NSFDC Loan Assistance Platform</div>
+            </div>
+        </div>
+
+        <div class="tagline">
+            सपनों को मिलेगा सहारा, आपके साथ है योजनासेतु — “YojnaSetu”
+        </div>
+
+        <div class="top-actions">
+            <button class="language">
+                <i class="fa-solid fa-globe"></i>
+                हिंदी
+                <span class="chevron"><i class="fa-solid fa-chevron-down"></i></span>
+            </button>
+            <button class="login">
+                <i class="fa-regular fa-user"></i>
+                <span>लॉगिन / पंजीकरण</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ================= MAIN LAYOUT ================= -->
+    <div class="layout">
+
+        <!-- ================= LEFT SIDEBAR ================= -->
+        <aside class="sidebar">
+            <nav>
+                <button class="nav-item active">
+                    <i class="fa-solid fa-house"></i> होम
+                </button>
+                <button class="nav-item">
+                    <i class="fa-regular fa-file-lines"></i> मेरी आवेदन स्थिति
+                </button>
+                <button class="nav-item">
+                    <i class="fa-solid fa-headset"></i> सहायता
+                </button>
+            </nav>
+
+            <!-- Government Card -->
+            <div class="gov-card">
+                <div class="emblem">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="भारत सरकार" width="45">
+                </div>
+                <strong>भारत सरकार</strong>
+                <b>NSFDC</b>
+                <span>द्वारा समर्थित</span>
+            </div>
+        </aside>
+
+        <!-- ================= CENTER CONTENT ================= -->
+        <main class="content">
+            <section class="hero-card">
+
+                <h1>
+                    नमस्ते! मैं <span>योजनासेतु (YojnaSetu)</span> हूँ
+                </h1>
+                <div class="underline"></div>
+                <p class="intro">
+                    मैं आपकी सरकारी ऋण योजनाओं में जानकारी और आवेदन में मदद करने के लिए यहाँ हूँ।
+                </p>
+
+                <!-- ================= AI ASSISTANT ================= -->
+                <div class="assistant-area">
+                    <div class="robot-wrap">
+                        
+                        <!-- 9-Bar Sound Wave Element -->
+                        <div class="sound-wave">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        
+                        <div class="robot-glow"></div>
+
+                        <div class="robot">
+                            <div class="antenna"></div>
+                            <div class="head">
+                                <div class="ear left"></div>
+                                <div class="ear right"></div>
+                                <div class="face">
+                                    <span class="eye"></span>
+                                    <span class="eye"></span>
+                                    <!-- Centered Single Smile -->
+                                    <div class="smile" style="display: flex; justify-content: center; margin-top: 5px;">
+                                        <svg width="24" height="12" viewBox="0 0 24 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M 3 3 C 3 10, 21 10, 21 3" stroke="#00d2ff" stroke-width="3" stroke-linecap="round" fill="transparent"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Neck Component -->
+                            <div class="neck"></div>
+
+                            <div class="body">
+                                <!-- Indian Flag Swish -->
+                                <svg class="flag-swish" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M 0 60 Q 50 50 100 20 L 100 35 Q 50 65 0 75 Z" fill="#ff9933"/>
+                                    <path d="M 0 75 Q 50 65 100 35 L 100 50 Q 50 80 0 90 Z" fill="#ffffff"/>
+                                    <path d="M 0 90 Q 50 80 100 50 L 100 65 Q 50 95 0 105 Z" fill="#138808"/>
+                                </svg>
+                                
+                                <!-- YojnaSetu Logo on Chest -->
+                                <div class="logo-mini">
+                                    <svg viewBox="0 0 100 100" width="42" height="42" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M 22 30 A 40 40 0 0 0 75 75 Q 60 75 40 60 Q 45 65 55 60 Q 40 55 35 40 Q 30 50 22 30 Z" fill="#0072bc"/>
+                                        <path d="M 22 30 A 40 40 0 0 0 75 75 Q 65 80 40 70 A 35 35 0 0 1 22 30 Z" fill="#00568c"/>
+                                        <path d="M 78 70 A 40 40 0 0 0 25 25 Q 40 25 60 40 Q 55 35 45 40 Q 60 45 65 60 Q 70 50 78 70 Z" fill="#39b54a"/>
+                                        <path d="M 78 70 A 40 40 0 0 0 25 25 Q 35 20 60 30 A 35 35 0 0 1 78 70 Z" fill="#2a8c36"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="speech">
+                        <div class="speaker-icon">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </div>
+                        <div>
+                            <h2>नमस्ते!</h2>
+                            <p>मैं योजनासेतु हूँ। आप मुझसे अपनी भाषा में बात कर सकते हैं।</p>
+                            <p>बताइए, मैं आपकी किस प्रकार मदद कर सकता हूँ?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= LANGUAGES ================= -->
+                <div class="languages">
+                    <button class="lang active">
+                        <i class="fa-solid fa-circle-check"></i> हिंदी <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <button class="lang">English</button>
+                    <button class="lang">বাংলা</button>
+                    <button class="lang">தமிழ்</button>
+                    <button class="lang">తెలుగు</button>
+                    <button class="lang"><i class="fa-solid fa-plus"></i> और भाषाएँ</button>
+                </div>
+
+                <!-- ================= MICROPHONE ================= -->
+                <div class="mic-area">
+                    <button class="mic" aria-label="बोलने के लिए दबाएँ">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                    <h3>बोलने के लिए बटन दबाएँ</h3>
+                    <p>मैं आपकी बात सुन रहा हूँ...</p>
+                </div>
+                <!-- ================= AI ASSISTANT & CHAT INTERACTIVE AREA ================= -->
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <div class="status-badge"><span class="pulse-dot"></span> FastAPI Backend Online</div>
+                        <button id="reset-session-btn" class="btn-sm"><i class="fa-solid fa-rotate-right"></i> नया संवाद (New Chat)</button>
+                    </div>
+
+                    <div id="chat-messages" class="chat-messages">
+                        <div class="message bot-message">
+                            <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
+                            <div class="msg-content">
+                                <strong>नमस्ते!</strong> मैं आपका AI सहायता एजेंट हूँ। आपको किस प्रकार का ऋण चाहिए? (शिक्षा ऋण / व्यवसाय ऋण)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prompt Quick Chips -->
+                    <div class="prompt-chips">
+                        <button class="chip-btn" data-msg="I need an Education Loan for my studies">🎓 शिक्षा ऋण (Education Loan)</button>
+                        <button class="chip-btn" data-msg="I need a Business Loan for a new shop">💼 व्यवसाय ऋण (Business Loan)</button>
+                        <button class="chip-btn" onclick="scrollToSection('emi-section')">🧮 EMI कैलकुलेटर</button>
+                        <button class="chip-btn" onclick="scrollToSection('partner-section')">🏦 नजदीकी चैनल पार्टनर</button>
+                    </div>
+
+                    <!-- Chat Input Box -->
+                    <form id="chat-form" class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="यहाँ संदेश लिखें या बोलें..." autocomplete="off" />
+                        <button type="button" id="mic-toggle-btn" class="mic-btn" title="आवाज़ से बोलें">
+                            <i class="fa-solid fa-microphone"></i>
+                        </button>
+                        <button type="submit" id="send-btn" class="send-btn">
+                            <span>भेजें</span> <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- ================= RECOMMENDED SCHEME DISPLAY ================= -->
+                <div id="recommendation-card" class="recommendation-card" style="display: none;">
+                    <div class="card-badge"><i class="fa-solid fa-star"></i> अनुशंसित योजना (Recommended Scheme)</div>
+                    <h2 id="rec-scheme-name">Scheme Name</h2>
+                    <p id="rec-scheme-desc">Scheme Description</p>
+                    <div class="rec-details">
+                        <div class="rec-stat">
+                            <span>अधिकतम राशि</span>
+                            <strong id="rec-max-loan">₹0</strong>
+                        </div>
+                        <div class="rec-stat">
+                            <span>ब्याज दर</span>
+                            <strong id="rec-interest">0%</strong>
+                        </div>
+                        <div class="rec-stat">
+                            <span>छूट अवधि (Moratorium)</span>
+                            <strong id="rec-moratorium">0 माह</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= EMI CALCULATOR WIDGET ================= -->
+                <section id="emi-section" class="interactive-widget-card">
+                    <div class="widget-header">
+                        <div class="widget-icon"><i class="fa-solid fa-calculator"></i></div>
+                        <div>
+                            <h2>NSFDC EMI कैलकुलेटर</h2>
+                            <p>मासिक किश्त (EMI) और कुल ब्याज की गणना FastAPI backend से करें</p>
+                        </div>
+                    </div>
+                    <form id="emi-form" class="widget-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="emi-principal">ऋण राशि (Principal ₹)</label>
+                                <input type="number" id="emi-principal" value="100000" min="1000" step="5000" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="emi-rate">वार्षिक ब्याज दर (% Rate)</label>
+                                <input type="number" id="emi-rate" value="6.5" step="0.1" min="0" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="emi-tenure">अवधि (Tenure in Months)</label>
+                                <input type="number" id="emi-tenure" value="36" min="1" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="emi-moratorium">मोरैटोरियम अवधि (Months)</label>
+                                <input type="number" id="emi-moratorium" value="3" min="0" />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary"><i class="fa-solid fa-play"></i> EMI की गणना करें</button>
+                    </form>
+
+                    <div id="emi-result-box" class="emi-result-grid" style="display: none;">
+                        <div class="result-card emi-highlight">
+                            <span>मासिक EMI</span>
+                            <strong id="res-monthly-emi">₹0</strong>
+                        </div>
+                        <div class="result-card">
+                            <span>कुल ब्याज (Total Interest)</span>
+                            <strong id="res-total-interest">₹0</strong>
+                        </div>
+                        <div class="result-card">
+                            <span>कुल भुगतान (Total Payable)</span>
+                            <strong id="res-total-payable">₹0</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= CHANNEL PARTNERS LOCATOR ================= -->
+                <section id="partner-section" class="interactive-widget-card">
+                    <div class="widget-header">
+                        <div class="widget-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <div>
+                            <h2>निकटतम चैनल पार्टनर (Channel Partner Locator)</h2>
+                            <p>अपने निकटतम NSFDC स्टेट चैनलाइजिंग एजेंसी / बैंक की खोज करें</p>
+                        </div>
+                    </div>
+                    <div class="partner-controls">
+                        <button id="find-location-btn" class="btn-secondary">
+                            <i class="fa-solid fa-crosshairs"></i> मेरा स्थान उपयोग करें (Use Current Location)
+                        </button>
+                        <span class="or-text">या स्थान चुनें:</span>
+                        <select id="city-select" class="custom-select">
+                            <option value="29.9695,76.8783">Kurukshetra (कुरुक्षेत्र)</option>
+                            <option value="29.6857,76.9905">Karnal (करनाल)</option>
+                            <option value="30.3782,76.7767">Ambala (अंबाला)</option>
+                            <option value="28.6139,77.2090">Delhi (दिल्ली)</option>
+                        </select>
+                        <button id="search-partners-btn" class="btn-primary"><i class="fa-solid fa-search"></i> खोजें</button>
+                    </div>
+
+                    <div id="partners-list" class="partners-grid">
+                        <div class="loading-placeholder">स्थान चुनें या बटन दबाकर नजदीकी चैनल पार्टनर खोजें...</div>
+                    </div>
+                    <div class="partner-map-wrap">
+                        <h3><i class="fa-solid fa-map-location-dot"></i> मानचित्र पर नजदीकी चैनल पार्टनर</h3>
+                        <p>"मेरा स्थान उपयोग करें" दबाने पर ब्राउज़र अनुमति लेकर आपका स्थान दिखाएगा।</p>
+                        <div id="partner-map" aria-label="नजदीकी चैनल पार्टनर का मानचित्र"></div>
+                    </div>
+                </section>
+
+            </section>
+
+            <!-- ================= STEPS ================= -->
+            <section class="steps" style="display: flex; justify-content: space-between; align-items: center; gap: 20px; background: #f4f7fc; padding: 20px 25px; border-radius: 12px; margin-top: 20px;">
+                
+                <div class="step" style="display: flex; align-items: center; gap: 15px; flex: 1;">
+                    <div class="step-icon" style="width: 55px; height: 55px; min-width: 55px; border: 3px solid #dbe4f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #ffffff;">
+                        <i class="fa-solid fa-microphone-lines" style="color: #003366; font-size: 24px;"></i>
+                    </div>
+                    <div style="text-align: left;">
+                        <b style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">1. अपनी भाषा में बात करें</b>
+                        <span style="font-size: 13px; color: #666;">बस अपनी बात बताइए</span>
+                    </div>
+                </div>
+
+                <div class="step" style="display: flex; align-items: center; gap: 15px; flex: 1;">
+                    <div class="step-icon" style="width: 55px; height: 55px; min-width: 55px; border: 3px solid #dbe4f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #ffffff;">
+                        <i class="fa-solid fa-robot" style="color: #003366; font-size: 22px;"></i>
+                    </div>
+                    <div style="text-align: left;">
+                        <b style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">2. योजनासेतु आपकी मदद करेगा</b>
+                        <span style="font-size: 13px; color: #666;">सही योजना और जानकारी बताएगा</span>
+                    </div>
+                </div>
+
+                <div class="step" style="display: flex; align-items: center; gap: 15px; flex: 1;">
+                    <div class="step-icon" style="width: 55px; height: 55px; min-width: 55px; border: 3px solid #dbe4f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #ffffff;">
+                        <i class="fa-solid fa-circle-check" style="color: #008000; font-size: 28px;"></i>
+                    </div>
+                    <div style="text-align: left;">
+                        <b style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">3. आपका लक्ष्य, हमारा साथ</b>
+                        <span style="font-size: 13px; color: #666;">ऋण प्राप्ति तक पूरी सहायता</span>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+
+        <!-- ================= RIGHT SIDEBAR ================= -->
+        <aside class="rightbar">
+            <!-- Help Card -->
+            <section class="help-card warm">
+                <div class="people-icon">
+                    <i class="fa-solid fa-user-group"></i>
+                </div>
+                <h3>हम यहाँ आपकी मदद के लिए हैं</h3>
+                <p>चाहे आप पढ़े-लिखे हों या नहीं, योजनासेतु आपकी अपनी भाषा में मार्गदर्शन करेगा।</p>
+            </section>
+
+            <!-- Available Schemes List Card -->
+            <section class="help-card" style="background: #ffffff; border: 1px solid #e1e8ed;">
+                <h3><i class="fa-solid fa-list-check" style="color: #0072bc;"></i> उपलब्ध योजनाएँ (Schemes)</h3>
+                <div id="quick-schemes-list" style="margin-top: 10px; font-size: 13px;">
+                    <div style="padding: 6px 0; border-bottom: 1px dashed #eee;">⏳ Schemes load हो रही हैं...</div>
+                </div>
+            </section>
+
+            <!-- Help List -->
+            <section class="help-list">
+                <div class="help-row">
+                    <span class="custom-icon"><i class="fa-solid fa-hand-holding-dollar"></i></span>
+                    <p>सरकारी ऋण योजनाओं की जानकारी</p>
+                </div>
+                <div class="help-row">
+                    <span class="custom-icon"><i class="fa-solid fa-clipboard-check"></i></span>
+                    <p>पात्रता की जाँच में सहायता</p>
+                </div>
+                <div class="help-row">
+                    <span class="custom-icon"><i class="fa-regular fa-file-alt"></i></span>
+                    <p>आवेदन प्रक्रिया में मार्गदर्शन</p>
+                </div>
+                <div class="help-row">
+                    <span class="custom-icon"><i class="fa-solid fa-building-columns"></i></span>
+                    <p>नजदीकी सहायता केंद्र खोजने में मदद</p>
+                </div>
+                <div class="help-row">
+                    <span class="custom-icon"><i class="fa-solid fa-headset"></i></span>
+                    <p>हर कदम पर आपकी सहायता</p>
+                </div>
+            </section>
+
+            <!-- Security Card -->
+            <section class="secure-card">
+                <div class="shield">
+                    <i class="fa-solid fa-shield-halved" style="color: #6a0dad; font-size: 24px;"></i>
+                </div>
+                <div>
+                    <h3>आपकी जानकारी सुरक्षित है</h3>
+                    <p>आपका डेटा पूरी तरह से गोपनीय और सुरक्षित रखा जाएगा।</p>
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    <!-- Frontend Script Connection to FastAPI -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="script.js"></script>
+</body>
+</html>
