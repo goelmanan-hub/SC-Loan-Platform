@@ -14,6 +14,7 @@ let isListening = false;
 let currentLanguage = "hi-IN";
 let partnerMap = null;
 let partnerMarkers = null;
+let availableVoices = [];
 
 /* =====================================================
    INITIALIZATION ON DOM CONTENT LOADED
@@ -22,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("Connecting YojnaSetu Frontend to FastAPI at:", API_BASE_URL);
     
     initSpeechRecognition();
+    initSpeechSynthesis();
     setupEventListeners();
     fetchAvailableSchemes();
     loadDefaultPartners();
@@ -449,6 +451,16 @@ function renderPartnersList(partners) {
     `).join("");
 }
 
+function initSpeechSynthesis() {
+    if (!("speechSynthesis" in window)) return;
+
+    const loadVoices = () => {
+        availableVoices = window.speechSynthesis.getVoices();
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+}
+
 async function calculateRecommendationEmi(userData, scheme) {
     try {
         const response = await fetch(`${API_BASE_URL}/api/calculate-emi`, {
@@ -623,18 +635,32 @@ function setSoundWave(active) {
 }
 
 function speakText(text) {
-    if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel(); // Stop any previous audio
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = currentLanguage;
-        utterance.rate = 0.95;
-
-        utterance.onstart = () => setSoundWave(true);
-        utterance.onend = () => setSoundWave(false);
-        utterance.onerror = () => setSoundWave(false);
-
-        window.speechSynthesis.speak(utterance);
+    if (!("speechSynthesis" in window)) {
+        console.warn("Speech output is not supported in this browser.");
+        return;
     }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = currentLanguage;
+    utterance.rate = 0.9;
+    utterance.volume = 1;
+
+    const languagePrefix = currentLanguage.split("-")[0];
+    const preferredVoice = availableVoices.find((voice) => voice.lang.toLowerCase() === currentLanguage.toLowerCase())
+        || availableVoices.find((voice) => voice.lang.toLowerCase().startsWith(languagePrefix));
+    if (preferredVoice) utterance.voice = preferredVoice;
+
+    utterance.onstart = () => setSoundWave(true);
+    utterance.onend = () => setSoundWave(false);
+    utterance.onerror = (event) => {
+        console.warn("Speech output error:", event.error);
+        setSoundWave(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+    // Chrome can leave speech synthesis paused after a previous utterance.
+    window.speechSynthesis.resume();
 }
 
 function scrollToSection(id) {
