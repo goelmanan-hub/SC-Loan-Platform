@@ -270,6 +270,9 @@ async function handleUserChatMessage(userText) {
                 );
             }
             renderRecommendationCard(data.recommendation, recommendationEmi);
+            // Continue the user journey to nearby channel partners after the
+            // scheme and EMI have been presented.
+            setTimeout(() => scrollToSection("partner-section"), 700);
         }
 
     } catch (error) {
