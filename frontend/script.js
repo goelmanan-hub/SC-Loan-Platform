@@ -262,7 +262,14 @@ async function handleUserChatMessage(userText) {
 
         // If conversation is complete, render recommendation
         if (data.complete && data.recommendation) {
-            renderRecommendationCard(data.recommendation, data.emi);
+            let recommendationEmi = data.emi;
+            if (!recommendationEmi && data.user_data && data.recommendation.recommended_scheme) {
+                recommendationEmi = await calculateRecommendationEmi(
+                    data.user_data,
+                    data.recommendation.recommended_scheme
+                );
+            }
+            renderRecommendationCard(data.recommendation, recommendationEmi);
         }
 
     } catch (error) {
@@ -437,6 +444,26 @@ function renderPartnersList(partners) {
             <div class="partner-distance">📍 ${p.distance_km} km दूरी पर</div>
         </div>
     `).join("");
+}
+
+async function calculateRecommendationEmi(userData, scheme) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/calculate-emi`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                principal: Number(userData.loan_required),
+                annual_interest_rate: Number(scheme.interest_rate),
+                tenure_months: Number(userData.tenure_months || 36),
+                moratorium_months: Number(scheme.moratorium_months || 0)
+            })
+        });
+        const data = await response.json();
+        return data.success ? data.result : null;
+    } catch (error) {
+        console.error("Recommendation EMI fallback failed:", error);
+        return null;
+    }
 }
 
 /* =====================================================
