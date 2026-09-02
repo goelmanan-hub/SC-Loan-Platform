@@ -265,11 +265,16 @@ def parse_answer(
     if field in [
         "income",
         "project_cost",
-        "loan_required"
+        "loan_required",
+        "tenure_months"
     ]:
 
         indian_amount = parse_indian_amount(text)
         if indian_amount is not None:
+            if field == "tenure_months":
+                if "वर्ष" in text or "year" in lower or "years" in lower:
+                    indian_amount *= 12
+                return int(indian_amount) if indian_amount > 0 else None
             return indian_amount
 
         cleaned = (
@@ -375,16 +380,33 @@ def loan_chat(
             session
         )
 
+        emi_result = None
+        if recommendation.get("success") and recommendation.get("recommended_scheme"):
+            scheme = recommendation["recommended_scheme"]
+            emi_result = calculate_emi(
+                principal=session["loan_required"],
+                annual_interest_rate=scheme["interest_rate"],
+                tenure_months=session["tenure_months"],
+                moratorium_months=scheme["moratorium_months"]
+            )
+
+        completion_message = (
+            "धन्यवाद। आवश्यक जानकारी मिल गई है। आपकी व्यक्तिगत "
+            "ऋण योजना की सलाह तैयार है।"
+        )
+        if emi_result:
+            completion_message += (
+                f" अनुमानित मासिक EMI ₹{emi_result['monthly_emi']:,.2f} है।"
+            )
+
         return {
             "success": True,
             "complete": True,
             "session_id": request.session_id,
-            "message": (
-                "धन्यवाद। आवश्यक जानकारी मिल गई है। आपकी व्यक्तिगत "
-                "ऋण योजना की सलाह तैयार है।"
-            ),
+            "message": completion_message,
             "user_data": session,
-            "recommendation": recommendation
+            "recommendation": recommendation,
+            "emi": emi_result
         }
 
 

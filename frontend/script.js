@@ -262,7 +262,7 @@ async function handleUserChatMessage(userText) {
 
         // If conversation is complete, render recommendation
         if (data.complete && data.recommendation) {
-            renderRecommendationCard(data.recommendation);
+            renderRecommendationCard(data.recommendation, data.emi);
         }
 
     } catch (error) {
@@ -300,7 +300,7 @@ function updateSpeakerBubble(text) {
     }
 }
 
-function renderRecommendationCard(rec) {
+function renderRecommendationCard(rec, emi) {
     const card = document.getElementById("recommendation-card");
     if (!card) return;
 
@@ -311,6 +311,12 @@ function renderRecommendationCard(rec) {
         document.getElementById("rec-max-loan").textContent = "₹" + Number(scheme.max_loan).toLocaleString("en-IN");
         document.getElementById("rec-interest").textContent = scheme.interest_rate + "% p.a.";
         document.getElementById("rec-moratorium").textContent = scheme.moratorium_months + " महीने";
+        document.getElementById("rec-monthly-emi").textContent = emi
+            ? "₹" + Number(emi.monthly_emi).toLocaleString("en-IN", { minimumFractionDigits: 2 })
+            : "—";
+        document.getElementById("rec-total-payable").textContent = emi
+            ? "₹" + Number(emi.total_payment).toLocaleString("en-IN", { minimumFractionDigits: 2 })
+            : "—";
         card.style.display = "block";
         card.scrollIntoView({ behavior: "smooth" });
     }

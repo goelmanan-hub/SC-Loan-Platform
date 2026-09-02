@@ -10,7 +10,8 @@ QUESTIONS = {
     "business_type": "आप कौन-सा व्यवसाय शुरू करना चाहते हैं? उदाहरण: दुकान, सिलाई, डेयरी, ट्रांसपोर्ट या कोई अन्य व्यवसाय।",
     "education_course": "आप किस पढ़ाई या कोर्स के लिए शिक्षा ऋण चाहते हैं?",
     "income": "आपकी वार्षिक पारिवारिक आय कितनी है? उदाहरण: 5 लाख रुपये।",
-    "location": "कृपया अपना शहर या स्थान बताइए ताकि हम आपके पास के चैनल पार्टनर ढूँढ सकें।"
+    "location": "कृपया अपना शहर या स्थान बताइए ताकि हम आपके पास के चैनल पार्टनर ढूँढ सकें।",
+    "tenure_months": "आप कितने महीनों या वर्षों में ऋण चुकाना चाहते हैं? उदाहरण: 3 वर्ष या 36 महीने।"
 }
 
 
@@ -25,6 +26,7 @@ def create_session(session_id: str):
         "location": None,
         "latitude": None,
         "longitude": None,
+        "tenure_months": None,
         "current_question": "loan_type",
         "complete": False
     }
@@ -73,6 +75,9 @@ def get_next_question(session_id: str):
 
     if not session["location"]:
         return "location"
+
+    if not session["tenure_months"]:
+        return "tenure_months"
 
     return None
 
