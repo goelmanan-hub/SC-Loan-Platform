@@ -640,8 +640,20 @@ function speakText(text) {
         return;
     }
 
+    // Convert symbols and English UI labels into natural Hindi speech. Without
+    // this, browser voices read `/` aloud as the English word "slash".
+    const speechText = String(text)
+        .replace(/\//g, " या ")
+        .replace(/\([^)]*\)/g, "")
+        .replace(/EMI/gi, "मासिक किस्त")
+        .replace(/p\.a\./gi, "प्रतिवर्ष")
+        .replace(/₹/g, "रुपये ")
+        .replace(/%/g, " प्रतिशत ")
+        .replace(/\s+/g, " ")
+        .trim();
+
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(speechText);
     utterance.lang = currentLanguage;
     utterance.rate = 0.9;
     utterance.volume = 1;
