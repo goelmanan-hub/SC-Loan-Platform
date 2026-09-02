@@ -76,7 +76,8 @@ def get_next_question(session_id: str):
     if not session["location"]:
         return "location"
 
-    if not session["tenure_months"]:
+    # `.get` keeps conversations started before this field was added working.
+    if not session.get("tenure_months"):
         return "tenure_months"
 
     return None

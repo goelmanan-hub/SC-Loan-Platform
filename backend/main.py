@@ -272,7 +272,7 @@ def parse_answer(
         indian_amount = parse_indian_amount(text)
         if indian_amount is not None:
             if field == "tenure_months":
-                if "वर्ष" in text or "year" in lower or "years" in lower:
+                if "वर्ष" in text or "साल" in text or "year" in lower or "years" in lower:
                     indian_amount *= 12
                 return int(indian_amount) if indian_amount > 0 else None
             return indian_amount
@@ -386,7 +386,7 @@ def loan_chat(
             emi_result = calculate_emi(
                 principal=session["loan_required"],
                 annual_interest_rate=scheme["interest_rate"],
-                tenure_months=session["tenure_months"],
+                tenure_months=session.get("tenure_months", 36),
                 moratorium_months=scheme["moratorium_months"]
             )
 
