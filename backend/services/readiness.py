@@ -106,60 +106,176 @@ def calculate_loan_readiness(
         scheme_fit_details = "ऋण राशि दर्ज नहीं है।"
 
     # ==========================================
-    # 3. Purpose Clarity (Max: 20 points)
+    # 3. Purpose Clarity & Project Viability (Max: 20 points)
+    # Dynamic Probability Engine based on Domain, Loan Scale & Income Leverage
     # ==========================================
     purpose_score = 0
     purpose_details = ""
+    purpose_probability = 50
 
     INVALID_FILLERS = {
         "मुझे", "मुझे भी", "मुझे एक", "हाँ", "हां", "नहीं", "लोन", "बिजनेस", "व्यवसाय", "काम", "काम करना है",
         "kuch bhi", "yes", "no", "ok", "okay", "loan", "business", "please", "sir", "naam", "pata nahi",
-        "karna hai", "chahiye", "loan chahiye", "business chahiye", "ek"
+        "karna hai", "chahiye", "loan chahiye", "business chahiye", "ek", "chahiye tha", "ke liye", "lena hai"
     }
 
-    BUSINESS_KEYWORDS = [
-        "दुकान", "किराना", "सिलाई", "डेयरी", "फार्म", "ट्रांसपोर्ट", "गाड़ी", "वाहन", "मशीन", "सैलून", "ब्यूटी",
-        "चाय", "होटल", "ढाबा", "कपड़ा", "जूता", "रिपेयर", "कारोबार", "व्यापार", "दुकानदारी", "वर्कशॉप", "फैक्ट्री",
-        "उत्पादन", "ट्रेडिंग", "रेस्टोरेंट", "सब्जी", "फल", "शॉप", "स्टोर", "shop", "store", "tailor", "dairy",
-        "farm", "transport", "vehicle", "salon", "hotel", "food", "repair", "service", "cloth", "garment",
-        "factory", "manufacturing", "trade", "retail", "kirana"
-    ]
+    # Clean purpose text by removing noise words
+    def clean_purpose_text(raw_text: str) -> str:
+        cleaned = re.sub(r"[।.,!?'\"()_-]", " ", str(raw_text or "")).strip()
+        tokens = [t for t in cleaned.split() if t.lower() not in INVALID_FILLERS]
+        return " ".join(tokens).strip() if tokens else cleaned
 
-    EDUCATION_KEYWORDS = [
-        "btech", "b.tech", "mba", "mbbs", "bca", "mca", "bba", "bcom", "b.com", "bsc", "b.sc", "ba", "ma", "msc",
-        "diploma", "iti", "polytechnic", "degree", "course", "engineering", "medical", "law", "llb", "phd", "bed",
-        "बीटेक", "एमबीए", "डिप्लोमा", "इंजीनियरिंग", "मेडिकल", "नर्सिंग", "कॉलेज", "विश्वविद्यालय", "पढ़ाई", "शिक्षा"
-    ]
+    DOMAIN_TAXONOMY = {
+        "digital_it": {
+            "keywords": [
+                "वेबसाइट", "वेब", "सॉफ्टवेयर", "कंप्यूटर", "आईटी", "डिजिटल", "साइबर", "कैफे", "ग्राफिक", "डिजाइन",
+                "यूट्यूब", "फोटो", "स्टूडियो", "प्रिंटिंग", "एप", "इंटरनेट", "ऑनलाइन", "ई-कॉमर्स", "कोडिंग",
+                "website", "web", "software", "it", "digital", "cyber", "cafe", "graphic", "design", "studio",
+                "computer", "tech", "app", "online", "printing", "xerox", "e-commerce", "freelance"
+            ],
+            "typical_min": 25000,
+            "typical_max": 500000,
+            "base_prob": 88,
+            "label": "डिजिटल / आईटी सेवाएँ (Digital & IT)"
+        },
+        "retail_trade": {
+            "keywords": [
+                "किराना", "जनरल स्टोर", "दुकान", "सब्जी", "फल", "कपड़ा", "जूता", "स्टेशनरी", "हार्डवेयर", "इलेक्ट्रिकल",
+                "मोबाइल", "स्टोर", "शॉप", "ट्रेडिंग", "व्यापार", "दुकानदारी", "किराना स्टोर",
+                "retail", "grocery", "shop", "store", "cloth", "garment", "stationery", "mobile", "electronics", "trade"
+            ],
+            "typical_min": 40000,
+            "typical_max": 500000,
+            "base_prob": 86,
+            "label": "खुदरा व्यापार / दुकान (Retail Trade)"
+        },
+        "services_craft": {
+            "keywords": [
+                "सिलाई", "टेलरिंग", "बुटीक", "सैलून", "ब्यूटी", "पार्लर", "प्लंबर", "इलेक्ट्रीशियन", "कारपेंटर",
+                "लॉन्ड्री", "ड्राई क्लीन", "रिपेयर", "सर्विस", "वर्कशॉप", "मैकेनिक", "वेल्डिंग",
+                "tailor", "boutique", "salon", "beauty", "parlour", "plumber", "electrician", "carpenter", "repair", "service"
+            ],
+            "typical_min": 30000,
+            "typical_max": 300000,
+            "base_prob": 90,
+            "label": "कौशल व सेवा व्यवसाय (Vocational & Services)"
+        },
+        "dairy_agri": {
+            "keywords": [
+                "डेयरी", "गाय", "भैंस", "दूध", "पशुपालन", "पोल्ट्री", "मुर्गी", "बकरी", "मत्स्य", "फार्म", "खेती", "कृषि", "पशु",
+                "dairy", "poultry", "cattle", "milk", "goat", "farming", "fishery", "agriculture", "livestock"
+            ],
+            "typical_min": 50000,
+            "typical_max": 700000,
+            "base_prob": 88,
+            "label": "डेयरी व कृषि आधारित व्यवसाय (Dairy & Agri-Allied)"
+        },
+        "transport_auto": {
+            "keywords": [
+                "ऑटो", "ई-रिक्शा", "रिक्शा", "टैक्सी", "गाड़ी", "वाहन", "ट्रक", "कमर्शियल", "लोडर", "ड्राइवर", "गैरेज",
+                "auto", "e-rickshaw", "rickshaw", "taxi", "transport", "vehicle", "driver", "garage", "logistics"
+            ],
+            "typical_min": 80000,
+            "typical_max": 1000000,
+            "base_prob": 85,
+            "label": "परिवहन व वाहन व्यवसाय (Transport & Logistics)"
+        },
+        "manufacturing_food": {
+            "keywords": [
+                "फैक्ट्री", "कारखाना", "मशीन", "होटल", "ढाबा", "चाय", "रेस्टोरेंट", "बेकरी", "मिठाई", "फूड", "अगरबत्ती", "पैकेजिंग", "हस्तशिल्प",
+                "factory", "manufacturing", "hotel", "restaurant", "food", "bakery", "packaging", "handicraft", "sweets"
+            ],
+            "typical_min": 100000,
+            "typical_max": 2500000,
+            "base_prob": 84,
+            "label": "उत्पादन व खाद्य व्यवसाय (Manufacturing & Food Enterprise)"
+        },
+        "higher_education": {
+            "keywords": [
+                "btech", "b.tech", "mba", "mbbs", "bca", "mca", "bba", "bcom", "b.com", "bsc", "b.sc", "ba", "ma", "msc",
+                "diploma", "iti", "polytechnic", "degree", "course", "engineering", "medical", "law", "llb", "phd", "bed", "nursing",
+                "बीटेक", "एमबीए", "डिप्लोमा", "इंजीनियरिंग", "मेडिकल", "नर्सिंग", "कॉलेज", "विश्वविद्यालय", "पढ़ाई", "शिक्षा", "कोर्स"
+            ],
+            "typical_min": 50000,
+            "typical_max": 3000000,
+            "base_prob": 92,
+            "label": "उच्च / व्यावसायिक शिक्षा (Higher Professional Education)"
+        }
+    }
 
-    if loan_type == "education":
-        clean_edu = re.sub(r"[।.,!?'\"()_-]", "", education_course).lower().strip()
-        if not clean_edu or clean_edu in INVALID_FILLERS or len(clean_edu) < 3 or all(w in INVALID_FILLERS for w in clean_edu.split()):
-            purpose_score = 4
-            purpose_details = f"शिक्षा उद्देश्य अस्पष्ट है: '{education_course}'। कृपया कॉलेज/कोर्स का नाम दर्ज करें।"
-        elif any(k in clean_edu for k in EDUCATION_KEYWORDS):
-            purpose_score = 20
-            purpose_details = f"शिक्षा उद्देश्य स्पष्ट एवं मान्यता प्राप्त है: '{education_course}'"
-        else:
-            purpose_score = 10
-            purpose_details = f"सामान्य शिक्षा विवरण दर्ज: '{education_course}'"
+    raw_purpose = education_course if loan_type == "education" else business_type
+    clean_purpose = clean_purpose_text(raw_purpose)
+    clean_lower = clean_purpose.lower()
 
-    elif loan_type == "business":
-        clean_biz = re.sub(r"[।.,!?'\"()_-]", "", business_type).lower().strip()
-        if not clean_biz or clean_biz in INVALID_FILLERS or len(clean_biz) < 3 or all(w in INVALID_FILLERS for w in clean_biz.split()):
-            purpose_score = 4
-            purpose_details = f"व्यवसाय उद्देश्य अस्पष्ट है: '{business_type}'। कृपया विशिष्ट व्यापार (जैसे किराना, डेयरी) दर्ज करें।"
-        elif any(k in clean_biz for k in BUSINESS_KEYWORDS):
-            purpose_score = 20
-            purpose_details = f"व्यवसाय उद्देश्य स्पष्ट एवं व्यावहारिक है: '{business_type}'"
-        elif len(clean_biz.split()) >= 2:
-            purpose_score = 10
-            purpose_details = f"सामान्य व्यवसाय विवरण: '{business_type}'"
-        else:
-            purpose_score = 4
-            purpose_details = f"अस्पष्ट व्यवसाय उद्देश्य: '{business_type}'"
+    if not clean_purpose or clean_lower in INVALID_FILLERS or len(clean_purpose) < 2:
+        purpose_probability = 25
+        purpose_score = 5
+        purpose_details = "ऋण उद्देश्य अनिर्धारित या बहुत संक्षिप्त है (25% स्पष्टता)।"
     else:
-        purpose_score = 4
-        purpose_details = "ऋण का उद्देश्य या प्रकार अनिर्धारित है।"
+        # Match domain taxonomy (prioritize based on loan_type)
+        matched_domain = None
+        domain_keys = list(DOMAIN_TAXONOMY.keys())
+        if loan_type == "education":
+            domain_keys.remove("higher_education")
+            domain_keys.insert(0, "higher_education")
+
+        for dom_key in domain_keys:
+            dom_val = DOMAIN_TAXONOMY[dom_key]
+            if any(k in clean_lower for k in dom_val["keywords"]):
+                matched_domain = dom_val
+                break
+
+        if matched_domain:
+            prob = matched_domain["base_prob"]
+            label = matched_domain["label"]
+
+            # Factor 1: Capital Scale Feasibility Match
+            if loan_required > 0:
+                if matched_domain["typical_min"] <= loan_required <= matched_domain["typical_max"]:
+                    prob += 4  # Capital demand perfectly matches industry benchmark
+                elif loan_required > matched_domain["typical_max"] * 2:
+                    prob -= 12  # Capital requirement unusually high for this micro venture
+                elif loan_required < matched_domain["typical_min"] * 0.5:
+                    prob -= 4
+
+            # Factor 2: Income-to-Loan Leverage Grounding
+            if annual_income > 0 and loan_required > 0:
+                leverage = loan_required / annual_income
+                if leverage <= 1.5:
+                    prob += 5  # Strong debt service capacity
+                elif leverage <= 3.0:
+                    prob += 2  # Balanced standard leverage
+                elif leverage <= 5.0:
+                    prob -= 2  # Moderate leverage
+                elif leverage <= 8.0:
+                    prob -= 8  # High leverage relative to family income
+                else:
+                    prob -= 15  # Excessive leverage
+
+            purpose_probability = max(30, min(96, int(round(prob))))
+            purpose_score = max(6, min(20, int(round((purpose_probability / 100.0) * 20))))
+
+            status_text = "अत्यधिक व्यावहारिक व अनुकूल" if purpose_probability >= 85 else "व्यावहारिक व उपयुक्त" if purpose_probability >= 70 else "मध्यम व्यावहारिक"
+            display_title = clean_purpose.strip()
+            purpose_details = f"उद्देश्य व्यवहार्यता: {purpose_probability}% ({status_text}) — '{display_title}' ({label}) हेतु मांगी गई राशि आय व बाजार आवश्यकता के अनुरूप है।"
+
+        elif len(clean_purpose.split()) >= 2:
+            # Descriptive purpose without direct keyword hit
+            prob = 68
+            if annual_income > 0 and loan_required > 0:
+                leverage = loan_required / annual_income
+                if leverage <= 2.0:
+                    prob += 4
+                elif leverage > 6.0:
+                    prob -= 8
+
+            purpose_probability = max(35, min(80, int(round(prob))))
+            purpose_score = max(7, min(16, int(round((purpose_probability / 100.0) * 20))))
+            purpose_details = f"उद्देश्य व्यवहार्यता: {purpose_probability}% — '{clean_purpose}' का सामान्य विवरण दर्ज है। प्रोजेक्ट रिपोर्ट से स्पष्टता बढ़ेगी।"
+        else:
+            purpose_probability = 45
+            purpose_score = 9
+            purpose_details = f"उद्देश्य व्यवहार्यता: {purpose_probability}% — '{clean_purpose}' संक्षिप्त विवरण है। कृपया विशिष्ट कार्य योजना जोड़ें।"
 
     # ==========================================
     # 4. Tenure Feasibility (Max: 10 points)

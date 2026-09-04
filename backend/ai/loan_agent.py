@@ -108,14 +108,20 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
         "karna hai", "chahiye", "loan chahiye", "business chahiye", "ek", "chahiye tha"
     }
 
+    def clean_entity_text(val: str) -> str:
+        clean = re.sub(r"[।.,!?'\"()_-]", " ", str(val or "")).strip()
+        tokens = [t for t in clean.split() if t.lower() not in {"मुझे", "चाहिए", "लोन", "loan", "chahiye", "के", "लिए", "karna", "hai", "karni", "krna"}]
+        res = " ".join(tokens).strip()
+        return res if len(res) >= 2 else clean
+
     if active_field == "business_type" or (current_data.get("loan_type") == "business" and not current_data.get("business_type")):
         # Only accept if not an empty filler word and is meaningful
         if cleaned_text.lower() not in INVALID_FILLERS and len(cleaned_text) >= 2 and not parsed_num:
-            extracted["business_type"] = cleaned_text
+            extracted["business_type"] = clean_entity_text(cleaned_text)
 
     if active_field == "education_course" or (current_data.get("loan_type") == "education" and not current_data.get("education_course")):
         if cleaned_text.lower() not in INVALID_FILLERS and len(cleaned_text) >= 2 and not parsed_num:
-            extracted["education_course"] = cleaned_text
+            extracted["education_course"] = clean_entity_text(cleaned_text)
 
     if active_field == "location" or (not current_data.get("location") and not parsed_num and len(cleaned_text) >= 2):
         if cleaned_text.lower() not in INVALID_FILLERS and not extracted.get("business_type") and not extracted.get("loan_type"):
