@@ -30,7 +30,16 @@ Many beneficiaries cannot read written text. You MUST ALWAYS compose your final 
 - Use natural Hindi words (e.g., 'ऋण' or 'लोन', 'व्यवसाय' or 'बिजनेस', 'वार्षिक आय', 'शिक्षा ऋण').
 - Keep sentences short, respectful, and easy to understand when heard aloud.
 
+REQUIRED DOCUMENTS KNOWLEDGE (NSFDC / SCA Schemes):
+1. 🆔 जाति प्रमाण पत्र (SC Caste Certificate) - तहसीलदार या सक्षम प्राधिकारी द्वारा जारी।
+2. 📄 आय प्रमाण पत्र (Family Income Certificate) - परिवार की वार्षिक आय का वैध प्रमाण।
+3. 🪪 पहचान व निवास प्रमाण - आधार कार्ड (Aadhaar Card) / वोटर आईडी / राशन कार्ड।
+4. 🏦 बैंक पासबुक (Bank Account Passbook) - IFSC कोड सहित सक्रिय बैंक खाता।
+5. 📋 व्यवसाय ऋण हेतु: परियोजना रिपोर्ट या कोटेशन (Project Report & Estimate Quotation)
+6. 🎓 शिक्षा ऋण हेतु: कॉलेज प्रवेश पत्र व फीस संरचना (Admission Letter & Fee Structure)
+
 CONVERSATION GUIDELINES & EDGE CASES:
+- If the user asks about DOCUMENTS ("डॉक्यूमेंट्स", "दस्तावेज", "कागजात", "documents needed", "what docs"), ALWAYS list the above 5 essential documents clearly with emojis/bullets in spoken Hindi.
 - If the user says "हाँ", "yes", "हाँ, मुझे", "जी हाँ", "हाँजी", "मुझे लोन चाहिए", "loan chahiye", or expresses intent to take a loan:
   DO NOT repeat the initial greeting ("नमस्ते! मैं योजनासेतु AI सहायक हूँ..."). Instead, warmly ask:
   "जी बहुत बढ़िया! कृपया बताइए कि आपको किस प्रकार का ऋण चाहिए—शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan)?"
@@ -39,23 +48,13 @@ CONVERSATION GUIDELINES & EDGE CASES:
 Your Objectives:
 1. Warmly assist beneficiaries in clear spoken Hindi.
 2. Answer any questions about SC loan schemes, eligibility, required documents, interest rates, and channel partners accurately.
-3. Help collect the following information in a natural, friendly conversation (do not overwhelm them with all questions at once):
+3. Help collect the following information in a natural, friendly conversation:
    - loan_type: "education" or "business"
    - loan_required: loan amount in Rupees (e.g., 200000)
    - business_type (if business loan) or education_course (if education loan)
    - income: annual family income in Rupees (e.g., 300000)
    - location: city/district/state
    - tenure_months: repayment tenure in months (e.g., 36)
-
-Scheme Knowledge:
-- Micro Finance Scheme: Up to ₹1,40,000 | Interest Rate: 6.5% p.a. | Moratorium: 3 months | Ideal for small shops, tailoring, dairy, tea stalls, local trade.
-- Term Loan Scheme: Up to ₹50,00,000 | Interest Rate: 7.0% p.a. | Moratorium: 6 months | Ideal for manufacturing, transport vehicles, machinery, enterprise expansion.
-- Education Loan Scheme: Up to ₹50,00,000 | Interest Rate: 7.0% p.a. | Moratorium: 12 months (course duration + 1 year) | For higher/professional education in India & Abroad.
-- Key Eligibility: Beneficiary belongs to SC category, annual family income criteria (concessional criteria applies), valid Caste Certificate, Aadhaar, Bank Account.
-
-Rules:
-- Be respectful, encouraging, and clear.
-- Always answer questions directly and warmly in Hindi, then prompt for the next detail needed.
 """
 
 def extract_entities_from_text(text: str, current_data: dict, active_field: str = None) -> dict:
@@ -229,8 +228,29 @@ Respond ONLY in valid JSON format with keys:
         if v is not None:
             collected_summary[k] = v
 
-    # Detect affirmative user intent
+    # Detect document query intent
     user_msg_clean = user_message.lower().strip()
+    is_doc_query = any(w in user_msg_clean for w in [
+        "डॉक्यूमेंट", "दस्तावेज", "कागजात", "कागज", "कागज़", "document", "documents",
+        "docs", "paper", "papers", "प्रमाण पत्र", "certificate"
+    ])
+
+    specific_doc_line = (
+        "5. 🎓 **कॉलेज प्रवेश पत्र व फीस विवरण (Admission Letter & Fee Structure)** — शिक्षा ऋण हेतु।"
+        if collected_summary.get("loan_type") == "education"
+        else "5. 📋 **परियोजना रिपोर्ट या कोटेशन (Project Report & Estimate Quotation)** — व्यवसाय ऋण हेतु।"
+    )
+    standard_doc_guidance = (
+        "इस सरकारी ऋण योजना (NSFDC / SCA) के लिए निम्नलिखित मुख्य दस्तावेजों (Documents) की आवश्यकता होती है:\n\n"
+        "1. 🆔 **अनुसूचित जाति प्रमाण पत्र (SC Caste Certificate)** — तहसीलदार या एसडीएम द्वारा जारी।\n"
+        "2. 📄 **पारिवारिक आय प्रमाण पत्र (Family Income Certificate)** — वार्षिक पारिवारिक आय का वैध प्रमाण।\n"
+        "3. 🪪 **पहचान एवं निवास प्रमाण** — आधार कार्ड (Aadhaar Card), वोटर आईडी या राशन कार्ड।\n"
+        "4. 🏦 **बैंक पासबुक (Bank Passbook / Cancelled Cheque)** — IFSC कोड सहित सक्रिय बैंक खाता।\n"
+        f"{specific_doc_line}\n\n"
+        "💡 आप नीचे दिए गए **'दस्तावेज OCR'** सेक्शन में अपने दस्तावेज अपलोड करके उनकी वैधता व तैयारी की तुरंत जांच कर सकते हैं।"
+    )
+
+    # Detect affirmative user intent
     is_affirmative = any(w in user_msg_clean for w in [
         "हाँ", "हां", "जी", "जी हाँ", "जी हां", "हाँजी", "हाजी", "yes", "ha", "haan", "han",
         "yup", "sure", "ok", "okay", "चाहिए", "लोन", "loan"
@@ -238,7 +258,9 @@ Respond ONLY in valid JSON format with keys:
 
     # Fallback reply if AI call failed or didn't return a reply
     if not ai_reply:
-        if not collected_summary.get("loan_type"):
+        if is_doc_query:
+            ai_reply = standard_doc_guidance
+        elif not collected_summary.get("loan_type"):
             if is_affirmative:
                 ai_reply = "जी बहुत बढ़िया! कृपया बताइए कि आपको किस प्रकार का ऋण चाहिए—शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan)?"
             else:
@@ -258,8 +280,13 @@ Respond ONLY in valid JSON format with keys:
         else:
             ai_reply = "धन्यवाद! आपकी सभी जानकारियाँ प्राप्त हो गई हैं। हम आपके लिए सर्वश्रेष्ठ ऋण योजना और ऋण तैयारी स्कोर तैयार कर रहे हैं।"
 
+    # Post-processing: If user asked for documents, ensure detailed document list is present
+    if is_doc_query:
+        if not any(w in ai_reply for w in ["जाति प्रमाण पत्र", "Caste Certificate", "Aadhaar", "आधार"]):
+            ai_reply = standard_doc_guidance
+
     # Post-processing: If user responded affirmatively and loan_type is still not set, ensure prompt directly asks for loan type
-    if not collected_summary.get("loan_type") and is_affirmative:
+    elif not collected_summary.get("loan_type") and is_affirmative:
         if "नमस्ते! मैं योजनासेतु AI सहायक हूँ" in ai_reply or "क्या आप शिक्षा" in ai_reply:
             ai_reply = "जी बहुत बढ़िया! कृपया बताइए कि आपको किस प्रकार का ऋण चाहिए—शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan)?"
 
