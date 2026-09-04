@@ -9,7 +9,7 @@
     <!-- External Icon Library -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20260904-mic-redirect">
 </head>
 
 <body>
@@ -65,9 +65,19 @@
                 <button class="nav-item active">
                     <i class="fa-solid fa-house"></i> होम
                 </button>
-                <button class="nav-item">
-                    <i class="fa-regular fa-file-lines"></i> मेरी आवेदन स्थिति
+                <button class="nav-item" onclick="scrollToSection('readiness-section')">
+                    <i class="fa-solid fa-chart-line"></i> ऋण तैयारी स्कोर
                 </button>
+                <button class="nav-item" onclick="scrollToSection('doc-ocr-section')">
+                    <i class="fa-solid fa-file-shield"></i> दस्तावेज OCR जाँच
+                </button>
+                <button class="nav-item" onclick="scrollToSection('emi-section')">
+                    <i class="fa-solid fa-calculator"></i> EMI कैलकुलेटर
+                </button>
+                <button class="nav-item" onclick="scrollToSection('partner-section')">
+                    <i class="fa-solid fa-map-location-dot"></i> चैनल पार्टनर
+                </button>
+
                 <button class="nav-item">
                     <i class="fa-solid fa-headset"></i> सहायता
                 </button>
@@ -93,7 +103,7 @@
                 </h1>
                 <div class="underline"></div>
                 <p class="intro">
-                    मैं आपकी सरकारी ऋण योजनाओं में जानकारी और आवेदन में मदद करने के लिए यहाँ हूँ।
+                    मैं आपकी सरकारी ऋण योजनाओं में जानकारी, पात्रता, और ऋण तैयारी स्कोर (Readiness Score) के मूल्यांकन में मदद करने के लिए यहाँ हूँ।
                 </p>
 
                 <!-- ================= AI ASSISTANT ================= -->
@@ -188,6 +198,7 @@
                     <h3>बोलने के लिए बटन दबाएँ</h3>
                     <p>मैं आपकी बात सुन रहा हूँ...</p>
                 </div>
+
                 <!-- ================= AI ASSISTANT & CHAT INTERACTIVE AREA ================= -->
                 <div class="chat-container">
                     <div class="chat-header">
@@ -196,10 +207,15 @@
                     </div>
 
                     <div id="chat-messages" class="chat-messages">
-                        <div class="message bot-message">
+                        <div id="msg-init" class="message bot-message">
                             <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
-                            <div class="msg-content">
-                                <strong>नमस्ते!</strong> मैं आपका AI सहायता एजेंट हूँ। आपको किस प्रकार का ऋण चाहिए? (शिक्षा ऋण / व्यवसाय ऋण)
+                            <div class="msg-content-wrapper">
+                                <div class="msg-content">
+                                    <strong>नमस्ते!</strong> मैं आपका AI सहायता एजेंट हूँ। आपको किस प्रकार का ऋण चाहिए? (शिक्षा ऋण / व्यवसाय ऋण)
+                                </div>
+                                <button type="button" class="chat-listen-btn" title="आवाज़ सुनें (Listen Voice)" onclick="speakChatMessage('msg-init')">
+                                    <i class="fa-solid fa-volume-high"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -208,9 +224,12 @@
                     <div class="prompt-chips">
                         <button class="chip-btn" data-msg="I need an Education Loan for my studies">🎓 शिक्षा ऋण (Education Loan)</button>
                         <button class="chip-btn" data-msg="I need a Business Loan for a new shop">💼 व्यवसाय ऋण (Business Loan)</button>
+                        <button class="chip-btn" onclick="scrollToSection('readiness-section')">📊 तैयारी स्कोर (Readiness)</button>
+                        <button class="chip-btn" onclick="scrollToSection('doc-ocr-section')">📄 दस्तावेज OCR (Doc OCR)</button>
                         <button class="chip-btn" onclick="scrollToSection('emi-section')">🧮 EMI कैलकुलेटर</button>
                         <button class="chip-btn" onclick="scrollToSection('partner-section')">🏦 नजदीकी चैनल पार्टनर</button>
                     </div>
+
 
                     <!-- Chat Input Box -->
                     <form id="chat-form" class="chat-input-area">
@@ -251,7 +270,252 @@
                             <strong id="rec-total-payable">₹0</strong>
                         </div>
                     </div>
+
+                    <!-- ================= LOAN READINESS SCORE ASSESSMENT ================= -->
+                    <div id="rec-readiness-box" class="readiness-assessment-box" style="margin-top: 20px;">
+                        <div class="readiness-header-row">
+                            <div class="readiness-title-group">
+                                <h3><i class="fa-solid fa-gauge-high"></i> आपका ऋण तैयारी स्कोर (Loan Readiness Score)</h3>
+                                <p id="rec-readiness-summary">आपकी दी गई जानकारी के आधार पर मूल्यांकन।</p>
+                            </div>
+                            <div id="rec-readiness-badge" class="readiness-status-badge">85 / 100 — उत्कृष्ट</div>
+                        </div>
+
+                        <div class="readiness-body-grid">
+                            <!-- Gauge Visual -->
+                            <div class="readiness-gauge-wrap">
+                                <div class="readiness-gauge">
+                                    <svg viewBox="0 0 120 120" class="gauge-svg">
+                                        <circle cx="60" cy="60" r="50" class="gauge-bg"></circle>
+                                        <circle id="rec-gauge-circle" cx="60" cy="60" r="50" class="gauge-fill" stroke-dasharray="314" stroke-dashoffset="60"></circle>
+                                    </svg>
+                                    <div class="gauge-center-text">
+                                        <span id="rec-readiness-score-num">85</span>
+                                        <small>/ 100</small>
+                                    </div>
+                                </div>
+                                <span id="rec-readiness-band-label" class="gauge-caption">उत्कृष्ट तैयारी</span>
+                            </div>
+
+                            <!-- Pillars Breakdown -->
+                            <div class="readiness-pillars-list" id="rec-readiness-pillars">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Tips & Advice Box -->
+                        <div class="readiness-tips-box">
+                            <h4><i class="fa-solid fa-lightbulb"></i> ऋण तैयारी बेहतर करने के सुझाव (Actionable Guidance)</h4>
+                            <ul id="rec-readiness-tips">
+                                <!-- Populated dynamically -->
+                            </ul>
+                        </div>
+
+                        <!-- Document Readiness Checklist -->
+                        <div class="readiness-docs-box">
+                            <h4><i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज चेकलिस्ट (Required Documents)</h4>
+                            <div class="docs-grid" id="rec-readiness-docs">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- ================= STANDALONE READINESS SCORE SIMULATOR ================= -->
+                <section id="readiness-section" class="interactive-widget-card">
+                    <div class="widget-header">
+                        <div class="widget-icon" style="background: linear-gradient(135deg, #10b981, #059669); color: white;"><i class="fa-solid fa-chart-pie"></i></div>
+                        <div>
+                            <h2>ऋण तैयारी स्कोर सिम्युलेटर (Loan Readiness Simulator)</h2>
+                            <p>अपनी आय, ऋण मांग और अवधि बदलकर देखें कि आपका लोन अप्रूवल स्कोर कितना बनता है</p>
+                        </div>
+                    </div>
+                    <form id="readiness-sim-form" class="widget-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="sim-loan-type">ऋण का प्रकार (Loan Type)</label>
+                                <select id="sim-loan-type" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
+                                    <option value="business">💼 व्यवसाय ऋण (Business Loan)</option>
+                                    <option value="education">🎓 शिक्षा ऋण (Education Loan)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-loan-amount">आवश्यक ऋण राशि (Loan Required ₹)</label>
+                                <input type="number" id="sim-loan-amount" value="120000" min="10000" step="10000" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-income">वार्षिक पारिवारिक आय (Annual Income ₹)</label>
+                                <input type="number" id="sim-income" value="300000" min="10000" step="10000" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-tenure">पुनर्भुगतान अवधि (Tenure Months)</label>
+                                <input type="number" id="sim-tenure" value="36" min="6" max="120" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-purpose">व्यवसाय या कोर्स का नाम (Purpose / Course)</label>
+                                <input type="text" id="sim-purpose" value="किराना दुकान (Grocery Store)" placeholder="उदा. सिलाई, दुकान, B.Tech" required />
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-location">आपका जिला / शहर (City / Location)</label>
+                                <input type="text" id="sim-location" value="कुरुक्षेत्र (Kurukshetra)" placeholder="उदा. करनाल, अंबाला, दिल्ली" required />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #059669, #047857);"><i class="fa-solid fa-calculator"></i> स्कोर की गणना करें (Calculate Readiness)</button>
+                    </form>
+
+                    <div id="sim-result-box" class="readiness-assessment-box" style="display: none; margin-top: 20px; background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b;">
+                        <div class="readiness-header-row">
+                            <div class="readiness-title-group">
+                                <h3 style="color: #0f172a;"><i class="fa-solid fa-award"></i> मूल्यांकित ऋण तत्परता स्कोर</h3>
+                                <p id="sim-readiness-summary" style="color: #64748b;">विवरण</p>
+                            </div>
+                            <div id="sim-readiness-badge" class="readiness-status-badge">85 / 100</div>
+                        </div>
+
+                        <div class="readiness-body-grid">
+                            <div class="readiness-gauge-wrap">
+                                <div class="readiness-gauge">
+                                    <svg viewBox="0 0 120 120" class="gauge-svg">
+                                        <circle cx="60" cy="60" r="50" class="gauge-bg" style="stroke: #e2e8f0;"></circle>
+                                        <circle id="sim-gauge-circle" cx="60" cy="60" r="50" class="gauge-fill" stroke-dasharray="314" stroke-dashoffset="60"></circle>
+                                    </svg>
+                                    <div class="gauge-center-text">
+                                        <span id="sim-readiness-score-num" style="color: #0f172a;">85</span>
+                                        <small style="color: #64748b;">/ 100</small>
+                                    </div>
+                                </div>
+                                <span id="sim-readiness-band-label" class="gauge-caption" style="color: #059669;">उत्कृष्ट तैयारी</span>
+                            </div>
+
+                            <div class="readiness-pillars-list" id="sim-readiness-pillars">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <div class="readiness-tips-box" style="background: #f8fafc; border-color: #e2e8f0; color: #334155;">
+                            <h4 style="color: #1e293b;"><i class="fa-solid fa-lightbulb" style="color: #f59e0b;"></i> सुधार सुझाव (Recommendations)</h4>
+                            <ul id="sim-readiness-tips" style="color: #475569;"></ul>
+                        </div>
+
+                        <div class="readiness-docs-box" style="background: #f8fafc; border-color: #e2e8f0;">
+                            <h4 style="color: #1e293b;"><i class="fa-solid fa-folder-open" style="color: #0284c7;"></i> चेकलिस्ट (Document Checklist)</h4>
+                            <div class="docs-grid" id="sim-readiness-docs"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ================= DOCUMENT OCR & SCHEME READINESS VERIFICATION ================= -->
+                <section id="doc-ocr-section" class="interactive-widget-card">
+                    <div class="widget-header">
+                        <div class="widget-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white;">
+                            <i class="fa-solid fa-file-shield"></i>
+                        </div>
+                        <div>
+                            <h2>दस्तावेज OCR व पात्रता सत्यापन (Document OCR & Scheme Readiness)</h2>
+                            <p>अपने प्रमाण पत्र (जाति, आय, आधार, पासबुक, प्रोजेक्ट रिपोर्ट) अपलोड करें और योजना हेतु 100% तैयारी जांचें</p>
+                        </div>
+                    </div>
+
+                    <!-- Upload Controls Area -->
+                    <div class="ocr-upload-container">
+                        <div class="ocr-dropzone" id="ocr-dropzone">
+                            <input type="file" id="ocr-file-input" multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.txt" style="display: none;" />
+                            <div class="dropzone-inner">
+                                <div class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                                <h3>यहाँ दस्तावेज खींचें या चयन करें (Upload Documents)</h3>
+                                <p>जाति प्रमाण पत्र, आय प्रमाण पत्र, आधार कार्ड, बैंक पासबुक या प्रोजेक्ट रिपोर्ट (JPG, PNG, PDF, TXT)</p>
+                                <div class="dropzone-actions">
+                                    <button type="button" class="btn-primary" onclick="document.getElementById('ocr-file-input').click()">
+                                        <i class="fa-solid fa-folder-open"></i> फ़ाइलें चुनें (Browse Files)
+                                    </button>
+                                    <button type="button" id="ocr-camera-btn" class="btn-secondary">
+                                        <i class="fa-solid fa-camera"></i> कैमरा से फोटो लें (Camera)
+                                    </button>
+                                    <button type="button" id="ocr-sample-btn" class="btn-secondary" style="background: #eef2ff; color: #4338ca; border-color: #c7d2fe;">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i> डेमो दस्तावेज लोड करें (Demo Sample)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Selected Files Staging List -->
+                        <div id="ocr-staged-files" class="staged-files-list" style="display: none;">
+                            <div class="staged-header">
+                                <strong><i class="fa-solid fa-paperclip"></i> चयनित दस्तावेज (<span id="staged-count">0</span> फ़ाइलें):</strong>
+                                <button type="button" id="clear-staged-btn" class="btn-text-danger"><i class="fa-solid fa-trash-can"></i> सभी हटाएँ</button>
+                            </div>
+                            <div id="staged-chips-container" class="staged-chips"></div>
+
+                            <div class="ocr-submit-row">
+                                <div class="ocr-scheme-selector">
+                                    <label for="ocr-scheme-type">ऋण श्रेणी:</label>
+                                    <select id="ocr-scheme-type" class="custom-select" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                                        <option value="business">💼 व्यवसाय ऋण (Micro Finance / Term Loan)</option>
+                                        <option value="education">🎓 शिक्षा ऋण (Education Loan)</option>
+                                    </select>
+                                </div>
+                                <button type="button" id="start-ocr-btn" class="btn-primary" style="background: linear-gradient(135deg, #4f46e5, #4338ca); padding: 12px 24px;">
+                                    <i class="fa-solid fa-bolt-lightning"></i> AI OCR से स्कैन व सत्यापन करें
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OCR Processing Scanning Bar -->
+                    <div id="ocr-scanning-loader" class="ocr-scan-banner" style="display: none;">
+                        <div class="scanner-laser"></div>
+                        <div class="scanner-text">
+                            <i class="fa-solid fa-microchip fa-spin"></i> AI Vision & OCR इंजन दस्तावेजों का विश्लेषण कर रहा है...
+                        </div>
+                    </div>
+
+                    <!-- OCR Verification Results Output Box -->
+                    <div id="ocr-results-box" class="readiness-assessment-box" style="display: none; margin-top: 22px; background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b;">
+                        <div class="readiness-header-row">
+                            <div class="readiness-title-group">
+                                <h3 style="color: #0f172a;"><i class="fa-solid fa-file-circle-check" style="color: #4f46e5;"></i> दस्तावेज सत्यापन रिपोर्ट (Verification Report)</h3>
+                                <p id="ocr-report-summary" style="color: #64748b;">योजना पात्रता के अनुसार दस्तावेजों की स्थिति।</p>
+                            </div>
+                            <div id="ocr-overall-badge" class="readiness-status-badge" style="background: #10b981;">100% तैयार — आवेदन हेतु तैयार</div>
+                        </div>
+
+                        <!-- Progress Bar for Document Readiness -->
+                        <div class="doc-readiness-bar-wrap" style="margin: 14px 0 20px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 6px;">
+                                <span style="color: #334155;">दस्तावेज पूर्णता स्कोर (Readiness)</span>
+                                <span id="ocr-progress-label" style="color: #4f46e5;">4 / 4 दस्तावेज सत्यापित (100%)</span>
+                            </div>
+                            <div style="height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
+                                <div id="ocr-progress-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #6366f1, #10b981); transition: width 0.8s ease;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Verified Document Cards Grid -->
+                        <h4 style="margin: 16px 0 10px 0; color: #0f172a; font-size: 15px;"><i class="fa-solid fa-list-check" style="color: #0284c7;"></i> सत्यापित दस्तावेज विवरण (Extracted Entities):</h4>
+                        <div id="verified-docs-grid" class="verified-cards-grid">
+                            <!-- Populated dynamically -->
+                        </div>
+
+                        <!-- Scheme Mandatory Document Checklist -->
+                        <div class="readiness-docs-box" style="background: #f8fafc; border-color: #e2e8f0; margin-top: 18px;">
+                            <h4 style="color: #1e293b;"><i class="fa-solid fa-clipboard-check" style="color: #10b981;"></i> योजना अनुसार चेकलिस्ट स्थिति (Required Checklist Status)</h4>
+                            <div class="checklist-grid" id="ocr-checklist-items">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Direct Next Action Callout -->
+                        <div id="ocr-next-action" class="ocr-action-card" style="margin-top: 18px; padding: 14px 18px; background: #eff6ff; border-radius: 10px; border-left: 4px solid #0072bc; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
+                            <div>
+                                <strong style="color: #003366; display: block; font-size: 14px;">🎯 अगला कदम (Next Step):</strong>
+                                <span style="font-size: 13px; color: #475569;">दस्तावेज सत्यापित हैं! अब अपने निकटतम NSFDC चैनल पार्टनर से संपर्क करें।</span>
+                            </div>
+                            <button type="button" class="btn-primary" onclick="scrollToSection('partner-section')">
+                                <i class="fa-solid fa-map-location-dot"></i> नजदीकी चैनल पार्टनर देखें
+                            </button>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- ================= EMI CALCULATOR WIDGET ================= -->
                 <section id="emi-section" class="interactive-widget-card">
@@ -350,11 +614,11 @@
 
                 <div class="step" style="display: flex; align-items: center; gap: 15px; flex: 1;">
                     <div class="step-icon" style="width: 55px; height: 55px; min-width: 55px; border: 3px solid #dbe4f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #ffffff;">
-                        <i class="fa-solid fa-robot" style="color: #003366; font-size: 22px;"></i>
+                        <i class="fa-solid fa-gauge-high" style="color: #003366; font-size: 22px;"></i>
                     </div>
                     <div style="text-align: left;">
-                        <b style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">2. योजनासेतु आपकी मदद करेगा</b>
-                        <span style="font-size: 13px; color: #666;">सही योजना और जानकारी बताएगा</span>
+                        <b style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">2. तैयारी स्कोर व योजना पाएँ</b>
+                        <span style="font-size: 13px; color: #666;">तत्परता स्कोर व सही योजना</span>
                     </div>
                 </div>
 
@@ -393,6 +657,10 @@
             <!-- Help List -->
             <section class="help-list">
                 <div class="help-row">
+                    <span class="custom-icon"><i class="fa-solid fa-chart-line"></i></span>
+                    <p>ऋण तत्परता स्कोर (Readiness Score) मूल्यांकन</p>
+                </div>
+                <div class="help-row">
                     <span class="custom-icon"><i class="fa-solid fa-hand-holding-dollar"></i></span>
                     <p>सरकारी ऋण योजनाओं की जानकारी</p>
                 </div>
@@ -407,10 +675,6 @@
                 <div class="help-row">
                     <span class="custom-icon"><i class="fa-solid fa-building-columns"></i></span>
                     <p>नजदीकी सहायता केंद्र खोजने में मदद</p>
-                </div>
-                <div class="help-row">
-                    <span class="custom-icon"><i class="fa-solid fa-headset"></i></span>
-                    <p>हर कदम पर आपकी सहायता</p>
                 </div>
             </section>
 
@@ -427,8 +691,11 @@
         </aside>
     </div>
 
+    <!-- Dedicated Audio Player for Hindi Speech Streaming -->
+    <audio id="voice-stream-player" preload="auto" style="display: none;"></audio>
+
     <!-- Frontend Script Connection to FastAPI -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="script.js?v=20260902-hindi-voice"></script>
+    <script src="script.js?v=20260904-clear-input-v5"></script>
 </body>
 </html>

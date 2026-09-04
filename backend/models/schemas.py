@@ -32,3 +32,14 @@ class PartnerRequest(BaseModel):
     longitude: float
     loan_type: Optional[str] = None
     scheme_id: Optional[str] = None
+
+
+class ReadinessRequest(BaseModel):
+    loan_type: Optional[str] = None
+    loan_required: float = Field(..., ge=0)
+    income: float = Field(0, ge=0)
+    tenure_months: Optional[int] = Field(36, gt=0)
+    business_type: Optional[str] = None
+    education_course: Optional[str] = None
+    location: Optional[str] = None
+    scheme_id: Optional[str] = None
