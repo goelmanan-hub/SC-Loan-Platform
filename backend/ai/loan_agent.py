@@ -30,6 +30,12 @@ Many beneficiaries cannot read written text. You MUST ALWAYS compose your final 
 - Use natural Hindi words (e.g., 'ऋण' or 'लोन', 'व्यवसाय' or 'बिजनेस', 'वार्षिक आय', 'शिक्षा ऋण').
 - Keep sentences short, respectful, and easy to understand when heard aloud.
 
+CONVERSATION GUIDELINES & EDGE CASES:
+- If the user says "हाँ", "yes", "हाँ, मुझे", "जी हाँ", "हाँजी", "मुझे लोन चाहिए", "loan chahiye", or expresses intent to take a loan:
+  DO NOT repeat the initial greeting ("नमस्ते! मैं योजनासेतु AI सहायक हूँ..."). Instead, warmly ask:
+  "जी बहुत बढ़िया! कृपया बताइए कि आपको किस प्रकार का ऋण चाहिए—शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan)?"
+- Never repeat the introductory greeting once conversation has started.
+
 Your Objectives:
 1. Warmly assist beneficiaries in clear spoken Hindi.
 2. Answer any questions about SC loan schemes, eligibility, required documents, interest rates, and channel partners accurately.
@@ -217,10 +223,20 @@ Respond ONLY in valid JSON format with keys:
         if v is not None:
             collected_summary[k] = v
 
+    # Detect affirmative user intent
+    user_msg_clean = user_message.lower().strip()
+    is_affirmative = any(w in user_msg_clean for w in [
+        "हाँ", "हां", "जी", "जी हाँ", "जी हां", "हाँजी", "हाजी", "yes", "ha", "haan", "han",
+        "yup", "sure", "ok", "okay", "चाहिए", "लोन", "loan"
+    ])
+
     # Fallback reply if AI call failed or didn't return a reply
     if not ai_reply:
         if not collected_summary.get("loan_type"):
-            ai_reply = "नमस्ते! मैं योजनासेतु AI सहायक हूँ। क्या आप शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan) के लिए आवेदन करना चाहते हैं?"
+            if is_affirmative:
+                ai_reply = "जी बहुत बढ़िया! कृपया बताइए कि आपको किस प्रकार का ऋण चाहिए—शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan)?"
+            else:
+                ai_reply = "नमस्ते! क्या आप शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan) के लिए आवेदन करना चाहते हैं?"
         elif not collected_summary.get("loan_required"):
             ai_reply = "बहुत अच्छा! आपको इस कार्य के लिए कितनी ऋण राशि (Loan Amount) की आवश्यकता होगी? (जैसे: 2 लाख रुपये या 5 लाख रुपये)"
         elif collected_summary.get("loan_type") == "business" and not collected_summary.get("business_type"):
@@ -235,6 +251,11 @@ Respond ONLY in valid JSON format with keys:
             ai_reply = "आप यह ऋण कितने समय में चुकाना चाहते हैं? (उदाहरण: 3 वर्ष या 36 महीने)"
         else:
             ai_reply = "धन्यवाद! आपकी सभी जानकारियाँ प्राप्त हो गई हैं। हम आपके लिए सर्वश्रेष्ठ ऋण योजना और ऋण तैयारी स्कोर तैयार कर रहे हैं।"
+
+    # Post-processing: If user responded affirmatively and loan_type is still not set, ensure prompt directly asks for loan type
+    if not collected_summary.get("loan_type") and is_affirmative:
+        if "नमस्ते! मैं योजनासेतु AI सहायक हूँ" in ai_reply or "क्या आप शिक्षा" in ai_reply:
+            ai_reply = "जी बहुत बढ़िया! कृपया बताइए कि आपको किस प्रकार का ऋण चाहिए—शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan)?"
 
     # Save to history
     history.append({"role": "user", "content": user_message})
