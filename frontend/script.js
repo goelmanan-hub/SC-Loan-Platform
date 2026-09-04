@@ -606,6 +606,30 @@ async function handleUserChatMessage(userText) {
             appendChatMessage("bot", data.message);
             updateSpeakerBubble(data.message);
             speakText(data.message);
+
+            // Auto-redirect to Document OCR section if message explains or inquires about documents
+            const isDocQueryOrResponse = (data.message && (
+                data.message.includes("दस्तावेज OCR") ||
+                data.message.includes("जाति प्रमाण पत्र") ||
+                data.message.includes("Caste Certificate") ||
+                data.message.includes("दस्तावेजों (Documents)")
+            )) || (userText && (
+                userText.toLowerCase().includes("डॉक्यूमेंट") ||
+                userText.toLowerCase().includes("दस्तावेज") ||
+                userText.toLowerCase().includes("कागजात") ||
+                userText.toLowerCase().includes("document")
+            ));
+
+            if (isDocQueryOrResponse) {
+                setTimeout(() => {
+                    scrollToSection("doc-ocr-section");
+                    const ocrSec = document.getElementById("doc-ocr-section");
+                    if (ocrSec) {
+                        ocrSec.classList.add("chat-highlight-pulse");
+                        setTimeout(() => ocrSec.classList.remove("chat-highlight-pulse"), 2500);
+                    }
+                }, 1400);
+            }
         }
 
         // If conversation is complete, render recommendation and readiness score
@@ -646,10 +670,26 @@ function appendChatMessage(sender, text) {
         ? `<button type="button" class="chat-listen-btn" title="आवाज़ सुनें (Listen Voice)" onclick="speakChatMessage('${msgId}')"><i class="fa-solid fa-volume-high"></i></button>`
         : '';
 
+    // Format newlines and markdown bold text cleanly
+    let formattedText = typeof text === "string"
+        ? text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>")
+        : text;
+
+    // Add direct CTA button if bot is describing documents
+    if (sender === "bot" && typeof text === "string" && (text.includes("दस्तावेज OCR") || text.includes("जाति प्रमाण पत्र") || text.includes("Caste Certificate"))) {
+        formattedText += `
+            <div style="margin-top: 10px;">
+                <button type="button" class="btn-primary" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="scrollToSection('doc-ocr-section')">
+                    <i class="fa-solid fa-file-shield"></i> दस्तावेज OCR पर जाएँ व सत्यापित करें
+                </button>
+            </div>
+        `;
+    }
+
     msgDiv.innerHTML = `
         <div class="msg-avatar"><i class="fa-solid ${avatarIcon}"></i></div>
         <div class="msg-content-wrapper">
-            <div class="msg-content">${text}</div>
+            <div class="msg-content">${formattedText}</div>
             ${listenBtn}
         </div>
     `;

@@ -2055,3 +2055,24 @@ button {
     color: #991b1b;
 }
 
+/* Visual Pulse Highlight on Redirect */
+@keyframes highlightSectionPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+        border-color: #6366f1;
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(99, 102, 241, 0);
+        border-color: #4f46e5;
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    }
+}
+
+.chat-highlight-pulse {
+    animation: highlightSectionPulse 1.8s ease-in-out infinite;
+    border-color: #6366f1 !important;
+}
+
+
