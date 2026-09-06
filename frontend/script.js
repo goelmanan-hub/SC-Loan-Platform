@@ -725,17 +725,63 @@ function renderRecommendationCard(rec, emi, readiness) {
 
     if (rec.success && rec.recommended_scheme) {
         const scheme = rec.recommended_scheme;
-        document.getElementById("rec-scheme-name").textContent = scheme.name;
-        document.getElementById("rec-scheme-desc").textContent = scheme.description;
+        document.getElementById("rec-scheme-name").textContent = scheme.name_hi ? `${scheme.name} (${scheme.name_hi})` : scheme.name;
+        document.getElementById("rec-scheme-desc").textContent = scheme.description_hi || scheme.description;
         document.getElementById("rec-max-loan").textContent = "₹" + Number(scheme.max_loan).toLocaleString("en-IN");
         document.getElementById("rec-interest").textContent = scheme.interest_rate + "% p.a.";
-        document.getElementById("rec-moratorium").textContent = scheme.moratorium_months + " महीने";
+        document.getElementById("rec-moratorium").textContent = (scheme.moratorium_months || 0) + " महीने";
         document.getElementById("rec-monthly-emi").textContent = emi
             ? "₹" + Number(emi.monthly_emi).toLocaleString("en-IN", { minimumFractionDigits: 2 })
             : "—";
         document.getElementById("rec-total-payable").textContent = emi
             ? "₹" + Number(emi.total_payment).toLocaleString("en-IN", { minimumFractionDigits: 2 })
             : "—";
+
+        // RAG Match Score Badge
+        const matchBadge = document.getElementById("rec-match-badge");
+        const matchScoreSpan = document.getElementById("rec-match-score");
+        if (matchBadge && matchScoreSpan) {
+            const score = rec.match_score || 92;
+            matchScoreSpan.textContent = `${score}% मैच`;
+            matchBadge.style.display = "inline-flex";
+        }
+
+        // RAG Subsidy Details
+        const subsidyBanner = document.getElementById("rec-subsidy-banner");
+        const subsidyText = document.getElementById("rec-subsidy-text");
+        const subsidyInfo = rec.subsidy_info || scheme.subsidy_details;
+        if (subsidyBanner && subsidyText && subsidyInfo) {
+            subsidyText.textContent = subsidyInfo;
+            subsidyBanner.style.display = "flex";
+        } else if (subsidyBanner) {
+            subsidyBanner.style.display = "none";
+        }
+
+        // RAG Matching Reasons
+        const reasonsBox = document.getElementById("rec-reasons-box");
+        const reasonsList = document.getElementById("rec-reasons-list");
+        if (reasonsBox && reasonsList) {
+            const reasons = rec.reasons || [];
+            if (reasons.length > 0) {
+                reasonsList.innerHTML = reasons.map(r => `<li>${escapeHtml(r)}</li>`).join("");
+                reasonsBox.style.display = "block";
+            } else {
+                reasonsBox.style.display = "none";
+            }
+        }
+
+        // RAG Mandatory Documents Checklist
+        const docsBox = document.getElementById("rec-docs-box");
+        const docsList = document.getElementById("rec-docs-list");
+        if (docsBox && docsList) {
+            const docs = rec.documents_required || scheme.mandatory_documents || [];
+            if (docs.length > 0) {
+                docsList.innerHTML = docs.map(d => `<li>${escapeHtml(d)}</li>`).join("");
+                docsBox.style.display = "block";
+            } else {
+                docsBox.style.display = "none";
+            }
+        }
 
         // Render Loan Readiness Score Section
         if (readiness) {

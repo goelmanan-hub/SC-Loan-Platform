@@ -6,10 +6,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YojnaSetu — NSFDC Loan Assistance Platform</title>
     
-    <!-- External Icon Library -->
+    <!-- External Icon Library & Map -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="style.css?v=20260904-mic-redirect">
+
+    <!-- Tailwind CSS v3 CDN & Custom Theme Configuration -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            navy: '#003366',
+                            dark: '#102a67',
+                            accent: '#173e8b',
+                            blue: '#0072bc',
+                            primary: '#1549a7',
+                            green: '#39b54a',
+                            greenDark: '#2e7d32',
+                            saffron: '#ea580c',
+                            gold: '#f59e0b',
+                            bg: '#f7faff',
+                            border: '#dce5f6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans Devanagari"', '"Segoe UI"', 'Arial', 'sans-serif'],
+                        devanagari: ['"Noto Sans Devanagari"', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="style.css?v=20260905-tailwind">
 </head>
 
 <body>
@@ -245,7 +276,10 @@
 
                 <!-- ================= RECOMMENDED SCHEME DISPLAY ================= -->
                 <div id="recommendation-card" class="recommendation-card" style="display: none;">
-                    <div class="card-badge"><i class="fa-solid fa-star"></i> अनुशंसित योजना (Recommended Scheme)</div>
+                    <div class="rag-badges-row">
+                        <div class="card-badge"><i class="fa-solid fa-star"></i> अनुशंसित योजना (Recommended Scheme)</div>
+                        <div id="rec-match-badge" class="rag-match-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> <span id="rec-match-score">95% मैच</span> (RAG AI Match)</div>
+                    </div>
                     <h2 id="rec-scheme-name">Scheme Name</h2>
                     <p id="rec-scheme-desc">Scheme Description</p>
                     <div class="rec-details">
@@ -269,6 +303,24 @@
                             <span>कुल भुगतान</span>
                             <strong id="rec-total-payable">₹0</strong>
                         </div>
+                    </div>
+
+                    <!-- Subsidy Highlight Banner -->
+                    <div id="rec-subsidy-banner" class="rag-subsidy-box" style="display: none;">
+                        <i class="fa-solid fa-gift"></i>
+                        <span id="rec-subsidy-text">विशेष सरकारी सब्सिडी व ब्याज छूट उपलब्ध है।</span>
+                    </div>
+
+                    <!-- RAG Matching Reasons -->
+                    <div id="rec-reasons-box" class="rag-reasons-box" style="display: none;">
+                        <h4><i class="fa-solid fa-circle-check"></i> यह योजना आपके लिए क्यों उपयुक्त है (RAG Match Reasons):</h4>
+                        <ul id="rec-reasons-list"></ul>
+                    </div>
+
+                    <!-- Required Documents Checklist -->
+                    <div id="rec-docs-box" class="rag-docs-box" style="display: none;">
+                        <h4><i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज (Mandatory Documents Checklist):</h4>
+                        <ul id="rec-docs-list"></ul>
                     </div>
 
                     <!-- ================= LOAN READINESS SCORE ASSESSMENT ================= -->

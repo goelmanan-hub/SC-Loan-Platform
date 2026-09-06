@@ -1,14 +1,18 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 
 class SchemeRequest(BaseModel):
-    income: float = Field(..., ge=0)
+    income: float = Field(0, ge=0)
     project_type: Optional[str] = None
+    business_type: Optional[str] = None
     project_cost: float = Field(0, ge=0)
     loan_required: float = Field(..., ge=0)
     education_status: Optional[str] = None
+    education_course: Optional[str] = None
     loan_type: Optional[str] = None
+    gender: Optional[str] = None
+    location: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
@@ -16,6 +20,11 @@ class SchemeRequest(BaseModel):
 class SchemeResponse(BaseModel):
     success: bool
     recommended_scheme: Optional[dict] = None
+    match_score: Optional[int] = 0
+    reasons: Optional[List[str]] = []
+    subsidy_info: Optional[str] = ""
+    documents_required: Optional[List[str]] = []
+    hindi_explanation: Optional[str] = ""
     alternatives: list = []
     message: str = ""
 
@@ -41,5 +50,6 @@ class ReadinessRequest(BaseModel):
     tenure_months: Optional[int] = Field(36, gt=0)
     business_type: Optional[str] = None
     education_course: Optional[str] = None
+    gender: Optional[str] = None
     location: Optional[str] = None
-    scheme_id: Optional[str] = None
+    scheme_id: Optional[str] = None

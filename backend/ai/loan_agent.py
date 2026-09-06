@@ -3,6 +3,7 @@ import json
 import re
 from dotenv import load_dotenv
 from openai import OpenAI
+from services.rag_service import retrieve_candidate_schemes, build_rag_scheme_context
 
 load_dotenv()
 
@@ -157,16 +158,23 @@ def chat_with_loan_agent(session_id: str, user_message: str, current_session: di
     ai_reply = None
     extracted_from_llm = {}
 
+    # Retrieve RAG scheme knowledge context based on current parameters and user message
+    rag_candidates = retrieve_candidate_schemes({**collected_summary, "additional_info": user_message}, top_k=2)
+    rag_context = build_rag_scheme_context(rag_candidates)
+
     if client:
         try:
             instruction = f"""
 Current Session State: {json.dumps(collected_summary, ensure_ascii=False)}
 Active Question Field: {active_field}
 
+Relevant Official Scheme Knowledge (RAG Context):
+{rag_context}
+
 User just said: "{user_message}"
 
 Tasks:
-1. Generate a friendly, empathetic response in simple spoken Hindi (Devanagari script) acknowledging what they just said and asking for the NEXT missing detail politely.
+1. Generate a friendly, empathetic response in simple spoken Hindi (Devanagari script) acknowledging what they just said and answering any questions using the Scheme Knowledge above. If information is still missing, ask for the NEXT missing detail politely.
 2. Extract any newly provided values from the user's message:
    - loan_type ("education" or "business")
    - loan_required (number in rupees)
@@ -196,7 +204,7 @@ Respond ONLY in valid JSON format with keys:
             response = client.chat.completions.create(
                 model="openrouter/auto",
                 messages=messages,
-                max_tokens=400,
+                max_tokens=450,
                 temperature=0.6
             )
 
