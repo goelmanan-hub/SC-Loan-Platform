@@ -1,108 +1,107 @@
 import os
 import json
 import re
+from typing import Dict, Any, Optional
 from dotenv import load_dotenv
-from openai import OpenAI
+
+from services.ai_client import get_ai_client
 from services.rag_service import retrieve_candidate_schemes, build_rag_scheme_context
 
 load_dotenv()
 
-API_KEY = os.getenv("OPENROUTER_API_KEY")
-
-client = None
-if API_KEY:
-    try:
-        client = OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=API_KEY
-        )
-    except Exception as e:
-        print("Failed to initialize OpenAI client:", e)
-
 # Conversation history cache per session
-SESSION_HISTORIES = {}
+SESSION_HISTORIES: Dict[str, list] = {}
 
 SYSTEM_PROMPT = """
-You are "YojanaSetu AI" (योजनासेतु), an empathetic, intelligent AI Loan Assistant for Scheduled Caste (SC) beneficiaries seeking government-backed concessional loans (NSFDC / SCA schemes).
+You are "YojanaSetu AI" (योजनासेतु), an empathetic, highly adaptive, and intelligent AI Loan Assistant for Scheduled Caste (SC) beneficiaries seeking government-backed concessional loans (NSFDC / SCA schemes, Stand-Up India).
 
-CRITICAL ACCESSIBILITY REQUIREMENT:
-Many beneficiaries cannot read written text. You MUST ALWAYS compose your final conversational response in clear, polite, natural, spoken HINDI (Devanagari script: हिन्दी).
-- Even if the user types or speaks in English or Hinglish, reply warmly in simple spoken Hindi so it can be read aloud by voice.
-- Use natural Hindi words (e.g., 'ऋण' or 'लोन', 'व्यवसाय' or 'बिजनेस', 'वार्षिक आय', 'शिक्षा ऋण').
-- Keep sentences short, respectful, and easy to understand when heard aloud.
+ADAPTABILITY & COMMUNICATION RULES:
+1. 🌐 DYNAMIC LANGUAGE MIRRORING:
+   - Respond in the language and style the user prefers (Hindi, English, or conversational Hinglish).
+   - If the user communicates in Hindi, respond in polite, natural spoken Hindi (Devanagari script).
+   - If the user speaks/types in English, respond in clear, simple English.
+   - If the user uses Hinglish, respond in warm, natural conversational Hinglish or simple Hindi.
+   - Keep sentences clear, respectful, and easy to understand when heard aloud via Text-to-Speech.
 
-UNDERWRITING CRITERIA & SCORING PILLARS (Loan Readiness):
-Do not promise full 100/100 points unconditionally. Scores are calculated rigorously across 6 criteria:
-1. 💰 EMI वहनीयता (Affordability - FOIR <= 30%)
-2. 🆔 SC पात्रता व योजना सीमा (SC Caste Certificate & Income limit compliance)
-3. 📄 5 अनिवार्य दस्तावेज (SC Certificate, Income Proof, Aadhaar, Bank Passbook, Project Report/Admission)
-4. 🛠️ कार्य अनुभव / कौशल प्रशिक्षण / प्रवेश स्थिति (Experience & Viability)
-5. 🏦 क्रेडिट रिकॉर्ड (Clean repayment track / No defaults)
-6. 📍 चैनल पार्टनर पहुंच (District SCA/Bank access)
+2. 🤝 EMPATHETIC & ADAPTIVE PROBLEM SOLVING:
+   - NEVER act like a rigid interrogation questionnaire.
+   - If the user asks a question (about schemes, subsidies, interest rates, eligibility, documents, channel partners, or doubts), FIRST answer their question clearly using the provided Official Scheme Knowledge (RAG Context).
+   - Then, seamlessly invite them to share any remaining application details if they want to proceed.
+   - If the user provides multiple details in one message (e.g., "I need a 2 lakh loan for my tailor shop in Agra"), extract all of them at once.
 
-REQUIRED DOCUMENTS KNOWLEDGE (NSFDC / SCA Schemes):
-1. 🆔 जाति प्रमाण पत्र (SC Caste Certificate) - तहसीलदार या सक्षम प्राधिकारी द्वारा जारी।
-2. 📄 आय प्रमाण पत्र (Family Income Certificate) - परिवार की वार्षिक आय का वैध प्रमाण।
-3. 🪪 पहचान व निवास प्रमाण - आधार कार्ड (Aadhaar Card) / वोटर आईडी / राशन कार्ड।
-4. 🏦 बैंक पासबुक (Bank Account Passbook) - IFSC कोड सहित सक्रिय बैंक खाता।
-5. 📋 व्यवसाय ऋण हेतु: परियोजना रिपोर्ट या कोटेशन (Project Report & Estimate Quotation)
-6. 🎓 शिक्षा ऋण हेतु: कॉलेज प्रवेश पत्र व फीस संरचना (Admission Letter & Fee Structure)
+3. 📑 REQUIRED DOCUMENTS KNOWLEDGE (NSFDC / SCA):
+   - 🆔 SC Caste Certificate (जाति प्रमाण पत्र)
+   - 📄 Family Income Certificate (आय प्रमाण पत्र)
+   - 🪪 Aadhaar Card / Voter ID (पहचान व निवास प्रमाण)
+   - 🏦 Bank Passbook with IFSC (बैंक पासबुक)
+   - 📋 Project Report & Estimate (for Business) OR 🎓 Admission Letter & Fee Structure (for Education)
 
-CONVERSATION GUIDELINES & EDGE CASES:
-- If the user asks about DOCUMENTS ("डॉक्यूमेंट्स", "दस्तावेज", "कागजात", "documents needed", "what docs"), ALWAYS list the above 5 essential documents clearly with emojis/bullets in spoken Hindi.
-- If the user says "हाँ", "yes", "हाँ, मुझे", "जी हाँ", "हाँजी", "मुझे लोन चाहिए", "loan chahiye", or expresses intent to take a loan:
-  DO NOT repeat the initial greeting ("नमस्ते! मैं योजनासेतु AI सहायक हूँ..."). Instead, warmly ask:
-  "जी बहुत बढ़िया! कृपया बताइए कि आपको किस प्रकार का ऋण चाहिए—शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan)?"
-- Never repeat the introductory greeting once conversation has started.
-
-Your Objectives:
-1. Warmly assist beneficiaries in clear spoken Hindi.
-2. Answer any questions about SC loan schemes, eligibility, required documents, interest rates, and channel partners accurately.
-3. Help collect required parameters and criteria details (loan_type, loan_required, business/course, income, location, tenure, caste status, documents readiness, experience, existing loans).
+4. 🎯 LOAN PARAMETERS TO EXTRACT:
+   - loan_type ("education" or "business")
+   - loan_required (numeric amount in rupees)
+   - business_type (string, e.g. "Tailoring Shop", "Dairy", "Kirana Store")
+   - education_course (string, e.g. "B.Tech", "MBA", "Nursing")
+   - income (annual family income numeric amount in rupees)
+   - location (city/district/state string)
+   - tenure_months (number of months, e.g. 36)
+   - caste_status ("sc_certified", "sc_pending", or "other")
+   - docs_status ("all_ready", "partial_ready", or "basic")
+   - experience ("experienced", "moderate", or "fresher")
+   - credit_history ("clean", "active_loan", or "defaulter")
 """
 
 def extract_entities_from_text(text: str, current_data: dict, active_field: str = None) -> dict:
     """Deterministic fallback and supplementary extractor for loan parameters and criteria."""
+def normalize_text(text: str) -> str:
+    if not text:
+        return ""
+    return text.translate(str.maketrans({
+        'ज़': 'ज', 'फ़': 'फ', 'ड़': 'ड', 'ढ़': 'ढ', 'ख़': 'ख', 'ग़': 'ग', 'क़': 'क',
+        '०': '0', '१': '1', '२': '2', '३': '3', '४': '4', '५': '5', '६': '6', '७': '7', '८': '8', '९': '9'
+    }))
+
+
+def extract_entities_from_text(text: str, current_data: dict, active_field: str = None) -> dict:
+    """Deterministic fallback and supplementary extractor for loan parameters and criteria."""
     extracted = {}
-    lower = text.lower()
-    cleaned_text = text.strip()
+    normalized_raw = normalize_text(text)
+    lower = normalized_raw.lower()
+    cleaned_text = normalized_raw.strip()
 
     # 1. Loan type extraction
     if not current_data.get("loan_type"):
-        if any(w in lower for w in ["education", "study", "college", "course", "degree", "btech", "mbbs", "mba"]) or any(w in text for w in ["शिक्षा", "पढ़ाई", "कॉलेज", "कोर्स"]):
+        if any(w in lower for w in ["education", "study", "college", "course", "degree", "btech", "mbbs", "mba"]) or any(w in normalized_raw for w in ["शिक्षा", "पढ़ाई", "कॉलेज", "कोर्स"]):
             extracted["loan_type"] = "education"
-        elif any(w in lower for w in ["business", "shop", "store", "dairy", "tailor", "factory", "transport", "project"]) or any(w in text for w in ["व्यवसाय", "बिजनेस", "दुकान", "सिलाई", "डेयरी", "कारोबार"]):
+        elif any(w in lower for w in ["business", "shop", "store", "dairy", "tailor", "factory", "transport", "project", "carpet"]) or any(w in normalized_raw for w in ["व्यवसाय", "बिजनेस", "दुकान", "सिलाई", "डेयरी", "कारोबार", "काम", "कारपेट", "कालीन"]):
             extracted["loan_type"] = "business"
 
     # 2. Criteria: Caste / SC Certificate status
-    if any(w in lower for w in ["sc certificate", "caste certificate", "caste ready"]) or any(w in text for w in ["जाति प्रमाण पत्र है", "एससी प्रमाण पत्र है", "प्रमाण पत्र उपलब्ध", "sc प्रमाण पत्र"]):
-        extracted["caste_status"] = "sc_certified"
-    elif any(w in lower for w in ["sc", "scheduled caste", "dalit"]) or any(w in text for w in ["अनुसूचित जाति", "एससी", "हरिजन", "दलित"]):
-        if any(w in lower for w in ["nahi hai", "banwana", "pending", "apply kiya"]) or any(w in text for w in ["नहीं है", "बनवाना है", "अप्लाई किया"]):
+    if any(w in lower for w in ["ऐसी जाति", "एससी", "sc", "अनुसूचित जाति", "दलित", "caste certificate", "जाति प्रमाण पत्र"]):
+        if any(w in lower for w in ["nahi hai", "banwana", "pending", "apply kiya"]) or any(w in normalized_raw for w in ["नहीं है", "बनवाना है", "अप्लाई किया"]):
             extracted["caste_status"] = "sc_pending"
         else:
             extracted["caste_status"] = "sc_certified"
 
     # 3. Criteria: Documents readiness
-    if any(w in lower for w in ["all ready", "sab ready", "all documents", "saare documents"]) or any(w in text for w in ["सभी दस्तावेज तैयार", "सारे कागज हैं", "सब तैयार है"]):
+    if any(w in lower for w in ["all ready", "sab ready", "all documents", "saare documents"]) or any(w in normalized_raw for w in ["सभी दस्तावेज तैयार", "सारे कागज हैं", "सब तैयार है"]):
         extracted["docs_status"] = "all_ready"
-    elif any(w in lower for w in ["partial", "kuch documents", "kuch kagaz"]) or any(w in text for w in ["कुछ दस्तावेज", "आधे तैयार"]):
+    elif any(w in lower for w in ["partial", "kuch documents", "kuch kagaz"]) or any(w in normalized_raw for w in ["कुछ दस्तावेज", "आधे तैयार"]):
         extracted["docs_status"] = "partial_ready"
 
     # 4. Criteria: Experience / Training
-    if any(w in lower for w in ["experience", "trained", "training", "iti", "pmkvy"]) or any(w in text for w in ["अनुभव है", "साल का अनुभव", "ट्रेनिंग", "सर्टिफिकेट", "पुराना काम", "दुकान चलाता"]):
+    if any(w in lower for w in ["experience", "trained", "training", "iti", "pmkvy"]) or any(w in normalized_raw for w in ["अनुभव है", "साल का अनुभव", "ट्रेनिंग", "सर्टिफिकेट", "पुराना काम", "दुकान चलाता"]):
         extracted["experience"] = "experienced"
-    elif any(w in lower for w in ["fresher", "new", "nayi", "shuru"]) or any(w in text for w in ["नया व्यवसाय", "नया काम", "पहली बार", "शुरू करना"]):
+    elif any(w in lower for w in ["fresher", "new", "nayi", "shuru"]) or any(w in normalized_raw for w in ["नया व्यवसाय", "नया काम", "पहली बार", "शुरू करना"]):
         extracted["experience"] = "fresher"
 
     # 5. Criteria: Credit history / Existing loans
-    if any(w in lower for w in ["no loan", "no emi", "clean"]) or any(w in text for w in ["कोई लोन नहीं", "कोई कर्ज नहीं", "कोई ईएमआई नहीं"]):
+    if any(w in lower for w in ["no loan", "no emi", "clean"]) or any(w in normalized_raw for w in ["कोई लोन नहीं", "कोई कर्ज नहीं", "कोई ईएमआई नहीं"]):
         extracted["credit_history"] = "clean"
         extracted["existing_emi"] = 0.0
 
     # 6. Numbers / Amounts parsing
     def parse_amount(val):
-        normalized = val.translate(str.maketrans("०१२३४५६७८९", "0123456789")).lower().replace(",", "")
+        normalized = val.lower().replace(",", "")
         match = re.search(r"(\d+(?:\.\d+)?)\s*(लाख|lakh|lac|करोड़|crore|हजार|thousand|k)?", normalized)
         if not match:
             return None
@@ -116,12 +115,12 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
             num *= 1000
         return num
 
-    parsed_num = parse_amount(text)
+    parsed_num = parse_amount(normalized_raw)
     if parsed_num:
-        if "income" in lower or "आय" in text or "kamai" in lower or active_field == "income":
+        if any(w in lower for w in ["income", "आय", "काय", "kamai", "कमाई", "सालाना", "वार्षिक"]) or active_field == "income":
             extracted["income"] = parsed_num
-        elif "tenure" in lower or "month" in lower or "महीने" in text or "साल" in text or "year" in lower or active_field == "tenure_months":
-            if "साल" in text or "year" in lower:
+        elif any(w in lower for w in ["tenure", "month", "महीने", "साल", "year"]) or active_field == "tenure_months":
+            if "साल" in normalized_raw or "year" in lower:
                 extracted["tenure_months"] = int(parsed_num * 12)
             else:
                 extracted["tenure_months"] = int(parsed_num)
@@ -130,46 +129,76 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
         elif not current_data.get("income"):
             extracted["income"] = parsed_num
 
-    # 7. Specific contextual field extraction
     INVALID_FILLERS = {
         "मुझे", "मुझे भी", "मुझे एक", "हाँ", "हां", "नहीं", "लोन", "बिजनेस", "व्यवसाय", "काम", "काम करना है",
         "kuch bhi", "yes", "no", "ok", "okay", "loan", "business", "please", "sir", "naam", "pata nahi",
-        "karna hai", "chahiye", "loan chahiye", "business chahiye", "ek", "chahiye tha"
+        "karna hai", "chahiye", "loan chahiye", "business chahiye", "ek", "chahiye tha", "karna", "शुरू"
     }
+
+    BUSINESS_KEYWORDS = [
+        "shop", "store", "tailor", "tailoring", "dairy", "farming", "kirana", "garment",
+        "boutique", "transport", "vehicle", "rickshaw", "e-rickshaw", "taxi", "hotel",
+        "restaurant", "stall", "salon", "parlour", "parlor", "repair", "electronics",
+        "carpenter", "plumber", "footwear", "handicraft", "poultry", "goat", "dukan", "carpet",
+        "दुकान", "सिलाई", "डेयरी", "किराना", "रिक्शा", "बुटीक", "ढाबा", "ब्यूटी पार्लर", "कारपेट", "कालीन"
+    ]
+
+    EDU_KEYWORDS = [
+        "btech", "b.tech", "mtech", "m.tech", "mba", "bba", "mbbs", "bds", "nursing",
+        "bed", "b.ed", "llb", "polytechnic", "iti", "diploma", "degree", "phd", "mca",
+        "bca", "college", "university", "बीटेक", "एमबीए", "नर्सिंग", "डिप्लोमा", "आईटीआई"
+    ]
+
+    is_question_or_statement = any(w in lower for w in [
+        "what", "how", "when", "where", "why", "which", "tell", "explain", "kya", "kaise",
+        "kab", "kahan", "kyun", "batao", "bataiye", "document", "documents", "caste", "income",
+        "interest", "rate", "subsidy", "eligibility", "?", "क्या", "कैसे", "कब", "कहाँ", "दस्तावेज"
+    ])
 
     def clean_entity_text(val: str) -> str:
         clean = re.sub(r"[।.,!?'\"()_-]", " ", str(val or "")).strip()
-        tokens = [t for t in clean.split() if t.lower() not in {"मुझे", "चाहिए", "लोन", "loan", "chahiye", "के", "लिए", "karna", "hai", "karni", "krna"}]
+        tokens = [t for t in clean.split() if t.lower() not in {"मुझे", "चाहिए", "लोन", "loan", "chahiye", "के", "लिए", "karna", "hai", "karni", "krna", "का", "की", "करना", "है", "बिजनेस", "व्यवसाय", "काम", "शुरू"}]
         res = " ".join(tokens).strip()
         return res if len(res) >= 2 else clean
 
-    if active_field == "business_type" or (current_data.get("loan_type") == "business" and not current_data.get("business_type")):
-        # Only accept if not an empty filler word and is meaningful
-        if cleaned_text.lower() not in INVALID_FILLERS and len(cleaned_text) >= 2 and not parsed_num:
-            extracted["business_type"] = clean_entity_text(cleaned_text)
+    # 7. Location regex matcher (e.g., "पानीपत में", "पानीपत में शुरू", "जयपुर में")
+    loc_match = re.search(r"([a-zA-Z\u0900-\u097F]{2,20})\s+(?:में|me|mein)\s*(?:शुरू|kholna|kholni|shuru|karna|chalu|rahta|rehta|rahata)?", normalized_raw)
+    if loc_match:
+        cand = loc_match.group(1).strip()
+        if cand.lower() not in INVALID_FILLERS and len(cand) >= 2:
+            extracted["location"] = cand
 
-    if active_field == "education_course" or (current_data.get("loan_type") == "education" and not current_data.get("education_course")):
-        if cleaned_text.lower() not in INVALID_FILLERS and len(cleaned_text) >= 2 and not parsed_num:
-            extracted["education_course"] = clean_entity_text(cleaned_text)
+    if not is_question_or_statement:
+        if active_field == "business_type" or any(w in lower for w in BUSINESS_KEYWORDS) or extracted.get("loan_type") == "business":
+            cleaned = clean_entity_text(cleaned_text)
+            if cleaned.lower() not in INVALID_FILLERS and len(cleaned) >= 2 and not parsed_num:
+                extracted["business_type"] = cleaned
 
-    if active_field == "location" or (not current_data.get("location") and not parsed_num and len(cleaned_text) >= 2):
-        if cleaned_text.lower() not in INVALID_FILLERS and not extracted.get("business_type") and not extracted.get("loan_type"):
-            extracted["location"] = cleaned_text
+        if active_field == "education_course" or any(w in lower for w in EDU_KEYWORDS) or extracted.get("loan_type") == "education":
+            cleaned = clean_entity_text(cleaned_text)
+            if cleaned.lower() not in INVALID_FILLERS and len(cleaned) >= 2 and not parsed_num:
+                extracted["education_course"] = cleaned
+
+        if (active_field == "location" or not current_data.get("location")) and not extracted.get("location"):
+            if cleaned_text.lower() not in INVALID_FILLERS and len(cleaned_text) >= 2 and not parsed_num:
+                extracted["location"] = cleaned_text
 
     return extracted
 
 
 def chat_with_loan_agent(session_id: str, user_message: str, current_session: dict) -> dict:
     """
-    Interacts with AI LLM or intelligent fallback to provide natural multi-turn chat
-    and update collected session parameters.
+    Interacts with AI LLM (Gemini with multi-model fallback) or adaptive fallback to provide
+    natural, empathetic multi-turn conversation and entity extraction.
     """
+    from services.ai_client import call_ai_chat_resilient
+
     if session_id not in SESSION_HISTORIES:
         SESSION_HISTORIES[session_id] = []
 
     history = SESSION_HISTORIES[session_id]
     active_field = current_session.get("current_question")
-    
+
     # First extract entities using rule-based helper
     extracted = extract_entities_from_text(user_message, current_session, active_field)
 
@@ -195,149 +224,107 @@ def chat_with_loan_agent(session_id: str, user_message: str, current_session: di
     rag_candidates = retrieve_candidate_schemes({**collected_summary, "additional_info": user_message}, top_k=2)
     rag_context = build_rag_scheme_context(rag_candidates)
 
-    if client:
-        try:
-            instruction = f"""
+    try:
+        instruction = f"""
 Current Session State: {json.dumps(collected_summary, ensure_ascii=False)}
-Active Question Field: {active_field}
 
-Relevant Official Scheme Knowledge (RAG Context):
+Official SC Schemes Knowledge Base (RAG Context):
 {rag_context}
 
-User just said: "{user_message}"
+User's Input: "{user_message}"
 
-Tasks:
-1. Generate a friendly, empathetic response in simple spoken Hindi (Devanagari script) acknowledging what they just said and answering any questions using the Scheme Knowledge above. If information is still missing, ask for the NEXT missing detail politely.
-2. Extract any newly provided values from the user's message:
-   - loan_type ("education" or "business")
-   - loan_required (number in rupees)
-   - business_type (string, e.g. "Kirana Store", "Dairy Farming")
-   - education_course (string, e.g. "B.Tech", "MBA")
-   - income (annual family income number in rupees)
-   - location (city/district/state string)
-   - tenure_months (number of months, e.g. 36)
-   - caste_status ("sc_certified", "sc_pending", or "other")
-   - docs_status ("all_ready", "partial_ready", or "basic")
-   - experience ("experienced", "moderate", or "fresher")
-   - credit_history ("clean", "active_loan", or "defaulter")
+CRITICAL INSTRUCTIONS:
+1. Generate an empathetic, human-like response:
+   - Acknowledge what the user shared (e.g. location, income, caste certificate, business type).
+   - If the user asks a question, answer it factually and warmly using the RAG Context.
+   - Mirror the user's language (Hindi, English, or Hinglish).
+   - If key application info is still missing, smoothly ask for the next relevant detail.
+2. Accurately extract all newly mentioned facts/parameters from the user's message.
 
-Respond ONLY in valid JSON format with keys:
-"reply": "<your conversational response in simple, clear spoken Hindi (Devanagari script: हिन्दी)>",
-"extracted": {{
-    "loan_type": ... (or null),
-    "loan_required": ... (or null),
-    "business_type": ... (or null),
-    "education_course": ... (or null),
-    "income": ... (or null),
-    "location": ... (or null),
-    "tenure_months": ... (or null),
-    "caste_status": ... (or null),
-    "docs_status": ... (or null),
-    "experience": ... (or null),
-    "credit_history": ... (or null)
+Output strictly valid JSON with this structure:
+{{
+  "reply": "Your conversational response here",
+  "extracted": {{
+    "loan_type": null,
+    "loan_required": null,
+    "business_type": null,
+    "education_course": null,
+    "income": null,
+    "location": null,
+    "tenure_months": null,
+    "caste_status": null,
+    "docs_status": null,
+    "experience": null,
+    "credit_history": null
+  }}
 }}
 """
-            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-            for turn in history[-6:]:
-                messages.append(turn)
-            messages.append({"role": "user", "content": instruction})
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        for turn in history[-6:]:
+            messages.append(turn)
+        messages.append({"role": "user", "content": instruction})
 
-            response = client.chat.completions.create(
-                model="openrouter/auto",
-                messages=messages,
-                max_tokens=450,
-                temperature=0.6
-            )
+        raw_text = call_ai_chat_resilient(messages, temperature=0.3, max_tokens=1000)
 
-            raw_text = (response.choices[0].message.content or "").strip()
-            
-            # Clean markdown JSON block if present
-            if raw_text.startswith("```"):
-                raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
-                raw_text = re.sub(r"\s*```$", "", raw_text)
+        if raw_text:
+            clean_text = raw_text
+            if clean_text.startswith("```"):
+                clean_text = re.sub(r"^```(?:json)?\s*", "", clean_text)
+                clean_text = re.sub(r"\s*```$", "", clean_text).strip()
 
+            parsed = None
             try:
-                parsed = json.loads(raw_text)
-                if isinstance(parsed, dict) and "reply" in parsed:
-                    ai_reply = parsed.get("reply")
-                    if isinstance(parsed.get("extracted"), dict):
-                        extracted_from_llm = {k: v for k, v in parsed["extracted"].items() if v is not None}
+                parsed = json.loads(clean_text)
             except Exception:
-                if raw_text and not raw_text.startswith("{"):
-                    ai_reply = raw_text
+                json_match = re.search(r"\{[\s\S]*\}", clean_text)
+                if json_match:
+                    try:
+                        parsed = json.loads(json_match.group(0))
+                    except Exception:
+                        pass
 
-        except Exception as err:
-            print("OpenRouter AI Chat Error:", err)
+            if isinstance(parsed, dict) and "reply" in parsed:
+                ai_reply = parsed.get("reply")
+                if isinstance(parsed.get("extracted"), dict):
+                    extracted_from_llm = {k: v for k, v in parsed["extracted"].items() if v is not None}
+            elif clean_text and not clean_text.startswith("{"):
+                ai_reply = clean_text
+
+    except Exception as err:
+        print("AI Chat Error with client/model:", err)
 
     # Merge extracted fields
     final_extracted = {**extracted, **extracted_from_llm}
 
-    # Update summary with merged extracted fields to compute next question accurately
+    # Update summary with merged extracted fields
     for k, v in final_extracted.items():
         if v is not None:
             collected_summary[k] = v
 
-    # Detect document query intent
-    user_msg_clean = user_message.lower().strip()
-    is_doc_query = any(w in user_msg_clean for w in [
-        "डॉक्यूमेंट", "दस्तावेज", "कागजात", "कागज", "कागज़", "document", "documents",
-        "docs", "paper", "papers", "प्रमाण पत्र", "certificate"
-    ])
-
-    specific_doc_line = (
-        "5. 🎓 **कॉलेज प्रवेश पत्र व फीस विवरण (Admission Letter & Fee Structure)** — शिक्षा ऋण हेतु।"
-        if collected_summary.get("loan_type") == "education"
-        else "5. 📋 **परियोजना रिपोर्ट या कोटेशन (Project Report & Estimate Quotation)** — व्यवसाय ऋण हेतु।"
-    )
-    standard_doc_guidance = (
-        "इस सरकारी ऋण योजना (NSFDC / SCA) के लिए निम्नलिखित मुख्य दस्तावेजों (Documents) की आवश्यकता होती है:\n\n"
-        "1. 🆔 **अनुसूचित जाति प्रमाण पत्र (SC Caste Certificate)** — तहसीलदार या एसडीएम द्वारा जारी।\n"
-        "2. 📄 **पारिवारिक आय प्रमाण पत्र (Family Income Certificate)** — वार्षिक पारिवारिक आय का वैध प्रमाण।\n"
-        "3. 🪪 **पहचान एवं निवास प्रमाण** — आधार कार्ड (Aadhaar Card), वोटर आईडी या राशन कार्ड।\n"
-        "4. 🏦 **बैंक पासबुक (Bank Passbook / Cancelled Cheque)** — IFSC कोड सहित सक्रिय बैंक खाता।\n"
-        f"{specific_doc_line}\n\n"
-        "💡 आप नीचे दिए गए **'दस्तावेज OCR'** सेक्शन में अपने दस्तावेज अपलोड करके उनकी वैधता व तैयारी की तुरंत जांच कर सकते हैं।"
-    )
-
-    # Detect affirmative user intent
-    is_affirmative = any(w in user_msg_clean for w in [
-        "हाँ", "हां", "जी", "जी हाँ", "जी हां", "हाँजी", "हाजी", "yes", "ha", "haan", "han",
-        "yup", "sure", "ok", "okay", "चाहिए", "लोन", "loan"
-    ])
-
-    # Fallback reply if AI call failed or didn't return a reply
+    # Fallback reply if AI call failed or returned empty
     if not ai_reply:
-        if is_doc_query:
-            ai_reply = standard_doc_guidance
+        user_msg_lower = user_message.lower()
+        if any(w in user_msg_lower for w in ["सही है", "स्कीम सही", "योजना सही", "correct", "right", "valid"]):
+            scheme_name = rag_candidates[0]["scheme"].get("name_hi", "अनुशंसित योजना") if rag_candidates else "यह योजना"
+            ai_reply = f"हाँ, आपके द्वारा दिए गए विवरण के आधार पर '{scheme_name}' बिल्कुल सही और उपयुक्त है। इसमें NSFDC के तहत रियायती ब्याज दर और सरकारी सहायता उपलब्ध है।"
+        elif any(w in user_msg_lower for w in ["डॉक्यूमेंट", "दस्तावेज", "कागजात", "document", "documents"]):
+            ai_reply = "इस योजना के लिए मुख्य रूप से जाति प्रमाण पत्र (SC Certificate), आय प्रमाण पत्र, आधार कार्ड, बैंक पासबुक और प्रोजेक्ट रिपोर्ट / कॉलेज एडमिशन लेटर की आवश्यकता होती है।"
         elif not collected_summary.get("loan_type"):
-            if is_affirmative:
-                ai_reply = "जी बहुत बढ़िया! कृपया बताइए कि आपको किस प्रकार का ऋण चाहिए—शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan)?"
-            else:
-                ai_reply = "नमस्ते! क्या आप शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan) के लिए आवेदन करना चाहते हैं?"
+            ai_reply = "नमस्ते! मैं योजनासेतु AI सहायक हूँ। क्या आप शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan) के लिए जानकारी चाहते हैं?"
         elif not collected_summary.get("loan_required"):
-            ai_reply = "बहुत अच्छा! आपको इस कार्य के लिए कितनी ऋण राशि (Loan Amount) की आवश्यकता होगी? (जैसे: 2 लाख रुपये या 5 लाख रुपये)"
+            ai_reply = "बहुत अच्छा! आपको कितनी ऋण राशि (Loan Amount) की आवश्यकता है? (उदाहरण: 2 लाख रुपये या 5 लाख रुपये)"
         elif collected_summary.get("loan_type") == "business" and not collected_summary.get("business_type"):
             ai_reply = "आप किस प्रकार का व्यवसाय शुरू या विस्तारित करना चाहते हैं? (जैसे: किराना दुकान, सिलाई, डेयरी फार्मिंग आदि)"
         elif collected_summary.get("loan_type") == "education" and not collected_summary.get("education_course"):
             ai_reply = "आप किस कोर्स या पढ़ाई के लिए शिक्षा ऋण लेना चाहते हैं? (जैसे: B.Tech, MBA आदि)"
         elif not collected_summary.get("income"):
-            ai_reply = "बहुत बढ़िया! कृपया अपने परिवार की वार्षिक पारिवारिक आय (Annual Family Income) बताएं।"
+            ai_reply = "कृपया अपने परिवार की वार्षिक पारिवारिक आय (Annual Family Income) बताएं।"
         elif not collected_summary.get("location"):
             ai_reply = "कृपया अपना शहर या ज़िला बताएं ताकि हम नजदीकी चैनल पार्टनर की जानकारी दे सकें।"
         elif not collected_summary.get("tenure_months"):
             ai_reply = "आप यह ऋण कितने समय में चुकाना चाहते हैं? (उदाहरण: 3 वर्ष या 36 महीने)"
         else:
-            ai_reply = "धन्यवाद! आपकी सभी जानकारियाँ प्राप्त हो गई हैं। हम आपके लिए सर्वश्रेष्ठ ऋण योजना और ऋण तैयारी स्कोर तैयार कर रहे हैं।"
-
-    # Post-processing: If user asked for documents, ensure detailed document list is present
-    if is_doc_query:
-        if not any(w in ai_reply for w in ["जाति प्रमाण पत्र", "Caste Certificate", "Aadhaar", "आधार"]):
-            ai_reply = standard_doc_guidance
-
-    # Post-processing: If user responded affirmatively and loan_type is still not set, ensure prompt directly asks for loan type
-    elif not collected_summary.get("loan_type") and is_affirmative:
-        if "नमस्ते! मैं योजनासेतु AI सहायक हूँ" in ai_reply or "क्या आप शिक्षा" in ai_reply:
-            ai_reply = "जी बहुत बढ़िया! कृपया बताइए कि आपको किस प्रकार का ऋण चाहिए—शिक्षा ऋण (Education Loan) या व्यवसाय ऋण (Business Loan)?"
+            ai_reply = "जी, आपकी सभी जानकारियाँ सुरक्षित हैं। आप इस योजना, ब्याज दर, सब्सिडी या दस्तावेजों के बारे में कोई भी प्रश्न पूछ सकते हैं।"
 
     # Save to history
     history.append({"role": "user", "content": user_message})
@@ -352,21 +339,22 @@ Respond ONLY in valid JSON format with keys:
 
 def generate_ai_message(question: str) -> str:
     """Helper for initial greetings or single prompt rephrasing."""
+    client, model_name = get_ai_client()
     if not client:
         return question
 
     try:
         response = client.chat.completions.create(
-            model="openrouter/auto",
+            model=model_name,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"Beneficiary ko yeh question aasan aur aadarpoorvak Hindi me puchiye:\n\n{question}"}
+                {"role": "user", "content": f"Beneficiary ko yeh initial question aasan aur aadarpoorvak puchiye (Hindi / English):\n\n{question}"}
             ],
             max_tokens=150,
-            temperature=0.7
+            temperature=0.6
         )
         content = (response.choices[0].message.content or "").strip()
         return content if content else question
     except Exception as error:
-        print("OpenRouter Error in generate_ai_message:", error)
+        print("AI Error in generate_ai_message:", error)
         return question

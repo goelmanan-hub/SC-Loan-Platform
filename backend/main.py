@@ -394,10 +394,7 @@ def loan_chat(
     )
 
     if not session:
-        raise HTTPException(
-            status_code=404,
-            detail="Session not found."
-        )
+        session = create_session(request.session_id)
 
     current_field = session.get("current_question")
 
@@ -442,10 +439,15 @@ def loan_chat(
         loan_type and loan_required and (business_or_edu or (loan_type and income)) and income and location
     )
 
+    # Check if this is the initial transition to completion
+    already_completed = session.get("is_completed_shown", False)
+
     # =================================================
-    # CONVERSATION COMPLETE
+    # INITIAL CONVERSATION COMPLETION (Triggered once)
     # =================================================
-    if next_field is None or is_fully_collected:
+    if (next_field is None or is_fully_collected) and not already_completed:
+        session["is_completed_shown"] = True
+        session["complete"] = True
         if not session.get("tenure_months"):
             session["tenure_months"] = 36
             save_answer(request.session_id, "tenure_months", 36)
@@ -491,7 +493,7 @@ def loan_chat(
         }
 
     # =================================================
-    # CONTINUE CONVERSATION
+    # CONTINUOUS CHAT / FOLLOW-UP QUESTIONS / Q&A
     # =================================================
     session["current_question"] = next_field
 

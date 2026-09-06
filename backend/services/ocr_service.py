@@ -3,6 +3,7 @@ import base64
 import os
 from typing import List, Dict, Any, Optional
 from data.schemes import get_scheme_by_id
+from services.ai_client import get_ai_client
 
 
 def extract_text_from_file_bytes(file_bytes: bytes, filename: str, content_type: str) -> str:
@@ -22,17 +23,15 @@ def extract_text_from_file_bytes(file_bytes: bytes, filename: str, content_type:
     except Exception:
         pass
 
-    # 2. If OpenRouter/OpenAI API Key is available, use Vision model for OCR
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not extracted_text and api_key and ("image/" in content_type or filename_lower.endswith(('.png', '.jpg', '.jpeg', '.webp'))):
+    # 2. If AI Client is available, use Vision model for OCR
+    client, model_name = get_ai_client()
+    if not extracted_text and client and ("image/" in content_type or filename_lower.endswith(('.png', '.jpg', '.jpeg', '.webp'))):
         try:
-            from openai import OpenAI
-            client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=api_key)
             b64_img = base64.b64encode(file_bytes).decode('utf-8')
             media_type = content_type if "image/" in content_type else "image/jpeg"
 
             response = client.chat.completions.create(
-                model="openrouter/auto",
+                model=model_name,
                 messages=[
                     {
                         "role": "user",

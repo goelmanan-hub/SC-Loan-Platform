@@ -7,25 +7,10 @@ import os
 import json
 import re
 from typing import Dict, Any, List, Optional
-from dotenv import load_dotenv
-from openai import OpenAI
-
 from data.schemes_kb import get_scheme_by_id_kb, get_all_schemes_kb
 from services.rag_service import retrieve_candidate_schemes, build_rag_scheme_context
 from services.eligibility import normalize_loan_type
-
-load_dotenv()
-API_KEY = os.getenv("OPENROUTER_API_KEY")
-
-openai_client = None
-if API_KEY:
-    try:
-        openai_client = OpenAI(
-            base_url="https://openrouter.ai/api/v1",
-            api_key=API_KEY
-        )
-    except Exception as e:
-        print("Recommendation: OpenRouter client init error:", e)
+from services.ai_client import get_ai_client
 
 
 RAG_RECOMMENDER_SYSTEM_PROMPT = """
@@ -150,10 +135,11 @@ Beneficiary Application Details:
 """
 
     # Step 3: LLM Reasoning
-    if openai_client:
+    client, model_name = get_ai_client()
+    if client:
         try:
-            response = openai_client.chat.completions.create(
-                model="openai/gpt-4o-mini",
+            response = client.chat.completions.create(
+                model=model_name,
                 messages=[
                     {"role": "system", "content": RAG_RECOMMENDER_SYSTEM_PROMPT},
                     {
