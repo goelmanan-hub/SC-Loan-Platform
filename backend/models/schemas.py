@@ -53,3 +53,8 @@ class ReadinessRequest(BaseModel):
     gender: Optional[str] = None
     location: Optional[str] = None
     scheme_id: Optional[str] = None
+    caste_status: Optional[str] = None
+    docs_status: Optional[str] = None
+    experience: Optional[str] = None
+    existing_emi: Optional[float] = Field(0, ge=0)
+    credit_history: Optional[str] = None

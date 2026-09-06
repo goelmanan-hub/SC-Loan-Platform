@@ -897,6 +897,12 @@ async function calculateReadinessFromBackend() {
         return;
     }
 
+    const casteStatus = document.getElementById("sim-caste-status")?.value || "sc_certified";
+    const docsStatus = document.getElementById("sim-docs-status")?.value || "partial_ready";
+    const experience = document.getElementById("sim-experience")?.value || "moderate";
+    const creditHistory = document.getElementById("sim-credit-history")?.value || "clean";
+    const existingEmi = parseFloat(document.getElementById("sim-existing-emi")?.value || 0);
+
     const simResultBox = document.getElementById("sim-result-box");
 
     try {
@@ -905,7 +911,12 @@ async function calculateReadinessFromBackend() {
             loan_required: loanAmount,
             income: income,
             tenure_months: tenure,
-            location: location
+            location: location,
+            caste_status: casteStatus,
+            docs_status: docsStatus,
+            experience: experience,
+            credit_history: creditHistory,
+            existing_emi: isNaN(existingEmi) ? 0 : existingEmi
         };
 
         if (loanType === "education") {
@@ -1151,15 +1162,15 @@ async function fetchAvailableSchemes() {
         const data = await response.json();
         if (data.success && data.schemes) {
             container.innerHTML = data.schemes.map(s => `
-                <div style="padding: 8px 0; border-bottom: 1px dashed #e2e8f0;">
-                    <strong style="color: #003366; display: block;">${s.name}</strong>
-                    <span style="color: #64748b; font-size: 12px;">अधिकतम ऋण: ₹${Number(s.max_loan).toLocaleString("en-IN")} | ब्याज: ${s.interest_rate}%</span>
+                <div style="padding: 8px 0; border-bottom: 1px dashed #e2e8f0; text-align: center;">
+                    <strong style="color: #003366; display: block; text-align: center;">${s.name}</strong>
+                    <span style="color: #64748b; font-size: 12px; display: block; text-align: center;">अधिकतम ऋण: ₹${Number(s.max_loan).toLocaleString("en-IN")} | ब्याज: ${s.interest_rate}%</span>
                 </div>
             `).join("");
         }
     } catch (error) {
         console.error("Schemes load error:", error);
-        container.innerHTML = `<div style="color: #ef4444;">योजनाएं लोडिंग में समस्या आई।</div>`;
+        container.innerHTML = `<div style="color: #ef4444; text-align: center;">योजनाएं लोडिंग में समस्या आई।</div>`;
     }
 }
 

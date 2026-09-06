@@ -31,6 +31,15 @@ Many beneficiaries cannot read written text. You MUST ALWAYS compose your final 
 - Use natural Hindi words (e.g., 'ऋण' or 'लोन', 'व्यवसाय' or 'बिजनेस', 'वार्षिक आय', 'शिक्षा ऋण').
 - Keep sentences short, respectful, and easy to understand when heard aloud.
 
+UNDERWRITING CRITERIA & SCORING PILLARS (Loan Readiness):
+Do not promise full 100/100 points unconditionally. Scores are calculated rigorously across 6 criteria:
+1. 💰 EMI वहनीयता (Affordability - FOIR <= 30%)
+2. 🆔 SC पात्रता व योजना सीमा (SC Caste Certificate & Income limit compliance)
+3. 📄 5 अनिवार्य दस्तावेज (SC Certificate, Income Proof, Aadhaar, Bank Passbook, Project Report/Admission)
+4. 🛠️ कार्य अनुभव / कौशल प्रशिक्षण / प्रवेश स्थिति (Experience & Viability)
+5. 🏦 क्रेडिट रिकॉर्ड (Clean repayment track / No defaults)
+6. 📍 चैनल पार्टनर पहुंच (District SCA/Bank access)
+
 REQUIRED DOCUMENTS KNOWLEDGE (NSFDC / SCA Schemes):
 1. 🆔 जाति प्रमाण पत्र (SC Caste Certificate) - तहसीलदार या सक्षम प्राधिकारी द्वारा जारी।
 2. 📄 आय प्रमाण पत्र (Family Income Certificate) - परिवार की वार्षिक आय का वैध प्रमाण।
@@ -49,17 +58,11 @@ CONVERSATION GUIDELINES & EDGE CASES:
 Your Objectives:
 1. Warmly assist beneficiaries in clear spoken Hindi.
 2. Answer any questions about SC loan schemes, eligibility, required documents, interest rates, and channel partners accurately.
-3. Help collect the following information in a natural, friendly conversation:
-   - loan_type: "education" or "business"
-   - loan_required: loan amount in Rupees (e.g., 200000)
-   - business_type (if business loan) or education_course (if education loan)
-   - income: annual family income in Rupees (e.g., 300000)
-   - location: city/district/state
-   - tenure_months: repayment tenure in months (e.g., 36)
+3. Help collect required parameters and criteria details (loan_type, loan_required, business/course, income, location, tenure, caste status, documents readiness, experience, existing loans).
 """
 
 def extract_entities_from_text(text: str, current_data: dict, active_field: str = None) -> dict:
-    """Deterministic fallback and supplementary extractor for loan parameters."""
+    """Deterministic fallback and supplementary extractor for loan parameters and criteria."""
     extracted = {}
     lower = text.lower()
     cleaned_text = text.strip()
@@ -71,7 +74,33 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
         elif any(w in lower for w in ["business", "shop", "store", "dairy", "tailor", "factory", "transport", "project"]) or any(w in text for w in ["व्यवसाय", "बिजनेस", "दुकान", "सिलाई", "डेयरी", "कारोबार"]):
             extracted["loan_type"] = "business"
 
-    # 2. Numbers / Amounts parsing
+    # 2. Criteria: Caste / SC Certificate status
+    if any(w in lower for w in ["sc certificate", "caste certificate", "caste ready"]) or any(w in text for w in ["जाति प्रमाण पत्र है", "एससी प्रमाण पत्र है", "प्रमाण पत्र उपलब्ध", "sc प्रमाण पत्र"]):
+        extracted["caste_status"] = "sc_certified"
+    elif any(w in lower for w in ["sc", "scheduled caste", "dalit"]) or any(w in text for w in ["अनुसूचित जाति", "एससी", "हरिजन", "दलित"]):
+        if any(w in lower for w in ["nahi hai", "banwana", "pending", "apply kiya"]) or any(w in text for w in ["नहीं है", "बनवाना है", "अप्लाई किया"]):
+            extracted["caste_status"] = "sc_pending"
+        else:
+            extracted["caste_status"] = "sc_certified"
+
+    # 3. Criteria: Documents readiness
+    if any(w in lower for w in ["all ready", "sab ready", "all documents", "saare documents"]) or any(w in text for w in ["सभी दस्तावेज तैयार", "सारे कागज हैं", "सब तैयार है"]):
+        extracted["docs_status"] = "all_ready"
+    elif any(w in lower for w in ["partial", "kuch documents", "kuch kagaz"]) or any(w in text for w in ["कुछ दस्तावेज", "आधे तैयार"]):
+        extracted["docs_status"] = "partial_ready"
+
+    # 4. Criteria: Experience / Training
+    if any(w in lower for w in ["experience", "trained", "training", "iti", "pmkvy"]) or any(w in text for w in ["अनुभव है", "साल का अनुभव", "ट्रेनिंग", "सर्टिफिकेट", "पुराना काम", "दुकान चलाता"]):
+        extracted["experience"] = "experienced"
+    elif any(w in lower for w in ["fresher", "new", "nayi", "shuru"]) or any(w in text for w in ["नया व्यवसाय", "नया काम", "पहली बार", "शुरू करना"]):
+        extracted["experience"] = "fresher"
+
+    # 5. Criteria: Credit history / Existing loans
+    if any(w in lower for w in ["no loan", "no emi", "clean"]) or any(w in text for w in ["कोई लोन नहीं", "कोई कर्ज नहीं", "कोई ईएमआई नहीं"]):
+        extracted["credit_history"] = "clean"
+        extracted["existing_emi"] = 0.0
+
+    # 6. Numbers / Amounts parsing
     def parse_amount(val):
         normalized = val.translate(str.maketrans("०१२३४५६७८९", "0123456789")).lower().replace(",", "")
         match = re.search(r"(\d+(?:\.\d+)?)\s*(लाख|lakh|lac|करोड़|crore|हजार|thousand|k)?", normalized)
@@ -101,7 +130,7 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
         elif not current_data.get("income"):
             extracted["income"] = parsed_num
 
-    # 3. Specific contextual field extraction
+    # 7. Specific contextual field extraction
     INVALID_FILLERS = {
         "मुझे", "मुझे भी", "मुझे एक", "हाँ", "हां", "नहीं", "लोन", "बिजनेस", "व्यवसाय", "काम", "काम करना है",
         "kuch bhi", "yes", "no", "ok", "okay", "loan", "business", "please", "sir", "naam", "pata nahi",
@@ -152,7 +181,11 @@ def chat_with_loan_agent(session_id: str, user_message: str, current_session: di
         "education_course": current_session.get("education_course") or extracted.get("education_course"),
         "income": current_session.get("income") or extracted.get("income"),
         "location": current_session.get("location") or extracted.get("location"),
-        "tenure_months": current_session.get("tenure_months") or extracted.get("tenure_months")
+        "tenure_months": current_session.get("tenure_months") or extracted.get("tenure_months"),
+        "caste_status": current_session.get("caste_status") or extracted.get("caste_status"),
+        "docs_status": current_session.get("docs_status") or extracted.get("docs_status"),
+        "experience": current_session.get("experience") or extracted.get("experience"),
+        "credit_history": current_session.get("credit_history") or extracted.get("credit_history")
     }
 
     ai_reply = None
@@ -183,6 +216,10 @@ Tasks:
    - income (annual family income number in rupees)
    - location (city/district/state string)
    - tenure_months (number of months, e.g. 36)
+   - caste_status ("sc_certified", "sc_pending", or "other")
+   - docs_status ("all_ready", "partial_ready", or "basic")
+   - experience ("experienced", "moderate", or "fresher")
+   - credit_history ("clean", "active_loan", or "defaulter")
 
 Respond ONLY in valid JSON format with keys:
 "reply": "<your conversational response in simple, clear spoken Hindi (Devanagari script: हिन्दी)>",
@@ -193,7 +230,11 @@ Respond ONLY in valid JSON format with keys:
     "education_course": ... (or null),
     "income": ... (or null),
     "location": ... (or null),
-    "tenure_months": ... (or null)
+    "tenure_months": ... (or null),
+    "caste_status": ... (or null),
+    "docs_status": ... (or null),
+    "experience": ... (or null),
+    "credit_history": ... (or null)
 }}
 """
             messages = [{"role": "system", "content": SYSTEM_PROMPT}]

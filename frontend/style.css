@@ -136,6 +136,32 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    position: sticky;
+    top: 76px;
+    height: calc(100vh - 76px);
+    overflow-y: auto;
+    z-index: 5;
+}
+
+.sidebar::-webkit-scrollbar,
+.rightbar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.rightbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.rightbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.rightbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 /* Navigation */
@@ -173,17 +199,33 @@
     padding: 20px 10px;
     text-align: center;
     color: #18316f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .emblem {
-    font-size: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin-bottom: 8px;
+    width: 100%;
+}
+
+.emblem img {
+    display: block;
+    margin: 0 auto;
+    width: 45px;
+    height: auto;
 }
 
 .gov-card strong,
 .gov-card b,
 .gov-card span {
     display: block;
+    text-align: center;
+    width: 100%;
 }
 
 .gov-card b {
@@ -637,7 +679,12 @@
 ===================================================== */
 
 .rightbar {
-    padding: 38px 16px 20px 0;
+    padding: 20px 16px 20px 0;
+    position: sticky;
+    top: 76px;
+    height: calc(100vh - 76px);
+    overflow-y: auto;
+    z-index: 5;
 }
 
 .help-card,
@@ -646,6 +693,27 @@
     border-radius: 16px;
     border: 1px solid #dfe7f2;
     margin-bottom: 18px;
+}
+
+/* Schemes Card */
+.schemes-card {
+    text-align: center;
+}
+
+.schemes-card h3 {
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+#quick-schemes-list {
+    text-align: center;
+}
+
+#quick-schemes-list > div {
+    text-align: center;
 }
 
 /* Help Card */
@@ -754,6 +822,9 @@
             minmax(0, 1fr);
     }
     .rightbar {
+        position: static;
+        height: auto;
+        overflow-y: visible;
         grid-column: 1 / -1;
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -798,6 +869,8 @@
     }
     .sidebar {
         display: none;
+        position: static;
+        height: auto;
     }
     .content {
         padding: 10px;
@@ -829,6 +902,9 @@
     }
     .rightbar {
         display: block;
+        position: static;
+        height: auto;
+        overflow-y: visible;
         padding: 10px;
     }
     .help-card,

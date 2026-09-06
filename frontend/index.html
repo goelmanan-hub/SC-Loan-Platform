@@ -40,7 +40,7 @@
             }
         };
     </script>
-    <link rel="stylesheet" href="style.css?v=20260905-tailwind">
+    <link rel="stylesheet" href="style.css?v=20260906-schemes-center">
 </head>
 
 <body>
@@ -412,8 +412,46 @@
                                 <label for="sim-location">आपका जिला / शहर (City / Location)</label>
                                 <input type="text" id="sim-location" placeholder="उदा. करनाल, अंबाला, दिल्ली" required />
                             </div>
+
+                            <!-- Underwriting Criteria Fields -->
+                            <div class="form-group">
+                                <label for="sim-caste-status"><i class="fa-solid fa-id-card" style="color: #0072bc;"></i> जाति श्रेणी व प्रमाण पत्र (Caste Status)</label>
+                                <select id="sim-caste-status" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
+                                    <option value="sc_certified">🆔 SC प्रमाण पत्र उपलब्ध है (SC with Certificate)</option>
+                                    <option value="sc_pending">⏳ SC श्रेणी (प्रमाण पत्र बनवाना शेष)</option>
+                                    <option value="other">📄 अन्य श्रेणी (Other Category)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-docs-status"><i class="fa-solid fa-file-shield" style="color: #39b54a;"></i> दस्तावेज तैयारी स्थिति (Document Readiness)</label>
+                                <select id="sim-docs-status" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
+                                    <option value="all_ready">📁 सभी 5 मुख्य दस्तावेज तैयार हैं (All 5 Ready)</option>
+                                    <option value="partial_ready" selected>📑 3-4 दस्तावेज तैयार हैं (Partial Ready)</option>
+                                    <option value="basic">📄 केवल 1-2 दस्तावेज हैं (Basic Only)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-experience"><i class="fa-solid fa-briefcase" style="color: #ea580c;"></i> अनुभव / प्रशिक्षण / प्रवेश स्थिति (Experience / Admission)</label>
+                                <select id="sim-experience" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
+                                    <option value="experienced">🛠️ 2+ वर्ष अनुभव / ITI कौशल प्रशिक्षित / पक्का एडमिशन</option>
+                                    <option value="moderate" selected>💼 1-2 वर्ष सामान्य अनुभव / प्रक्रियाधीन</option>
+                                    <option value="fresher">🌱 नया प्रयास / फ्रेशर (Fresher)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-credit-history"><i class="fa-solid fa-building-columns" style="color: #6366f1;"></i> पूर्व ऋण व क्रेडिट स्थिति (Credit Record)</label>
+                                <select id="sim-credit-history" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
+                                    <option value="clean" selected>🟢 कोई बकाया नहीं - स्वच्छ रिकॉर्ड (Clean Record)</option>
+                                    <option value="active_loan">🟡 सक्रिय ऋण चालू है (Active Loan)</option>
+                                    <option value="defaulter">🔴 पूर्व में विलंब / डिफ़ॉल्ट (Past Delays)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="sim-existing-emi">मौजूदा मासिक EMI यदि कोई हो (Existing EMI ₹)</label>
+                                <input type="number" id="sim-existing-emi" placeholder="उदा. 0 या 2000" min="0" step="500" value="0" />
+                            </div>
                         </div>
-                        <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #059669, #047857);"><i class="fa-solid fa-calculator"></i> स्कोर की गणना करें (Calculate Readiness)</button>
+                        <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #059669, #047857);"><i class="fa-solid fa-calculator"></i> वास्तविक स्कोर की गणना करें (Evaluate Readiness Criteria)</button>
                     </form>
 
                     <div id="sim-result-box" class="readiness-assessment-box" style="display: none; margin-top: 20px; background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b;">
@@ -700,10 +738,10 @@
             </section>
 
             <!-- Available Schemes List Card -->
-            <section class="help-card" style="background: #ffffff; border: 1px solid #e1e8ed;">
-                <h3><i class="fa-solid fa-list-check" style="color: #0072bc;"></i> उपलब्ध योजनाएँ (Schemes)</h3>
-                <div id="quick-schemes-list" style="margin-top: 10px; font-size: 13px;">
-                    <div style="padding: 6px 0; border-bottom: 1px dashed #eee;">⏳ Schemes load हो रही हैं...</div>
+            <section class="help-card schemes-card" style="background: #ffffff; border: 1px solid #e1e8ed; text-align: center; padding: 18px 14px;">
+                <h3 style="text-align: center; justify-content: center; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-list-check" style="color: #0072bc;"></i> उपलब्ध योजनाएँ (Schemes)</h3>
+                <div id="quick-schemes-list" style="margin-top: 10px; font-size: 13px; text-align: center;">
+                    <div style="padding: 6px 0; border-bottom: 1px dashed #eee; text-align: center;">⏳ Schemes load हो रही हैं...</div>
                 </div>
             </section>
 
@@ -749,6 +787,6 @@
 
     <!-- Frontend Script Connection to FastAPI -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="script.js?v=20260904-doc-redirect-v6"></script>
+    <script src="script.js?v=20260906-criteria-readiness"></script>
 </body>
 </html>
