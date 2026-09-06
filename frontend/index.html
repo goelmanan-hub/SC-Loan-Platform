@@ -386,30 +386,31 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label for="sim-loan-type">ऋण का प्रकार (Loan Type)</label>
-                                <select id="sim-loan-type" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
+                                <select id="sim-loan-type" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;" required>
+                                    <option value="" disabled selected>चुनें (Select Loan Type)</option>
                                     <option value="business">💼 व्यवसाय ऋण (Business Loan)</option>
                                     <option value="education">🎓 शिक्षा ऋण (Education Loan)</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label for="sim-loan-amount">आवश्यक ऋण राशि (Loan Required ₹)</label>
-                                <input type="number" id="sim-loan-amount" value="120000" min="10000" step="10000" required />
+                                <input type="number" id="sim-loan-amount" placeholder="उदा. 120000" min="10000" step="10000" required />
                             </div>
                             <div class="form-group">
                                 <label for="sim-income">वार्षिक पारिवारिक आय (Annual Income ₹)</label>
-                                <input type="number" id="sim-income" value="300000" min="10000" step="10000" required />
+                                <input type="number" id="sim-income" placeholder="उदा. 300000" min="10000" step="10000" required />
                             </div>
                             <div class="form-group">
                                 <label for="sim-tenure">पुनर्भुगतान अवधि (Tenure Months)</label>
-                                <input type="number" id="sim-tenure" value="36" min="6" max="120" required />
+                                <input type="number" id="sim-tenure" placeholder="उदा. 36" min="6" max="120" required />
                             </div>
                             <div class="form-group">
                                 <label for="sim-purpose">व्यवसाय या कोर्स का नाम (Purpose / Course)</label>
-                                <input type="text" id="sim-purpose" value="किराना दुकान (Grocery Store)" placeholder="उदा. सिलाई, दुकान, B.Tech" required />
+                                <input type="text" id="sim-purpose" placeholder="उदा. सिलाई, दुकान, B.Tech" required />
                             </div>
                             <div class="form-group">
                                 <label for="sim-location">आपका जिला / शहर (City / Location)</label>
-                                <input type="text" id="sim-location" value="कुरुक्षेत्र (Kurukshetra)" placeholder="उदा. करनाल, अंबाला, दिल्ली" required />
+                                <input type="text" id="sim-location" placeholder="उदा. करनाल, अंबाला, दिल्ली" required />
                             </div>
                         </div>
                         <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #059669, #047857);"><i class="fa-solid fa-calculator"></i> स्कोर की गणना करें (Calculate Readiness)</button>
@@ -582,19 +583,19 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label for="emi-principal">ऋण राशि (Principal ₹)</label>
-                                <input type="number" id="emi-principal" value="100000" min="1000" step="1" required />
+                                <input type="number" id="emi-principal" placeholder="उदा. 100000" min="1000" step="1" required />
                             </div>
                             <div class="form-group">
                                 <label for="emi-rate">वार्षिक ब्याज दर (% Rate)</label>
-                                <input type="number" id="emi-rate" value="6.5" step="0.1" min="0" required />
+                                <input type="number" id="emi-rate" placeholder="उदा. 6.5" step="0.1" min="0" required />
                             </div>
                             <div class="form-group">
                                 <label for="emi-tenure">अवधि (Tenure in Months)</label>
-                                <input type="number" id="emi-tenure" value="36" min="1" required />
+                                <input type="number" id="emi-tenure" placeholder="उदा. 36" min="1" required />
                             </div>
                             <div class="form-group">
                                 <label for="emi-moratorium">मोरैटोरियम अवधि (Months)</label>
-                                <input type="number" id="emi-moratorium" value="3" min="0" />
+                                <input type="number" id="emi-moratorium" placeholder="उदा. 3" min="0" />
                             </div>
                         </div>
                         <button type="submit" class="btn-primary"><i class="fa-solid fa-play"></i> EMI की गणना करें</button>

@@ -872,12 +872,30 @@ function populateReadinessUI(prefix, readiness) {
    STANDALONE READINESS SIMULATOR API INTEGRATION
 ===================================================== */
 async function calculateReadinessFromBackend() {
-    const loanType = document.getElementById("sim-loan-type")?.value || "business";
-    const loanAmount = parseFloat(document.getElementById("sim-loan-amount")?.value) || 100000;
-    const income = parseFloat(document.getElementById("sim-income")?.value) || 200000;
-    const tenure = parseInt(document.getElementById("sim-tenure")?.value) || 36;
+    const loanTypeSelect = document.getElementById("sim-loan-type");
+    const loanType = loanTypeSelect?.value;
+    if (!loanType) {
+        alert("कृपया ऋण का प्रकार चुनें (Please select a loan type).");
+        return;
+    }
+    const loanAmount = parseFloat(document.getElementById("sim-loan-amount")?.value);
+    const income = parseFloat(document.getElementById("sim-income")?.value);
+    const tenure = parseInt(document.getElementById("sim-tenure")?.value);
     const purpose = document.getElementById("sim-purpose")?.value || "";
     const location = document.getElementById("sim-location")?.value || "";
+
+    if (!loanAmount || isNaN(loanAmount) || loanAmount <= 0) {
+        alert("कृपया वैध ऋण राशि दर्ज करें (Please enter a valid loan amount).");
+        return;
+    }
+    if (!income || isNaN(income) || income <= 0) {
+        alert("कृपया वार्षिक पारिवारिक आय दर्ज करें (Please enter annual family income).");
+        return;
+    }
+    if (!tenure || isNaN(tenure) || tenure <= 0) {
+        alert("कृपया पुनर्भुगतान अवधि दर्ज करें (Please enter tenure in months).");
+        return;
+    }
 
     const simResultBox = document.getElementById("sim-result-box");
 
