@@ -1,75 +1,47 @@
+"""
+Geospatial Partner Router for NSFDC Channel Partners.
+Calculates Haversine distance and routes users to the nearest State Channelising Agency (SCA), PSB, or RRB.
+"""
+
 from math import radians, sin, cos, sqrt, atan2
+from typing import List, Dict, Any, Optional
 
 from data.partners import get_all_partners
+from services.partner_rag_service import (
+    calculate_haversine_distance,
+    retrieve_channel_partners
+)
 
 
 def calculate_distance(
-    lat1,
-    lon1,
-    lat2,
-    lon2
-):
-
-    earth_radius = 6371
-
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-
-    a = (
-        sin(dlat / 2) ** 2
-        +
-        cos(radians(lat1))
-        * cos(radians(lat2))
-        * sin(dlon / 2) ** 2
-    )
-
-    c = 2 * atan2(
-        sqrt(a),
-        sqrt(1 - a)
-    )
-
-    return earth_radius * c
+    lat1: float,
+    lon1: float,
+    lat2: float,
+    lon2: float
+) -> float:
+    """Haversine distance helper function."""
+    return calculate_haversine_distance(lat1, lon1, lat2, lon2)
 
 
 def find_suitable_partners(
-    latitude,
-    longitude,
-    loan_type=None,
-    scheme_id=None
-):
-
-    results = []
-
-    for partner in get_all_partners():
-
-        if loan_type:
-
-            if loan_type not in partner["loan_types"]:
-                continue
-
-        if scheme_id:
-
-            if scheme_id not in partner["schemes"]:
-                continue
-
-        distance = calculate_distance(
-            latitude,
-            longitude,
-            partner["latitude"],
-            partner["longitude"]
-        )
-
-        result = partner.copy()
-
-        result["distance_km"] = round(
-            distance,
-            2
-        )
-
-        results.append(result)
-
-    results.sort(
-        key=lambda x: x["distance_km"]
+    latitude: float,
+    longitude: float,
+    loan_type: Optional[str] = None,
+    scheme_id: Optional[str] = None,
+    partner_type: Optional[str] = None,
+    query: Optional[str] = None,
+    top_k: int = 10
+) -> List[Dict[str, Any]]:
+    """
+    Finds and ranks official NSFDC channel partners suitable for the applicant,
+    combining geospatial proximity, scheme authorization, and semantic RAG matching.
+    """
+    return retrieve_channel_partners(
+        query=query,
+        latitude=latitude,
+        longitude=longitude,
+        loan_type=loan_type,
+        scheme_id=scheme_id,
+        partner_type=partner_type,
+        top_k=top_k
     )
-
-    return results

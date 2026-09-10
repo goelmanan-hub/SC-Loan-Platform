@@ -15,8 +15,14 @@ let isListening = false;
 let currentLanguage = "hi-IN";
 let partnerMap = null;
 let partnerMarkers = null;
+let partnerMapMarkersDict = {};
 let availableVoices = [];
 let stagedOcrFiles = [];
+
+// Geolocation & Partner Filter State
+let userCoordinates = { lat: 29.9695, lng: 76.8783 }; // Default to Kurukshetra center
+let isLocationPermissionGranted = false;
+let activePartnerTypeFilter = "ALL";
 
 /* =====================================================
    INITIALIZATION ON DOM CONTENT LOADED
@@ -24,6 +30,8 @@ let stagedOcrFiles = [];
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Connecting YojnaSetu Frontend to FastAPI at:", API_BASE_URL);
     
+    initLanguageSystem();
+    initAuthSystem();
     initSpeechRecognition();
     initSpeechSynthesis();
     setupEventListeners();
@@ -32,6 +40,304 @@ document.addEventListener("DOMContentLoaded", () => {
     loadDefaultPartners();
     checkBackendHealth();
 });
+
+/* =====================================================
+   BILINGUAL (HINDI & ENGLISH) TRANSLATION SYSTEM
+===================================================== */
+let lastFetchedPartners = [];
+
+/* =====================================================
+   BILINGUAL (HINDI & ENGLISH) TRANSLATION SYSTEM
+===================================================== */
+const TRANSLATIONS = {
+    "hi-IN": {
+        langName: "हिंदी",
+        tagline: "सपनों को मिलेगा सहारा, आपके साथ है योजनासेतु — “YojnaSetu”",
+        loginBtn: "लॉगिन / पंजीकरण",
+        navHome: "होम",
+        navReadiness: "ऋण तैयारी स्कोर",
+        navOcr: "दस्तावेज OCR जाँच",
+        navEmi: "EMI कैलकुलेटर",
+        navPartners: "चैनल पार्टनर",
+        navHelp: "सहायता",
+        govTitle: "भारत सरकार",
+        govSub: "द्वारा समर्थित",
+        heroTitle: 'नमस्ते! मैं <span>योजनासेतु (YojnaSetu)</span> हूँ',
+        heroIntro: "मैं आपकी सरकारी ऋण योजनाओं में जानकारी, पात्रता, और ऋण तैयारी स्कोर (Readiness Score) के मूल्यांकन में मदद करने के लिए यहाँ हूँ।",
+        speechTitle: "नमस्ते!",
+        speechP1: "मैं योजनासेतु हूँ। आप मुझसे अपनी भाषा में बात कर सकते हैं।",
+        speechP2: "बताइए, मैं आपकी किस प्रकार मदद कर सकता हूँ?",
+        micTitle: "बोलने के लिए बटन दबाएँ",
+        micSub: "मैं आपकी बात सुन रहा हूँ...",
+        micBtnTitle: "बोलने के लिए दबाएँ",
+        resetBtn: "नया संवाद (New Chat)",
+        chatPlaceholder: "यहाँ संदेश लिखें या बोलें...",
+        sendBtn: "भेजें",
+        chipEdu: "शिक्षा ऋण (Education Loan)",
+        chipBiz: "व्यवसाय ऋण (Business Loan)",
+        chipScore: "तैयारी स्कोर (Readiness)",
+        chipOcr: "दस्तावेज OCR (Doc OCR)",
+        chipEmi: "EMI कैलकुलेटर",
+        chipPartner: "नजदीकी चैनल पार्टनर",
+        moreLang: "और भाषाएँ",
+        initChatMsg: "<strong>नमस्ते!</strong> मैं आपका AI सहायता एजेंट हूँ। आपको किस प्रकार का ऋण चाहिए? (शिक्षा ऋण / व्यवसाय ऋण)",
+        // Steps
+        step1B: "1. अपनी भाषा में बात करें",
+        step1Span: "बस अपनी बात बताइए",
+        step2B: "2. तैयारी स्कोर व योजना पाएँ",
+        step2Span: "तत्परता स्कोर व सही योजना",
+        step3B: "3. आपका लक्ष्य, हमारा साथ",
+        step3Span: "ऋण प्राप्ति तक पूरी सहायता",
+        // Rightbar
+        helpCardH3: "हम यहाँ आपकी मदद के लिए हैं",
+        helpCardP: "चाहे आप पढ़े-लिखे हों या नहीं, योजनासेतु आपकी अपनी भाषा में मार्गदर्शन करेगा।",
+        schemesCardH3: "उपलब्ध योजनाएँ (Schemes)",
+        helpRow1: "ऋण तत्परता स्कोर (Readiness Score) मूल्यांकन",
+        helpRow2: "सरकारी ऋण योजनाओं की जानकारी",
+        helpRow3: "पात्रता की जाँच में सहायता",
+        helpRow4: "आवेदन प्रक्रिया में मार्गदर्शन",
+        helpRow5: "नजदीकी सहायता केंद्र खोजने में मदद",
+        secureCardH3: "आपकी जानकारी सुरक्षित है",
+        secureCardP: "आपका डेटा पूरी तरह से गोपनीय और सुरक्षित रखा जाएगा।",
+        // Partners
+        partnerSort: '<i class="fa-solid fa-arrow-down-short-wide"></i> नजदीकी दूरी व प्रासंगिकता के आधार पर',
+        partnerCountSuffix: "आधिकारिक NSFDC चैनल पार्टनर उपलब्ध",
+        partnerDistanceAway: "km दूर",
+        partnerOfficer: "अधिकारी",
+        partnerPhone: "फोन",
+        partnerTollFree: "टोल-फ्री",
+        partnerDirections: "दिशा-निर्देश",
+        partnerCall: "कॉल",
+        partnerMap: "मैप"
+    },
+    "en-IN": {
+        langName: "English",
+        tagline: "Empowering Dreams with NSFDC Concessional Loans — “YojnaSetu”",
+        loginBtn: "Login / Register",
+        navHome: "Home",
+        navReadiness: "Readiness Score",
+        navOcr: "Document OCR Check",
+        navEmi: "EMI Calculator",
+        navPartners: "Channel Partners",
+        navHelp: "Help & Support",
+        govTitle: "Government of India",
+        govSub: "Supported Platform",
+        heroTitle: 'Hello! I am <span>YojnaSetu</span>',
+        heroIntro: "I am here to guide you through NSFDC concessional loans, eligibility verification, and AI Loan Readiness Score evaluation.",
+        speechTitle: "Hello!",
+        speechP1: "I am YojnaSetu. You can talk to me in Hindi or English.",
+        speechP2: "Tell me, how can I assist you with your loan application today?",
+        micTitle: "Click Button to Speak",
+        micSub: "I am listening to you...",
+        micBtnTitle: "Click to speak",
+        resetBtn: "New Chat",
+        chatPlaceholder: "Type your message or speak...",
+        sendBtn: "Send",
+        chipEdu: "Education Loan (ELIS)",
+        chipBiz: "Business Loan (MSY/Term)",
+        chipScore: "Readiness Score",
+        chipOcr: "Document OCR",
+        chipEmi: "EMI Calculator",
+        chipPartner: "Nearest Partners",
+        moreLang: "More Languages",
+        initChatMsg: "<strong>Hello!</strong> I am your AI Loan Assistance Agent. Which type of loan do you need? (Education Loan / Business Loan)",
+        // Steps
+        step1B: "1. Speak in Your Language",
+        step1Span: "Just share your details",
+        step2B: "2. Get Readiness Score & Scheme",
+        step2Span: "Readiness score & ideal scheme",
+        step3B: "3. Your Goal, Our Support",
+        step3Span: "Complete assistance till loan disbursal",
+        // Rightbar
+        helpCardH3: "We are here to help you",
+        helpCardP: "Whether you are literate or not, YojnaSetu will guide you in your own language.",
+        schemesCardH3: "Available Schemes",
+        helpRow1: "Loan Readiness Score Evaluation",
+        helpRow2: "Government Loan Schemes Information",
+        helpRow3: "Eligibility Assessment & Guidance",
+        helpRow4: "Application Process Walkthrough",
+        helpRow5: "Nearest Support Center & Branch Locator",
+        secureCardH3: "Your Information is Safe",
+        secureCardP: "Your data is kept completely confidential and secure.",
+        // Partners
+        partnerSort: '<i class="fa-solid fa-arrow-down-short-wide"></i> Sorted by Nearest Distance & Relevance',
+        partnerCountSuffix: "Official NSFDC Channel Partners Available",
+        partnerDistanceAway: "km away",
+        partnerOfficer: "Officer",
+        partnerPhone: "Phone",
+        partnerTollFree: "Toll-Free",
+        partnerDirections: "Directions",
+        partnerCall: "Call",
+        partnerMap: "Map"
+    }
+};
+
+function initLanguageSystem() {
+    const savedLang = localStorage.getItem("yojnaSetuLang") || "hi-IN";
+    setAppLanguage(savedLang, false);
+}
+
+function toggleHeaderLangDropdown(show) {
+    const menu = document.getElementById("header-lang-menu");
+    const btn = document.getElementById("header-lang-btn");
+    if (!menu || !btn) return;
+
+    if (show) {
+        menu.style.display = "flex";
+        btn.classList.add("menu-open");
+        btn.setAttribute("aria-expanded", "true");
+    } else {
+        menu.style.display = "none";
+        btn.classList.remove("menu-open");
+        btn.setAttribute("aria-expanded", "false");
+    }
+}
+
+function setAppLanguage(langCode, speakGreeting = false) {
+    const effectiveLang = langCode && langCode.startsWith("en") ? "en-IN" : "hi-IN";
+    currentLanguage = effectiveLang;
+    localStorage.setItem("yojnaSetuLang", effectiveLang);
+
+    const t = TRANSLATIONS[effectiveLang] || TRANSLATIONS["hi-IN"];
+
+    // 1. Update Header Button Label
+    const currentLangLabel = document.getElementById("current-lang-label");
+    if (currentLangLabel) {
+        currentLangLabel.textContent = t.langName;
+    }
+
+    // 2. Update Header Dropdown active states
+    document.querySelectorAll("#header-lang-menu .lang-option").forEach(opt => {
+        const optLang = opt.getAttribute("data-lang");
+        if (optLang === effectiveLang) {
+            opt.classList.add("active");
+        } else {
+            opt.classList.remove("active");
+        }
+    });
+
+    // 3. Update Hero Language Buttons active states
+    document.querySelectorAll(".languages .lang").forEach(btn => {
+        const dataLang = btn.getAttribute("data-lang");
+        const btnText = btn.textContent.trim().toLowerCase();
+        if ((dataLang && dataLang === effectiveLang) || 
+            (effectiveLang === "en-IN" && btnText.includes("english")) || 
+            (effectiveLang === "hi-IN" && btnText.includes("हिंदी"))) {
+            btn.classList.add("active");
+        } else if (!dataLang && !btnText.includes("বাংলা") && !btnText.includes("தமிழ்") && !btnText.includes("తెలుగు") && !btnText.includes("भाषाएँ")) {
+            btn.classList.remove("active");
+        }
+    });
+
+    // 4. Update Header & Navigation Text
+    const headerTagline = document.getElementById("header-tagline");
+    if (headerTagline) headerTagline.textContent = t.tagline;
+
+    const navLoginText = document.getElementById("nav-login-text");
+    if (navLoginText) navLoginText.textContent = t.loginBtn;
+
+    const updateSpan = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) {
+            const span = el.querySelector("span");
+            if (span) span.textContent = text;
+        }
+    };
+
+    const updateText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text;
+    };
+
+    const updateHTML = (id, html) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html;
+    };
+
+    updateSpan("nav-item-home", t.navHome);
+    updateSpan("nav-item-readiness", t.navReadiness);
+    updateSpan("nav-item-ocr", t.navOcr);
+    updateSpan("nav-item-emi", t.navEmi);
+    updateSpan("nav-item-partners", t.navPartners);
+    updateSpan("help-btn", t.navHelp);
+
+    updateText("gov-badge-title", t.govTitle);
+    updateText("gov-badge-sub", t.govSub);
+
+    // 5. Update Hero Section
+    updateHTML("hero-title", t.heroTitle);
+    updateText("hero-intro", t.heroIntro);
+    updateText("speech-title", t.speechTitle);
+    updateText("speech-p1", t.speechP1);
+    updateText("speech-p2", t.speechP2);
+    updateText("mic-title", t.micTitle);
+    updateText("mic-sub", t.micSub);
+
+    const heroMicBtn = document.getElementById("hero-mic-btn");
+    if (heroMicBtn) heroMicBtn.setAttribute("aria-label", t.micBtnTitle);
+
+    updateText("hero-lang-more", t.moreLang);
+
+    // 6. Update Chat Area
+    updateText("reset-btn-text", t.resetBtn);
+
+    const chatInput = document.getElementById("chat-input");
+    if (chatInput) chatInput.placeholder = t.chatPlaceholder;
+
+    updateText("send-btn-text", t.sendBtn);
+
+    // Chips
+    updateSpan("chip-edu", t.chipEdu);
+    updateSpan("chip-biz", t.chipBiz);
+    updateSpan("chip-score", t.chipScore);
+    updateSpan("chip-ocr", t.chipOcr);
+    updateSpan("chip-emi", t.chipEmi);
+    updateSpan("chip-partner", t.chipPartner);
+
+    // Initial bot message if not interacted yet
+    const initBotMsg = document.getElementById("init-bot-msg-content");
+    if (initBotMsg && (!sessionId || sessionId === null)) {
+        initBotMsg.innerHTML = t.initChatMsg;
+    }
+
+    // 7. Update 3 Steps Strip
+    updateText("step1-b", t.step1B);
+    updateText("step1-span", t.step1Span);
+    updateText("step2-b", t.step2B);
+    updateText("step2-span", t.step2Span);
+    updateText("step3-b", t.step3B);
+    updateText("step3-span", t.step3Span);
+
+    // 8. Update Right Sidebar Cards
+    updateText("help-card-h3", t.helpCardH3);
+    updateText("help-card-p", t.helpCardP);
+    updateSpan("schemes-card-h3", t.schemesCardH3);
+    updateText("help-row-1-p", t.helpRow1);
+    updateText("help-row-2-p", t.helpRow2);
+    updateText("help-row-3-p", t.helpRow3);
+    updateText("help-row-4-p", t.helpRow4);
+    updateText("help-row-5-p", t.helpRow5);
+    updateText("secure-card-h3", t.secureCardH3);
+    updateText("secure-card-p", t.secureCardP);
+
+    // 9. Update Channel Partners Sort & Re-render if cached
+    updateHTML("partner-sort-indicator", t.partnerSort);
+    if (lastFetchedPartners && lastFetchedPartners.length > 0) {
+        renderPartnersList(lastFetchedPartners);
+    }
+
+    // 10. Update Speech Recognition Language
+    if (recognition) {
+        recognition.lang = effectiveLang;
+    }
+
+    // 11. Speak greeting if user manually switched language
+    if (speakGreeting) {
+        speakText(t.speechP1 + " " + t.speechP2);
+    }
+
+    console.log(`🌍 App Language set to: ${effectiveLang} (${t.langName})`);
+}
 
 /* =====================================================
    BACKEND HEALTH CHECK
@@ -137,46 +443,65 @@ function setupEventListeners() {
         });
     }
 
-    // Language Selector Buttons
-    const langButtons = document.querySelectorAll(".languages .lang, .top-actions .language");
-    langButtons.forEach(btn => {
+    // Header Language Dropdown Controller
+    const headerLangBtn = document.getElementById("header-lang-btn");
+    const headerLangMenu = document.getElementById("header-lang-menu");
+    if (headerLangBtn && headerLangMenu) {
+        headerLangBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const isOpen = headerLangMenu.style.display === "flex";
+            toggleHeaderLangDropdown(!isOpen);
+        });
+
+        // Language options click inside dropdown
+        headerLangMenu.querySelectorAll(".lang-option").forEach(opt => {
+            opt.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const selectedLang = opt.getAttribute("data-lang") || "hi-IN";
+                setAppLanguage(selectedLang, true);
+                toggleHeaderLangDropdown(false);
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener("click", (e) => {
+            if (!headerLangBtn.contains(e.target) && !headerLangMenu.contains(e.target)) {
+                toggleHeaderLangDropdown(false);
+            }
+        });
+    }
+
+    // Hero Language Buttons
+    const heroLangButtons = document.querySelectorAll(".languages .lang");
+    heroLangButtons.forEach(btn => {
         btn.addEventListener("click", () => {
-            document.querySelectorAll(".languages .lang").forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
-
+            const dataLang = btn.getAttribute("data-lang");
             const text = btn.textContent.trim().toLowerCase();
-            if (text.includes("english")) {
-                currentLanguage = "en-IN";
-                updateSpeakerBubble("Hello! I am YojnaSetu. How can I assist you with SC loan schemes today?");
+            let chosenLang = "hi-IN";
+
+            if (dataLang) {
+                chosenLang = dataLang;
+            } else if (text.includes("english")) {
+                chosenLang = "en-IN";
             } else if (text.includes("বাংলা") || text.includes("bangla")) {
-                currentLanguage = "bn-IN";
-                updateSpeakerBubble("নমস্কার! আমি যোজনা সেতু। আমি কীভাবে আপনাকে সাহায্য করতে পারি?");
+                chosenLang = "bn-IN";
             } else if (text.includes("தமிழ்") || text.includes("tamil")) {
-                currentLanguage = "ta-IN";
-                updateSpeakerBubble("வணக்கம்! நான் யோஜனா சேது. நான் உங்களுக்கு எவ்வாறு உதவ முடியும்?");
+                chosenLang = "ta-IN";
             } else if (text.includes("తెలుగు") || text.includes("telugu")) {
-                currentLanguage = "te-IN";
-                updateSpeakerBubble("నమస్కారం! నేను యోజన సేతు. నేను మీకు ఎలా సహాయం చేయగలను?");
-            } else {
-                currentLanguage = "hi-IN";
-                updateSpeakerBubble("नमस्ते! मैं योजनासेतु हूँ। आप मुझसे अपनी भाषा में बात कर सकते हैं। बताइए, मैं आपकी किस प्रकार मदद कर सकता हूँ?");
+                chosenLang = "te-IN";
             }
 
-            if (recognition) {
-                recognition.lang = currentLanguage;
-            }
+            setAppLanguage(chosenLang, true);
         });
     });
 
-    // Login / Registration Button
-    const loginButtons = document.querySelectorAll(".login");
-    loginButtons.forEach(btn => {
-        btn.addEventListener("click", () => {
-            const mobile = prompt("कृपया अपना 10 अंकों का मोबाइल नंबर दर्ज करें (Enter your Mobile Number):");
-            if (mobile && mobile.trim().length >= 10) {
-                alert(`धन्यवाद! OTP सत्यापन कोड ${mobile} पर भेज दिया गया है।`);
-            }
-        });
+    // Close user dropdown on clicking outside
+    document.addEventListener("click", (e) => {
+        const userMenu = document.getElementById("header-user-profile-menu");
+        const loginBtn = document.getElementById("header-login-btn");
+        if (userMenu && loginBtn && !userMenu.contains(e.target) && !loginBtn.contains(e.target)) {
+            userMenu.style.display = "none";
+        }
     });
 
     // Navigation Items
@@ -217,16 +542,50 @@ function setupEventListeners() {
         });
     }
 
-    // Partner Search Buttons
-    const searchPartnersBtn = document.getElementById("search-partners-btn");
-    if (searchPartnersBtn) {
-        searchPartnersBtn.addEventListener("click", searchPartnersFromSelect);
-    }
-
+    // Partner Search & Location Controls
     const findLocationBtn = document.getElementById("find-location-btn");
     if (findLocationBtn) {
-        findLocationBtn.addEventListener("click", findPartnersByGeolocation);
+        findLocationBtn.addEventListener("click", () => handleLocationPermissionRequest(true));
     }
+
+    const partnerRagSearchBtn = document.getElementById("partner-rag-search-btn");
+    if (partnerRagSearchBtn) {
+        partnerRagSearchBtn.addEventListener("click", () => fetchPartnersWithFilters());
+    }
+
+    const partnerQueryInput = document.getElementById("partner-query-input");
+    if (partnerQueryInput) {
+        partnerQueryInput.addEventListener("keyup", (e) => {
+            if (e.key === "Enter") {
+                fetchPartnersWithFilters();
+            }
+        });
+    }
+
+    const partnerStateSelect = document.getElementById("partner-state-select");
+    if (partnerStateSelect) {
+        partnerStateSelect.addEventListener("change", () => handleStateSelectChange());
+    }
+
+    const partnerSchemeSelect = document.getElementById("partner-scheme-select");
+    if (partnerSchemeSelect) {
+        partnerSchemeSelect.addEventListener("change", () => fetchPartnersWithFilters());
+    }
+
+    const citySelect = document.getElementById("city-select");
+    if (citySelect) {
+        citySelect.addEventListener("change", () => handleCitySelectChange());
+    }
+
+    // Type pills
+    document.querySelectorAll(".type-pill").forEach(pill => {
+        pill.addEventListener("click", () => {
+            document.querySelectorAll(".type-pill").forEach(p => p.classList.remove("active"));
+            pill.classList.add("active");
+            activePartnerTypeFilter = pill.getAttribute("data-type") || "ALL";
+            fetchPartnersWithFilters();
+        });
+    });
 }
 
 /* =====================================================
@@ -632,7 +991,7 @@ async function handleUserChatMessage(userText) {
             }
         }
 
-        // If conversation is complete, render recommendation and readiness score
+        // If conversation is complete, render recommendation, autofill all widgets, and readiness score
         if (data.complete && data.recommendation) {
             let recommendationEmi = data.emi;
             if (!recommendationEmi && data.user_data && data.recommendation.recommended_scheme) {
@@ -641,9 +1000,13 @@ async function handleUserChatMessage(userText) {
                     data.recommendation.recommended_scheme
                 );
             }
-            renderRecommendationCard(data.recommendation, recommendationEmi, data.readiness);
+            renderRecommendationCard(data.recommendation, recommendationEmi, data.readiness, data.user_data);
+            
+            // Auto-fill all interactive widgets (Channel Partner, EMI Calculator, Readiness Simulator)
+            autoFillAllWidgetsFromRecommendation(data.user_data, data.recommendation.recommended_scheme, recommendationEmi, data.readiness);
+            
             // Continue the user journey to nearby channel partners after presentation
-            setTimeout(() => scrollToSection("partner-section"), 1200);
+            setTimeout(() => scrollToSection("partner-section"), 1400);
         }
 
     } catch (error) {
@@ -790,9 +1153,137 @@ function renderRecommendationCard(rec, emi, readiness) {
             if (readinessBox) readinessBox.style.display = "block";
         }
 
+        // Auto-fill all widgets across the app with this recommended scheme's data
+        autoFillAllWidgetsFromRecommendation(userData, scheme, emi, readiness);
+
+        // Auto-save recommended scheme & readiness score to SQLite database
+        autoSaveCurrentAssessment(rec, readiness, userData);
+
         card.style.display = "block";
         card.scrollIntoView({ behavior: "smooth" });
     }
+}
+
+/**
+ * AUTOMATICALLY AUTO-FILLS ALL PLATFORM WIDGETS WHEN AI RECOMMENDS A SCHEME
+ * 1. Channel Partner Locator: Auto-selects recommended scheme & user location, triggers RAG partner search
+ * 2. EMI Calculator: Auto-fills principal, scheme interest rate, tenure, moratorium & runs EMI calculation
+ * 3. Loan Readiness Simulator: Auto-fills purpose, loan amount, income, tenure, caste & document status
+ */
+function autoFillAllWidgetsFromRecommendation(userData, scheme, emiData, readinessData) {
+    if (!scheme) return;
+    console.log("⚡ Auto-filling all widgets from AI Recommendation:", scheme.id, scheme.name);
+
+    // =====================================================
+    // 1. AUTO-FILL CHANNEL PARTNER LOCATOR
+    // =====================================================
+    const partnerSchemeSelect = document.getElementById("partner-scheme-select");
+    if (partnerSchemeSelect) {
+        partnerSchemeSelect.value = scheme.id || "";
+        console.log("Partner Scheme Filter auto-selected:", scheme.id);
+    }
+
+    const partnerQueryInput = document.getElementById("partner-query-input");
+    const partnerStateSelect = document.getElementById("partner-state-select");
+    const citySelect = document.getElementById("city-select");
+
+    if (userData && userData.location) {
+        const locClean = String(userData.location).trim();
+        const locLower = locClean.toLowerCase();
+
+        // If user mentioned a city, match in quick city select or set query
+        if (citySelect) {
+            for (let i = 0; i < citySelect.options.length; i++) {
+                const optText = citySelect.options[i].text.toLowerCase();
+                if (optText.includes(locLower) || locLower.includes(optText.split(" ")[0].toLowerCase())) {
+                    citySelect.selectedIndex = i;
+                    const [lat, lng] = citySelect.value.split(",").map(Number);
+                    userCoordinates = { lat, lng };
+                    break;
+                }
+            }
+        }
+
+        // Match state if available
+        if (partnerStateSelect) {
+            for (let i = 0; i < partnerStateSelect.options.length; i++) {
+                const stateText = partnerStateSelect.options[i].text.toLowerCase();
+                if (stateText.includes(locLower) || locLower.includes(stateText.split(" ")[0].toLowerCase())) {
+                    partnerStateSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if (partnerQueryInput && !partnerQueryInput.value) {
+            partnerQueryInput.value = `${locClean} ${scheme.name_hi || scheme.name}`;
+        }
+    } else if (partnerQueryInput && !partnerQueryInput.value) {
+        partnerQueryInput.value = scheme.name_hi || scheme.name;
+    }
+
+    // Immediately trigger RAG Partner search for the recommended scheme
+    fetchPartnersWithFilters();
+
+    // =====================================================
+    // 2. AUTO-FILL EMI CALCULATOR
+    // =====================================================
+    const emiPrincipal = document.getElementById("emi-principal");
+    const emiRate = document.getElementById("emi-rate");
+    const emiTenure = document.getElementById("emi-tenure");
+    const emiMoratorium = document.getElementById("emi-moratorium");
+
+    const loanReqAmount = (userData && Number(userData.loan_required)) || Number(scheme.max_loan) || 100000;
+    const loanTenureVal = (userData && Number(userData.tenure_months)) || Number(scheme.repayment_tenure_months) || 36;
+    const loanRateVal = Number(scheme.interest_rate) || 6.0;
+    const loanMoratoriumVal = Number(scheme.moratorium_months) || 0;
+
+    if (emiPrincipal) emiPrincipal.value = loanReqAmount;
+    if (emiRate) emiRate.value = loanRateVal;
+    if (emiTenure) emiTenure.value = loanTenureVal;
+    if (emiMoratorium) emiMoratorium.value = loanMoratoriumVal;
+
+    // Trigger instant calculation and result rendering
+    calculateEmiFromBackend();
+
+    // =====================================================
+    // 3. AUTO-FILL LOAN READINESS SIMULATOR
+    // =====================================================
+    const simLoanType = document.getElementById("sim-loan-type");
+    const simLoanAmount = document.getElementById("sim-loan-amount");
+    const simIncome = document.getElementById("sim-income");
+    const simTenure = document.getElementById("sim-tenure");
+    const simPurpose = document.getElementById("sim-purpose");
+    const simLocation = document.getElementById("sim-location");
+    const simCaste = document.getElementById("sim-caste-status");
+    const simDocs = document.getElementById("sim-docs-status");
+    const simExp = document.getElementById("sim-experience");
+
+    if (simLoanType) simLoanType.value = (userData && userData.loan_type) || scheme.loan_type || "business";
+    if (simLoanAmount) simLoanAmount.value = loanReqAmount;
+    if (simIncome) simIncome.value = (userData && Number(userData.income)) || 300000;
+    if (simTenure) simTenure.value = loanTenureVal;
+    if (simPurpose) {
+        simPurpose.value = (userData && (userData.business_type || userData.education_course)) || (scheme.loan_type === "education" ? "Higher Education" : "Small Enterprise");
+    }
+    if (simLocation) {
+        simLocation.value = (userData && userData.location) || "Kurukshetra (कुरुक्षेत्र)";
+    }
+    if (simCaste && userData && userData.caste_status) simCaste.value = userData.caste_status;
+    if (simDocs && userData && userData.docs_status) simDocs.value = userData.docs_status;
+    if (simExp && userData && userData.experience) simExp.value = userData.experience;
+
+    // Trigger visual highlight pulses to show user the fields were filled
+    [
+        document.getElementById("partner-section"),
+        document.getElementById("emi-section"),
+        document.getElementById("readiness-section")
+    ].forEach(elem => {
+        if (elem) {
+            elem.classList.add("chat-highlight-pulse");
+            setTimeout(() => elem.classList.remove("chat-highlight-pulse"), 2000);
+        }
+    });
 }
 
 function populateReadinessUI(prefix, readiness) {
@@ -944,6 +1435,16 @@ async function calculateReadinessFromBackend() {
                 simResultBox.style.display = "block";
                 simResultBox.scrollIntoView({ behavior: "smooth" });
             }
+
+            // Auto-save readiness score calculation to SQLite database
+            autoSaveCurrentAssessment(null, data.readiness, {
+                loan_type: loanType,
+                loan_required: loanAmount,
+                income: income,
+                tenure_months: tenure,
+                location: location,
+                business_type: purpose
+            });
         }
     } catch (error) {
         console.error("Readiness calculation error:", error);
@@ -991,81 +1492,380 @@ async function calculateEmiFromBackend() {
 }
 
 /* =====================================================
-   CHANNEL PARTNER FINDER API INTEGRATION
+   NSFDC CHANNEL PARTNER FINDER & RAG GEOLOCATION ENGINE
 ===================================================== */
-async function searchPartnersFromSelect() {
-    const select = document.getElementById("city-select");
-    const [lat, lng] = select.value.split(",").map(Number);
-    await fetchPartners(lat, lng);
-}
 
-function findPartnersByGeolocation() {
+/**
+ * Handles explicit or automatic browser location permission request
+ */
+function handleLocationPermissionRequest(isExplicitClick = false) {
+    const statusBadge = document.getElementById("geo-status-badge");
     const listContainer = document.getElementById("partners-list");
-    listContainer.innerHTML = `<div class="loading-placeholder">📍 आपका स्थान प्राप्त किया जा रहा है...</div>`;
+
+    if (statusBadge) {
+        statusBadge.className = "geo-status-badge waiting";
+        statusBadge.innerHTML = `<span class="pulse-dot"></span> स्थान प्राप्त किया जा रहा है...`;
+    }
+
+    if (listContainer) {
+        listContainer.innerHTML = `<div class="loading-placeholder">📍 आपका सटीक स्थान प्राप्त किया जा रहा है...</div>`;
+    }
 
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
-                await fetchPartners(lat, lng);
+                const accuracy = Math.round(position.coords.accuracy || 0);
+
+                userCoordinates = { lat, lng };
+                isLocationPermissionGranted = true;
+
+                console.log(`Geolocation granted: ${lat}, ${lng} (accuracy: ${accuracy}m)`);
+
+                if (statusBadge) {
+                    statusBadge.className = "geo-status-badge granted";
+                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> स्थान प्राप्त (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`;
+                }
+
+                // Auto select nearest state if in North India
+                const stateSelect = document.getElementById("partner-state-select");
+                if (stateSelect && (lat >= 27.5 && lat <= 31.5) && (lng >= 74.0 && lng <= 78.5)) {
+                    stateSelect.value = "ALL";
+                }
+
+                await fetchPartnersWithFilters();
             },
             async (error) => {
-                console.warn("Geolocation denied/failed. Falling back to default location (Kurukshetra):", error);
-                await fetchPartners(29.9695, 76.8783);
+                console.warn("Geolocation permission denied/error:", error);
+                isLocationPermissionGranted = false;
+
+                if (statusBadge) {
+                    statusBadge.className = "geo-status-badge denied";
+                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> स्थान अनुमति अस्वीकृत (डिफ़ॉल्ट सक्रिय)`;
+                }
+
+                // Use current dropdown value
+                handleCitySelectChange();
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 8000,
+                maximumAge: 60000
             }
         );
     } else {
-        fetchPartners(29.9695, 76.8783);
+        if (statusBadge) {
+            statusBadge.className = "geo-status-badge manual";
+            statusBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ब्राउज़र स्थान असमर्थ`;
+        }
+        handleCitySelectChange();
     }
 }
 
-async function loadDefaultPartners() {
-    await fetchPartners(29.9695, 76.8783);
+// =====================================================
+// STATE-TO-CITY DYNAMIC MAPPING
+// =====================================================
+const STATE_CITY_MAPPING = {
+    "ALL": [
+        { name: "कुरुक्षेत्र (Kurukshetra, Haryana)", lat: 29.9695, lng: 76.8783 },
+        { name: "दिल्ली केंद्रीय / ITO (Central Delhi - DSFDC HQ)", lat: 28.6294, lng: 77.2435 },
+        { name: "रोहिणी (North-West Delhi - DSFDC Branch)", lat: 28.7235, lng: 77.1142 },
+        { name: "भीकाजी कामा प्लेस (South Delhi - NSFDC Apex HQ)", lat: 28.5684, lng: 77.1895 },
+        { name: "करनाल (Karnal, Haryana)", lat: 29.6857, lng: 76.9905 },
+        { name: "अंबाला (Ambala, Haryana)", lat: 30.3782, lng: 76.7767 },
+        { name: "पानीपत (Panipat, Haryana)", lat: 29.3909, lng: 76.9635 },
+        { name: "पंचकूला (Panchkula, Haryana)", lat: 30.6942, lng: 76.8606 },
+        { name: "नोएडा / ग्रेटर नोएडा (Noida, UP)", lat: 28.5355, lng: 77.3910 },
+        { name: "लखनऊ (Lucknow, UP)", lat: 26.8833, lng: 80.9462 },
+        { name: "आगरा (Agra, UP)", lat: 27.1985, lng: 78.0064 },
+        { name: "चंडीगढ़ (Chandigarh, Punjab)", lat: 30.7410, lng: 76.7850 },
+        { name: "लुधियाना (Ludhiana, Punjab)", lat: 30.9010, lng: 75.8573 },
+        { name: "जयपुर (Jaipur, Rajasthan)", lat: 26.8920, lng: 75.8055 },
+        { name: "मुंबई (Mumbai, Maharashtra)", lat: 19.1125, lng: 72.8340 },
+        { name: "पुणे (Pune, Maharashtra)", lat: 18.5284, lng: 73.8743 },
+        { name: "बेंगलुरु (Bengaluru, Karnataka)", lat: 12.9784, lng: 77.5913 },
+        { name: "चेन्नई (Chennai, Tamil Nadu)", lat: 13.0336, lng: 80.2447 }
+    ],
+    "Delhi": [
+        { name: "दिल्ली केंद्रीय / ITO (Central Delhi - DSFDC HQ)", lat: 28.6294, lng: 77.2435 },
+        { name: "रोहिणी (North-West Delhi - DSFDC Branch)", lat: 28.7235, lng: 77.1142 },
+        { name: "भीकाजी कामा प्लेस (South Delhi - NSFDC Apex HQ)", lat: 28.5684, lng: 77.1895 },
+        { name: "पूर्वी दिल्ली / लक्ष्मी नगर (East Delhi)", lat: 28.6304, lng: 77.2773 },
+        { name: "द्वारका / पश्चिम दिल्ली (Dwarka / West Delhi)", lat: 28.5921, lng: 77.0460 }
+    ],
+    "Haryana": [
+        { name: "कुरुक्षेत्र (Kurukshetra - HSCFDC Office)", lat: 29.9695, lng: 76.8783 },
+        { name: "करनाल (Karnal - HSCFDC & PNB Lead)", lat: 29.6857, lng: 76.9905 },
+        { name: "अंबाला (Ambala - HSCFDC District Office)", lat: 30.3782, lng: 76.7767 },
+        { name: "पानीपत (Panipat - HSCFDC District Office)", lat: 29.3909, lng: 76.9635 },
+        { name: "पंचकूला (Panchkula - HSCFDC State HQ)", lat: 30.6942, lng: 76.8606 },
+        { name: "रोहतक (Rohtak - SHGB Gramin Bank HQ)", lat: 28.8955, lng: 76.6066 },
+        { name: "गुरुग्राम / फरीदाबाद (Gurugram / Faridabad)", lat: 28.4595, lng: 77.0266 },
+        { name: "हिसार (Hisar)", lat: 29.1492, lng: 75.7217 }
+    ],
+    "Uttar Pradesh": [
+        { name: "नोएडा / ग्रेटर नोएडा (Gautam Buddha Nagar - UPSCFDC)", lat: 28.5355, lng: 77.3910 },
+        { name: "लखनऊ (Lucknow - UPSCFDC State HQ)", lat: 26.8833, lng: 80.9462 },
+        { name: "आगरा (Agra - UPSCFDC District Office)", lat: 27.1985, lng: 78.0064 },
+        { name: "गाजियाबाद (Ghaziabad)", lat: 28.6692, lng: 77.4538 },
+        { name: "वाराणसी (Varanasi)", lat: 25.3176, lng: 82.9739 },
+        { name: "कानपुर (Kanpur)", lat: 26.4499, lng: 80.3319 }
+    ],
+    "Punjab": [
+        { name: "चंडीगढ़ (Chandigarh - PSCFC Head Office)", lat: 30.7410, lng: 76.7850 },
+        { name: "लुधियाना (Ludhiana - PSCFC District Office)", lat: 30.9010, lng: 75.8573 },
+        { name: "अमृतसर (Amritsar)", lat: 31.6340, lng: 74.8723 },
+        { name: "जालंधर (Jalandhar)", lat: 31.3260, lng: 75.5762 },
+        { name: "पटियाला (Patiala)", lat: 30.3398, lng: 76.3869 }
+    ],
+    "Rajasthan": [
+        { name: "जयपुर (Jaipur - Anuja Nigam State HQ)", lat: 26.8920, lng: 75.8055 },
+        { name: "जोधपुर (Jodhpur)", lat: 26.2389, lng: 73.0243 },
+        { name: "कोटा (Kota)", lat: 25.2138, lng: 75.8648 },
+        { name: "उदयपुर (Udaipur)", lat: 24.5854, lng: 73.7125 }
+    ],
+    "Maharashtra": [
+        { name: "मुंबई (Mumbai - MPBCDC State HQ)", lat: 19.1125, lng: 72.8340 },
+        { name: "पुणे (Pune - MPBCDC District Office)", lat: 18.5284, lng: 73.8743 },
+        { name: "नागपुर (Nagpur)", lat: 21.1458, lng: 79.0882 },
+        { name: "नाशिक (Nashik)", lat: 19.9975, lng: 73.7898 }
+    ],
+    "Karnataka": [
+        { name: "बेंगलुरु (Bengaluru - Ambedkar Corp HQ)", lat: 12.9784, lng: 77.5913 },
+        { name: "मैसूरु (Mysuru)", lat: 12.2958, lng: 76.6394 },
+        { name: "हुबली-धारवाड़ (Hubballi-Dharwad)", lat: 15.3647, lng: 75.1240 }
+    ],
+    "Tamil Nadu": [
+        { name: "चेन्नई (Chennai - TAHDCO Head Office)", lat: 13.0336, lng: 80.2447 },
+        { name: "कोयंबटूर (Coimbatore)", lat: 11.0168, lng: 76.9558 },
+        { name: "मदुरै (Madurai)", lat: 9.9252, lng: 78.1198 }
+    ]
+};
+
+/**
+ * Updates the Quick City dropdown when the user selects a State
+ */
+function updateCityDropdownForState(stateKey) {
+    const citySelect = document.getElementById("city-select");
+    if (!citySelect) return;
+
+    const cities = STATE_CITY_MAPPING[stateKey] || STATE_CITY_MAPPING["ALL"];
+    
+    citySelect.innerHTML = cities.map((c, index) => `
+        <option value="${c.lat},${c.lng}" ${index === 0 ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+    `).join("");
+
+    // Set coordinates to first city of selected state
+    if (cities.length > 0) {
+        userCoordinates = { lat: cities[0].lat, lng: cities[0].lng };
+    }
 }
 
-async function fetchPartners(lat, lng) {
+function handleStateSelectChange() {
+    const stateSelect = document.getElementById("partner-state-select");
+    const selectedState = stateSelect ? stateSelect.value : "ALL";
+
+    console.log("State selected:", selectedState);
+
+    // Dynamically update cities dropdown to only show cities of this state
+    updateCityDropdownForState(selectedState);
+
+    // Update status badge
+    const statusBadge = document.getElementById("geo-status-badge");
+    if (statusBadge && !isLocationPermissionGranted) {
+        statusBadge.className = "geo-status-badge manual";
+        statusBadge.innerHTML = `<i class="fa-solid fa-map-pin"></i> राज्य: ${selectedState === "ALL" ? "सभी राज्य" : selectedState}`;
+    }
+
+    // Refresh partner results
+    fetchPartnersWithFilters();
+}
+
+function handleCitySelectChange() {
+    const select = document.getElementById("city-select");
+    if (!select) return;
+
+    const [lat, lng] = select.value.split(",").map(Number);
+    userCoordinates = { lat, lng };
+
+    const statusBadge = document.getElementById("geo-status-badge");
+    if (statusBadge && !isLocationPermissionGranted) {
+        statusBadge.className = "geo-status-badge manual";
+        const selectedText = select.options[select.selectedIndex]?.text || "चयनित शहर";
+        statusBadge.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${selectedText.split(" ")[0]}`;
+    }
+
+    fetchPartnersWithFilters();
+}
+
+async function loadDefaultPartners() {
+    // Initial city population for default selected state (Haryana)
+    const stateSelect = document.getElementById("partner-state-select");
+    const initialState = stateSelect ? stateSelect.value : "Haryana";
+    updateCityDropdownForState(initialState);
+    await fetchPartnersWithFilters();
+}
+
+/**
+ * Central RAG + Multi-filter partner retriever
+ */
+async function fetchPartnersWithFilters() {
     const listContainer = document.getElementById("partners-list");
-    listContainer.innerHTML = `<div class="loading-placeholder">चैनल पार्टनर खोजे जा रहे हैं...</div>`;
+    const countText = document.getElementById("partner-count-text");
+
+    if (listContainer) {
+        listContainer.innerHTML = `<div class="loading-placeholder"><i class="fa-solid fa-spinner fa-spin"></i> NSFDC चैनल पार्टनर खोजे जा रहे हैं...</div>`;
+    }
+
+    const queryInput = document.getElementById("partner-query-input");
+    const stateSelect = document.getElementById("partner-state-select");
+    const schemeSelect = document.getElementById("partner-scheme-select");
+
+    const query = queryInput ? queryInput.value.trim() : "";
+    const state = stateSelect ? stateSelect.value : "ALL";
+    const schemeId = schemeSelect ? schemeSelect.value : "";
+    const partnerType = activePartnerTypeFilter || "ALL";
 
     try {
-        const response = await fetch(`${API_BASE_URL}/api/find-partners`, {
+        const payload = {
+            latitude: userCoordinates.lat,
+            longitude: userCoordinates.lng,
+            query: query || undefined,
+            state: state !== "ALL" ? state : undefined,
+            scheme_id: schemeId || undefined,
+            partner_type: partnerType !== "ALL" ? partnerType : undefined,
+            top_k: 8
+        };
+
+        const endpoint = query ? `${API_BASE_URL}/api/partners/rag-search` : `${API_BASE_URL}/api/find-partners`;
+        const response = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                latitude: lat,
-                longitude: lng
-            })
+            body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error("Partner API request failed");
+        if (!response.ok) throw new Error("Failed to fetch channel partners");
 
         const data = await response.json();
-        if (data.success && data.partners) {
-            renderPartnersList(data.partners);
-            renderPartnerMap(lat, lng, data.partners);
+        const partners = data.partners || [];
+        lastFetchedPartners = partners;
+
+        const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS["hi-IN"];
+        if (countText) {
+            countText.textContent = `${partners.length} ${t.partnerCountSuffix || 'आधिकारिक NSFDC चैनल पार्टनर उपलब्ध'}`;
         }
+
+        renderPartnersList(partners);
+        renderPartnerMap(userCoordinates.lat, userCoordinates.lng, partners);
+
     } catch (error) {
         console.error("Partner locator error:", error);
-        listContainer.innerHTML = `<div class="loading-placeholder" style="color: #ef4444;">⚠️ चैनल पार्टनर प्राप्त करने में त्रुटि हुई।</div>`;
+        if (listContainer) {
+            const isEn = currentLanguage && currentLanguage.startsWith("en");
+            listContainer.innerHTML = `<div class="loading-placeholder" style="color: #ef4444;">⚠️ ${isEn ? 'Error fetching channel partners. Please verify backend status.' : 'चैनल पार्टनर प्राप्त करने में त्रुटि हुई। कृपया backend की स्थिति जाँचें।'}</div>`;
+        }
     }
 }
 
 function renderPartnersList(partners) {
     const listContainer = document.getElementById("partners-list");
+    if (!listContainer) return;
+
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+    const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS["hi-IN"];
+
+    const countText = document.getElementById("partner-count-text");
+    if (countText && partners) {
+        countText.textContent = `${partners.length} ${t.partnerCountSuffix || (isEn ? 'Official NSFDC Channel Partners Available' : 'आधिकारिक NSFDC चैनल पार्टनर उपलब्ध')}`;
+    }
+
     if (!partners || partners.length === 0) {
-        listContainer.innerHTML = `<div class="loading-placeholder">कोई चैनल पार्टनर उपलब्ध नहीं है।</div>`;
+        listContainer.innerHTML = `
+            <div class="loading-placeholder" style="grid-column: 1 / -1; padding: 30px; text-align: center;">
+                <i class="fa-solid fa-filter-circle-xmark" style="font-size: 28px; color: #94a3b8; margin-bottom: 10px; display: block;"></i>
+                <strong>${isEn ? 'No channel partners found with this filter.' : 'इस फ़िल्टर के साथ कोई चैनल पार्टनर नहीं मिला।'}</strong>
+                <p style="font-size: 13px; color: #64748b; margin-top: 4px;">${isEn ? 'Please change state or scheme selection and try again.' : 'कृपया राज्य या योजना का चयन बदलकर पुनः प्रयास करें।'}</p>
+            </div>
+        `;
         return;
     }
 
-    listContainer.innerHTML = partners.map(p => `
-        <div class="partner-card">
-            <span class="partner-type">${p.type}</span>
-            <h3>${p.name}</h3>
-            <p style="font-size: 13px; color: #475569;"><i class="fa-solid fa-location-dot"></i> ${p.city}</p>
-            <div class="partner-distance">📍 ${p.distance_km} km दूरी पर</div>
-        </div>
-    `).join("");
+    listContainer.innerHTML = partners.map(p => {
+        const typeClass = (p.type || "SCA").toLowerCase();
+        const typeBadgeName = p.type === "SCA" 
+            ? (isEn ? "🏛️ State Agency (SCA)" : "🏛️ राज्य एजेंसी (SCA)")
+            : p.type === "PSB" 
+            ? (isEn ? "🏦 Lead Bank (PSB)" : "🏦 सरकारी बैंक (PSB)")
+            : (isEn ? "🌾 Gramin Bank (RRB)" : "🌾 ग्रामीण बैंक (RRB)");
+
+        const distanceDisplay = p.distance_km !== null && p.distance_km !== undefined
+            ? `📍 ${p.distance_km} ${t.partnerDistanceAway || (isEn ? 'km away' : 'km दूर')}`
+            : (p.rag_score ? `🎯 RAG: ${Math.round(p.rag_score)}%` : (isEn ? "📍 Available" : "📍 उपलब्ध"));
+
+        const schemesList = (p.schemes || []).slice(0, 4).map(s => {
+            const formatted = s.replace(/_/g, " ");
+            return `<span class="partner-scheme-tag">${escapeHtml(formatted)}</span>`;
+        }).join("");
+
+        const phoneClean = (p.phone || "").replace(/[^\d+]/g, "");
+
+        return `
+            <div class="partner-card" id="card-${p.id}">
+                <div class="partner-card-header">
+                    <span class="partner-type-badge ${typeClass}">${typeBadgeName}</span>
+                    <span class="partner-distance-pill">${distanceDisplay}</span>
+                </div>
+                
+                <h3>${escapeHtml(p.name)}</h3>
+                
+                <div class="partner-address">
+                    <i class="fa-solid fa-location-dot" style="color: #ef4444; margin-top: 2px;"></i>
+                    <div>
+                        <span>${escapeHtml(p.address || p.city)}</span>
+                        ${p.pincode ? ` <strong>(PIN: ${p.pincode})</strong>` : ''}
+                    </div>
+                </div>
+
+                <div class="partner-contact-row">
+                    ${p.nodal_officer ? `<div><strong>${t.partnerOfficer || (isEn ? 'Officer' : 'अधिकारी')}</strong>: ${escapeHtml(p.nodal_officer)}</div>` : ''}
+                    ${p.phone ? `<div><strong>${t.partnerPhone || (isEn ? 'Phone' : 'फोन')}</strong>: <a href="tel:${phoneClean}">${escapeHtml(p.phone)}</a></div>` : ''}
+                    ${p.helpline ? `<div><strong>${t.partnerTollFree || (isEn ? 'Toll-Free' : 'टोल-फ्री')}</strong>: <a href="tel:${p.helpline}">${escapeHtml(p.helpline)}</a></div>` : ''}
+                    ${p.working_hours ? `<div style="color: #64748b; font-size: 11px;"><i class="fa-regular fa-clock"></i> ${escapeHtml(p.working_hours)}</div>` : ''}
+                </div>
+
+                <div class="partner-schemes-tags">
+                    ${schemesList}
+                </div>
+
+                <div class="partner-card-actions">
+                    <a href="${p.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}`}" target="_blank" rel="noopener noreferrer" class="partner-action-btn directions" title="${isEn ? 'Get directions on Google Maps' : 'Google Maps पर रास्ता देखें'}">
+                        <i class="fa-solid fa-diamond-turn-right"></i> ${t.partnerDirections || (isEn ? 'Directions' : 'दिशा-निर्देश')}
+                    </a>
+                    ${p.phone ? `
+                        <a href="tel:${phoneClean}" class="partner-action-btn call" title="${isEn ? 'Call directly' : 'सीधे कॉल करें'}">
+                            <i class="fa-solid fa-phone"></i> ${t.partnerCall || (isEn ? 'Call' : 'कॉल')}
+                        </a>
+                    ` : ''}
+                    <button type="button" class="partner-action-btn call" onclick="focusPartnerOnMap('${p.id}', ${p.latitude}, ${p.longitude})" title="${isEn ? 'Show on map' : 'मानचित्र पर देखें'}">
+                        <i class="fa-solid fa-map-pin"></i> ${t.partnerMap || (isEn ? 'Map' : 'मैप')}
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+function focusPartnerOnMap(partnerId, lat, lng) {
+    const mapElement = document.getElementById("partner-map");
+    if (!partnerMap || !mapElement) return;
+
+    partnerMap.setView([lat, lng], 15, { animate: true });
+    mapElement.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    if (partnerMapMarkersDict[partnerId]) {
+        partnerMapMarkersDict[partnerId].openPopup();
+    }
 }
 
 function initSpeechSynthesis() {
@@ -1099,7 +1899,7 @@ async function calculateRecommendationEmi(userData, scheme) {
 }
 
 /* =====================================================
-   PARTNER MAP (Leaflet + browser location permission)
+   PARTNER MAP (Leaflet + User Radar + Custom Pins)
 ===================================================== */
 function renderPartnerMap(latitude, longitude, partners) {
     const mapElement = document.getElementById("partner-map");
@@ -1109,7 +1909,7 @@ function renderPartnerMap(latitude, longitude, partners) {
         partnerMap = L.map(mapElement).setView([latitude, longitude], 11);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             maxZoom: 19,
-            attribution: "&copy; OpenStreetMap contributors"
+            attribution: "&copy; OpenStreetMap contributors | NSFDC Network"
         }).addTo(partnerMap);
         partnerMarkers = L.layerGroup().addTo(partnerMap);
     } else {
@@ -1117,29 +1917,66 @@ function renderPartnerMap(latitude, longitude, partners) {
         partnerMarkers.clearLayers();
     }
 
+    partnerMapMarkersDict = {};
+
+    // 1. User Marker (High-visibility pulsing blue beacon)
     const userMarker = L.circleMarker([latitude, longitude], {
-        radius: 9,
+        radius: 10,
         color: "#ffffff",
         weight: 3,
         fillColor: "#0072bc",
         fillOpacity: 1
-    }).bindPopup("<strong>आपका स्थान</strong>");
+    }).bindPopup("<div style='text-align: center; font-weight: bold;'>📍 आपका वर्तमान स्थान<br><span style='font-size: 11px; color: #64748b;'>यहाँ से दूरी मापी जा रही है</span></div>");
     partnerMarkers.addLayer(userMarker);
 
     const mapBounds = [[latitude, longitude]];
+
+    // 2. Add Partner Markers
     partners.forEach((partner) => {
         if (typeof partner.latitude !== "number" || typeof partner.longitude !== "number") return;
-        const marker = L.marker([partner.latitude, partner.longitude]).bindPopup(
-            `<strong>${escapeHtml(partner.name)}</strong><br>${escapeHtml(partner.city)}<br>${partner.distance_km} km दूर`
-        );
+
+        const typeColor = partner.type === "SCA" ? "#d97706" : partner.type === "PSB" ? "#16a34a" : "#ea580c";
+        const typeLabel = partner.type === "SCA" ? "🏛️ SCA" : partner.type === "PSB" ? "🏦 PSB" : "🌾 RRB";
+
+        const markerHtml = `
+            <div style="background: ${typeColor}; color: #ffffff; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: inline-flex; align-items: center; gap: 4px;">
+                ${typeLabel}
+            </div>
+        `;
+
+        const customIcon = L.divIcon({
+            html: markerHtml,
+            className: "partner-map-custom-pin",
+            iconSize: [80, 26],
+            iconAnchor: [40, 13]
+        });
+
+        const popupContent = `
+            <div style="min-width: 200px; font-family: sans-serif;">
+                <strong style="color: #003366; font-size: 13px; display: block; margin-bottom: 4px;">${escapeHtml(partner.name)}</strong>
+                <div style="font-size: 11px; color: #475569; margin-bottom: 6px;">📍 ${escapeHtml(partner.address || partner.city)}</div>
+                ${partner.distance_km !== null ? `<div style="font-size: 12px; font-weight: bold; color: #16a34a; margin-bottom: 8px;">दूरी: ${partner.distance_km} km</div>` : ''}
+                <div style="display: flex; gap: 6px;">
+                    <a href="${partner.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${partner.latitude},${partner.longitude}`}" target="_blank" rel="noopener noreferrer" style="background: #003366; color: #ffffff; text-decoration: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block;">
+                        🗺️ नेविगेट करें
+                    </a>
+                    ${partner.phone ? `<a href="tel:${partner.phone.replace(/[^\d+]/g, '')}" style="background: #e2e8f0; color: #0f172a; text-decoration: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block;">📞 कॉल</a>` : ''}
+                </div>
+            </div>
+        `;
+
+        const marker = L.marker([partner.latitude, partner.longitude], { icon: customIcon })
+            .bindPopup(popupContent);
+
         partnerMarkers.addLayer(marker);
+        partnerMapMarkersDict[partner.id] = marker;
         mapBounds.push([partner.latitude, partner.longitude]);
     });
 
     if (mapBounds.length > 1) {
-        partnerMap.fitBounds(mapBounds, { padding: [35, 35], maxZoom: 13 });
+        partnerMap.fitBounds(mapBounds, { padding: [40, 40], maxZoom: 14 });
     }
-    setTimeout(() => partnerMap.invalidateSize(), 0);
+    setTimeout(() => partnerMap.invalidateSize(), 100);
 }
 
 function escapeHtml(value) {
@@ -1400,4 +2237,685 @@ function speakText(text) {
 function scrollToSection(id) {
     const elem = document.getElementById(id);
     if (elem) elem.scrollIntoView({ behavior: "smooth" });
+}
+
+/* =====================================================
+   HELP & SUPPORT MODAL CONTROLLER
+===================================================== */
+function openHelpModal() {
+    const modal = document.getElementById("help-modal");
+    if (!modal) return;
+
+    modal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+
+    // Close on backdrop click
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            closeHelpModal();
+        }
+    };
+}
+
+function closeHelpModal() {
+    const modal = document.getElementById("help-modal");
+    if (!modal) return;
+
+    modal.style.display = "none";
+    document.body.style.overflow = "auto";
+}
+
+// Close on Escape key
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        closeHelpModal();
+    }
+});
+
+/**
+ * Trigger direct query to AI Assistant from Help Center prompts
+ */
+function askAiFromHelp(promptText) {
+    closeHelpModal();
+    
+    // Scroll to AI chat container
+    const chatContainer = document.querySelector(".chat-container");
+    if (chatContainer) {
+        chatContainer.scrollIntoView({ behavior: "smooth", block: "center" });
+        chatContainer.classList.add("chat-highlight-pulse");
+        setTimeout(() => chatContainer.classList.remove("chat-highlight-pulse"), 2000);
+    }
+
+    // Put text in input and send
+    const chatInput = document.getElementById("chat-input");
+    if (chatInput) {
+        chatInput.value = promptText;
+    }
+
+    setTimeout(() => {
+        handleUserChatMessage(promptText);
+    }, 400);
+}
+
+/* =====================================================
+   AUTHENTICATION, OTP VERIFICATION & DATABASE ENGINE
+===================================================== */
+let currentUser = null;
+let pendingAssessmentToSync = null;
+let otpCountdownTimer = null;
+let currentOtpSecondsRemaining = 600;
+let activeAuthPayload = null;
+let lastGeneratedOtp = "123456";
+
+/**
+ * Initialize Authentication System on page load
+ */
+function initAuthSystem() {
+    setupOtpInputAutoAdvance();
+
+    // Check if user session exists in localStorage
+    try {
+        const storedUser = localStorage.getItem("yojnasetu_user");
+        if (storedUser) {
+            currentUser = JSON.parse(storedUser);
+            console.log("Logged in user restored from localStorage:", currentUser.name);
+            updateUserAuthUI();
+            refreshUserAssessmentsCount();
+        }
+    } catch (e) {
+        console.warn("Failed to parse stored user profile:", e);
+        localStorage.removeItem("yojnasetu_user");
+    }
+
+    // Global listener for closing profile menu on outside click
+    document.addEventListener("click", (e) => {
+        const menu = document.getElementById("header-user-profile-menu");
+        const btn = document.getElementById("header-login-btn");
+        if (menu && menu.style.display !== "none") {
+            if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.style.display = "none";
+            }
+        }
+    });
+}
+
+/**
+ * Opens the Auth modal or toggles the user profile menu if already logged in
+ */
+function openAuthModal() {
+    if (currentUser) {
+        const menu = document.getElementById("header-user-profile-menu");
+        if (menu) {
+            menu.style.display = menu.style.display === "none" ? "flex" : "none";
+        }
+        return;
+    }
+
+    const modal = document.getElementById("auth-modal");
+    if (!modal) return;
+
+    goToAuthStep1();
+    modal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+
+    // Close on backdrop click
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            closeAuthModal();
+        }
+    };
+}
+
+/**
+ * Closes the Auth modal
+ */
+function closeAuthModal() {
+    const modal = document.getElementById("auth-modal");
+    if (!modal) return;
+
+    if (otpCountdownTimer) {
+        clearInterval(otpCountdownTimer);
+        otpCountdownTimer = null;
+    }
+
+    modal.style.display = "none";
+    document.body.style.overflow = "auto";
+}
+
+/**
+ * Switch modal view to Step 1 (Phone & Name form)
+ */
+function goToAuthStep1() {
+    const step1 = document.getElementById("auth-step-1");
+    const step2 = document.getElementById("auth-step-2");
+    const err1 = document.getElementById("auth-error-msg");
+
+    if (step1) step1.style.display = "block";
+    if (step2) step2.style.display = "none";
+    if (err1) err1.style.display = "none";
+
+    const title = document.getElementById("auth-modal-title");
+    const sub = document.getElementById("auth-modal-sub");
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+
+    if (title) title.textContent = isEn ? "Applicant Login / Registration" : "आवेदक लॉगिन / पंजीकरण";
+    if (sub) sub.textContent = isEn ? "YojnaSetu NSFDC Loan Assistance Profile" : "योजनासेतु NSFDC ऋण सहायता प्रोफ़ाइल";
+}
+
+/**
+ * Switch modal view to Step 2 (6-digit OTP verification)
+ */
+function goToAuthStep2(phone, email, demoOtp) {
+    const step1 = document.getElementById("auth-step-1");
+    const step2 = document.getElementById("auth-step-2");
+    const err2 = document.getElementById("otp-verify-error-msg");
+
+    if (step1) step1.style.display = "none";
+    if (step2) step2.style.display = "block";
+    if (err2) err2.style.display = "none";
+
+    const targetElem = document.getElementById("auth-sent-target");
+    if (targetElem) {
+        targetElem.textContent = `+91 ${phone}${email ? ` | ${email}` : ''}`;
+    }
+
+    if (demoOtp) {
+        lastGeneratedOtp = demoOtp;
+        const demoCodeElem = document.getElementById("otp-demo-code");
+        if (demoCodeElem) demoCodeElem.textContent = demoOtp;
+        const demoBadge = document.getElementById("otp-demo-badge");
+        if (demoBadge) demoBadge.style.display = "flex";
+    }
+
+    // Reset OTP boxes
+    for (let i = 1; i <= 6; i++) {
+        const box = document.getElementById(`otp-${i}`);
+        if (box) {
+            box.value = "";
+            box.classList.remove("error");
+        }
+    }
+
+    // Focus first OTP box
+    setTimeout(() => {
+        const first = document.getElementById("otp-1");
+        if (first) first.focus();
+    }, 150);
+
+    // Start 10-minute countdown timer
+    startOtpTimer(600);
+}
+
+/**
+ * Countdown timer for OTP validity
+ */
+function startOtpTimer(seconds) {
+    if (otpCountdownTimer) {
+        clearInterval(otpCountdownTimer);
+    }
+
+    currentOtpSecondsRemaining = seconds;
+    const timerDisplay = document.getElementById("otp-timer-display");
+    const resendBtn = document.getElementById("auth-resend-btn");
+    if (resendBtn) resendBtn.disabled = true;
+
+    const updateDisplay = () => {
+        const mins = Math.floor(currentOtpSecondsRemaining / 60);
+        const secs = currentOtpSecondsRemaining % 60;
+        if (timerDisplay) {
+            timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+    };
+
+    updateDisplay();
+
+    otpCountdownTimer = setInterval(() => {
+        currentOtpSecondsRemaining--;
+        updateDisplay();
+
+        if (currentOtpSecondsRemaining <= 0) {
+            clearInterval(otpCountdownTimer);
+            otpCountdownTimer = null;
+            if (timerDisplay) timerDisplay.textContent = "00:00";
+            if (resendBtn) resendBtn.disabled = false;
+        }
+    }, 1000);
+}
+
+/**
+ * Handle Step 1 Submit: Send OTP via Backend
+ */
+async function handleSendOtpSubmit(event) {
+    if (event) event.preventDefault();
+
+    const nameInput = document.getElementById("auth-name-input");
+    const phoneInput = document.getElementById("auth-phone-input");
+    const emailInput = document.getElementById("auth-email-input");
+    const sendBtn = document.getElementById("auth-send-btn");
+    const errorElem = document.getElementById("auth-error-msg");
+
+    const name = nameInput ? nameInput.value.trim() : "";
+    const phone = phoneInput ? phoneInput.value.trim().replace(/\D/g, "") : "";
+    const email = emailInput ? emailInput.value.trim() : "";
+
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+
+    if (!name) {
+        if (errorElem) {
+            errorElem.textContent = isEn ? "Please enter your full name." : "कृपया अपना पूरा नाम दर्ज करें।";
+            errorElem.style.display = "block";
+        }
+        return;
+    }
+
+    if (phone.length !== 10) {
+        if (errorElem) {
+            errorElem.textContent = isEn ? "Please enter a valid 10-digit mobile number." : "कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें।";
+            errorElem.style.display = "block";
+        }
+        return;
+    }
+
+    if (errorElem) errorElem.style.display = "none";
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${isEn ? 'Sending OTP...' : 'OTP भेजा जा रहा है...'}`;
+    }
+
+    try {
+        activeAuthPayload = {
+            phone: phone,
+            phone_number: phone,
+            email: email || undefined,
+            name: name,
+            full_name: name,
+            language: currentLanguage
+        };
+
+        const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(activeAuthPayload)
+        });
+
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail || `Failed to send OTP (status ${response.status})`);
+        }
+
+        const data = await response.json();
+        console.log("OTP Send Result:", data);
+
+        if (data.success) {
+            goToAuthStep2(phone, email, data.demo_otp || "123456");
+            showToast(isEn ? `OTP sent successfully to +91 ${phone}` : `सत्यापन OTP +91 ${phone} पर सफलतापूर्वक भेजा गया`, "success");
+        } else {
+            throw new Error(data.message || "Failed to generate OTP");
+        }
+    } catch (err) {
+        console.error("Error sending OTP:", err);
+        if (errorElem) {
+            errorElem.textContent = err.message || (isEn ? "Failed to send OTP. Please check backend." : "OTP भेजने में त्रुटि हुई। कृपया backend की स्थिति जाँचें।");
+            errorElem.style.display = "block";
+        }
+    } finally {
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> ${isEn ? 'Send OTP' : 'OTP प्राप्त करें (Send OTP)'}`;
+        }
+    }
+}
+
+/**
+ * Configure automatic focus advance & paste handling for 6-digit OTP inputs
+ */
+function setupOtpInputAutoAdvance() {
+    for (let i = 1; i <= 6; i++) {
+        const box = document.getElementById(`otp-${i}`);
+        if (!box) continue;
+
+        box.addEventListener("input", (e) => {
+            const val = e.target.value.replace(/\D/g, "");
+            e.target.value = val ? val.slice(-1) : "";
+
+            if (e.target.value && i < 6) {
+                const next = document.getElementById(`otp-${i + 1}`);
+                if (next) next.focus();
+            }
+
+            // If 6th digit entered, auto submit
+            if (i === 6 && e.target.value) {
+                const fullCode = getEnteredOtpCode();
+                if (fullCode.length === 6) {
+                    handleVerifyOtpSubmit();
+                }
+            }
+        });
+
+        box.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace" && !box.value && i > 1) {
+                const prev = document.getElementById(`otp-${i - 1}`);
+                if (prev) {
+                    prev.focus();
+                    prev.value = "";
+                }
+            } else if (e.key === "Enter") {
+                handleVerifyOtpSubmit();
+            }
+        });
+
+        box.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const pasteData = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "");
+            if (pasteData) {
+                const digits = pasteData.slice(0, 6).split("");
+                digits.forEach((d, idx) => {
+                    const input = document.getElementById(`otp-${idx + 1}`);
+                    if (input) input.value = d;
+                });
+                const nextIdx = Math.min(6, digits.length + 1);
+                const nextInput = document.getElementById(`otp-${nextIdx}`);
+                if (nextInput) nextInput.focus();
+
+                if (digits.length === 6) {
+                    handleVerifyOtpSubmit();
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Reads all 6 boxes into a single string
+ */
+function getEnteredOtpCode() {
+    let code = "";
+    for (let i = 1; i <= 6; i++) {
+        const box = document.getElementById(`otp-${i}`);
+        if (box && box.value) {
+            code += box.value.trim();
+        }
+    }
+    return code;
+}
+
+/**
+ * Helper to auto-fill the test demo OTP
+ */
+function autoFillDemoOtp() {
+    const code = String(lastGeneratedOtp || "123456").padStart(6, '0');
+    for (let i = 0; i < 6; i++) {
+        const box = document.getElementById(`otp-${i + 1}`);
+        if (box) box.value = code[i] || "";
+    }
+    handleVerifyOtpSubmit();
+}
+
+/**
+ * Handle Step 2 Submit: Verify 6-digit OTP
+ */
+async function handleVerifyOtpSubmit() {
+    const otpCode = getEnteredOtpCode();
+    const errorElem = document.getElementById("otp-verify-error-msg");
+    const verifyBtn = document.getElementById("auth-verify-submit-btn");
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+
+    if (otpCode.length !== 6) {
+        if (errorElem) {
+            errorElem.textContent = isEn ? "Please enter complete 6-digit OTP code." : "कृपया पूरा 6-अंकीय OTP कोड दर्ज करें।";
+            errorElem.style.display = "block";
+        }
+        return;
+    }
+
+    const currentPhone = (activeAuthPayload && (activeAuthPayload.phone || activeAuthPayload.phone_number)) || "";
+    if (!currentPhone) {
+        if (errorElem) {
+            errorElem.textContent = isEn ? "Session expired. Please request OTP again." : "सत्र समाप्त हो गया। कृपया पुनः OTP प्राप्त करें।";
+            errorElem.style.display = "block";
+        }
+        return;
+    }
+
+    if (errorElem) errorElem.style.display = "none";
+    if (verifyBtn) {
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${isEn ? 'Verifying...' : 'सत्यापित किया जा रहा है...'}`;
+    }
+
+    try {
+        const payload = {
+            phone: currentPhone,
+            phone_number: currentPhone,
+            email: activeAuthPayload.email,
+            name: activeAuthPayload.name || activeAuthPayload.full_name,
+            full_name: activeAuthPayload.name || activeAuthPayload.full_name,
+            otp_code: otpCode,
+            otp: otpCode
+        };
+
+        const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+
+        const data = await response.json();
+        console.log("OTP Verification Result:", data);
+
+        if (response.ok && data.success && data.user) {
+            currentUser = data.user;
+            localStorage.setItem("yojnasetu_user", JSON.stringify(currentUser));
+
+            updateUserAuthUI();
+            closeAuthModal();
+
+            showToast(
+                isEn 
+                    ? `Welcome back, ${currentUser.name}! Logged in successfully.` 
+                    : `स्वागत है, ${currentUser.name}! सफलतापूर्वक लॉगिन हो गए।`, 
+                "success"
+            );
+
+            // If an assessment was generated prior to login, sync it now
+            if (pendingAssessmentToSync) {
+                console.log("Syncing cached assessment to SQLite database for user:", currentUser.id);
+                autoSaveCurrentAssessment(
+                    pendingAssessmentToSync.recommendation,
+                    pendingAssessmentToSync.readiness,
+                    pendingAssessmentToSync.userData
+                );
+                pendingAssessmentToSync = null;
+            } else {
+                refreshUserAssessmentsCount();
+            }
+        } else {
+            throw new Error(data.message || (isEn ? "Invalid or expired OTP." : "अमान्य या समाप्त OTP कोड।"));
+        }
+    } catch (err) {
+        console.error("Verification error:", err);
+        if (errorElem) {
+            errorElem.textContent = err.message || (isEn ? "OTP verification failed." : "OTP सत्यापन विफल रहा। कृपया सही कोड दर्ज करें।");
+            errorElem.style.display = "block";
+        }
+    } finally {
+        if (verifyBtn) {
+            verifyBtn.disabled = false;
+            verifyBtn.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${isEn ? 'Verify & Login' : 'सत्यापित करें व लॉगिन करें (Verify & Login)'}`;
+        }
+    }
+}
+
+/**
+ * Resend OTP to user
+ */
+async function handleResendOtp() {
+    if (!activeAuthPayload) {
+        goToAuthStep1();
+        return;
+    }
+    await handleSendOtpSubmit();
+}
+
+/**
+ * Handle user logout
+ */
+function handleUserLogout() {
+    currentUser = null;
+    localStorage.removeItem("yojnasetu_user");
+    updateUserAuthUI();
+
+    const menu = document.getElementById("header-user-profile-menu");
+    if (menu) menu.style.display = "none";
+
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+    showToast(isEn ? "Logged out successfully." : "सफलतापूर्वक लॉग आउट हो गए।", "info");
+}
+
+/**
+ * Updates the Header Login / Profile button and Dropdown
+ */
+function updateUserAuthUI() {
+    const loginBtn = document.getElementById("header-login-btn");
+    const loginText = document.getElementById("nav-login-text");
+    const loginIcon = document.getElementById("login-btn-icon");
+
+    const menuName = document.getElementById("user-menu-name");
+    const menuPhone = document.getElementById("user-menu-phone");
+
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+
+    if (currentUser) {
+        const firstName = (currentUser.name || "User").split(" ")[0];
+        if (loginBtn) loginBtn.classList.add("logged-in");
+        if (loginIcon) loginIcon.className = "fa-solid fa-user-check";
+        if (loginText) loginText.textContent = `${firstName}`;
+
+        if (menuName) menuName.textContent = currentUser.name || "आवेदक";
+        if (menuPhone) menuPhone.textContent = `+91 ${currentUser.phone || ''}`;
+    } else {
+        if (loginBtn) loginBtn.classList.remove("logged-in");
+        if (loginIcon) loginIcon.className = "fa-regular fa-user";
+        if (loginText) {
+            const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS["hi-IN"];
+            loginText.textContent = t.loginBtn || (isEn ? "Login / Register" : "लॉगिन / पंजीकरण");
+        }
+    }
+}
+
+/**
+ * Refreshes user assessments count from database
+ */
+async function refreshUserAssessmentsCount() {
+    if (!currentUser || !currentUser.id) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/user/assessments/${currentUser.id}`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (data.success && Array.isArray(data.assessments)) {
+            const count = data.assessments.length;
+            const countElem = document.getElementById("user-menu-saved-count");
+            const isEn = currentLanguage && currentLanguage.startsWith("en");
+            if (countElem) {
+                countElem.textContent = `${count} ${isEn ? 'Saved Scheme Reports' : 'सुरक्षित योजना रिपोर्ट'}`;
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to fetch user assessments:", e);
+    }
+}
+
+/**
+ * Automatically saves AI recommended schemes and readiness assessments to SQLite DB
+ */
+async function autoSaveCurrentAssessment(recommendation, readiness, userData) {
+    if (!currentUser) {
+        console.log("User not authenticated yet. Caching assessment to sync upon login.");
+        pendingAssessmentToSync = {
+            recommendation: recommendation,
+            readiness: readiness,
+            userData: userData
+        };
+        return;
+    }
+
+    try {
+        const scheme = recommendation ? (recommendation.scheme || {}) : {};
+        const score = readiness ? readiness.score : 85;
+        const badge = readiness ? readiness.badge : "स्वीकृति की उच्च संभावना";
+        const loanAmount = (userData && Number(userData.loan_required)) || Number(scheme.max_loan) || 100000;
+        const loanType = (userData && userData.loan_type) || scheme.loan_type || "business";
+        const location = (userData && userData.location) || "Kurukshetra";
+
+        const payload = {
+            user_id: currentUser.id,
+            scheme_id: scheme.id || (recommendation ? recommendation.scheme_id : "ai_custom_match"),
+            scheme_name: scheme.name || (recommendation ? recommendation.name : "NSFDC Custom Loan Scheme"),
+            readiness_score: score,
+            readiness_badge: badge,
+            loan_amount: loanAmount,
+            loan_type: loanType,
+            applicant_location: location,
+            status_details: {
+                readiness_summary: readiness ? readiness.summary : undefined,
+                reasons: recommendation ? recommendation.reasons : undefined,
+                saved_at: new Date().toISOString()
+            }
+        };
+
+        const response = await fetch(`${API_BASE_URL}/api/user/save-assessment`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("Failed to save assessment to DB");
+
+        const data = await response.json();
+        console.log("Loan Assessment auto-saved to SQLite Database:", data);
+        refreshUserAssessmentsCount();
+
+        const isEn = currentLanguage && currentLanguage.startsWith("en");
+        showToast(
+            isEn 
+                ? `Saved "${payload.scheme_name}" to your profile database` 
+                : `"${payload.scheme_name}" आपके प्रोफ़ाइल डेटाबेस में सुरक्षित किया गया`, 
+            "info"
+        );
+    } catch (e) {
+        console.error("Auto-save assessment error:", e);
+    }
+}
+
+/**
+ * Displays floating toast notifications for user interactions
+ */
+function showToast(message, type = "info") {
+    let toast = document.getElementById("app-toast-notification");
+    if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "app-toast-notification";
+        toast.className = "toast-notification";
+        document.body.appendChild(toast);
+    }
+
+    const icon = type === "success" 
+        ? '<i class="fa-solid fa-circle-check"></i>' 
+        : type === "error" 
+        ? '<i class="fa-solid fa-triangle-exclamation"></i>' 
+        : '<i class="fa-solid fa-circle-info"></i>';
+
+    toast.className = `toast-notification ${type} show`;
+    toast.innerHTML = `${icon} <span>${escapeHtml(message)}</span>`;
+
+    if (window._toastHideTimeout) {
+        clearTimeout(window._toastHideTimeout);
+    }
+
+    window._toastHideTimeout = setTimeout(() => {
+        toast.classList.remove("show");
+    }, 4000);
 }

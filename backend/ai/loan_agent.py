@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from services.ai_client import get_ai_client
 from services.rag_service import retrieve_candidate_schemes, build_rag_scheme_context
+from services.partner_rag_service import retrieve_channel_partners, build_rag_partner_context
 
 load_dotenv()
 
@@ -13,7 +14,7 @@ load_dotenv()
 SESSION_HISTORIES: Dict[str, list] = {}
 
 SYSTEM_PROMPT = """
-You are "YojanaSetu AI" (योजनासेतु), an empathetic, highly adaptive, and intelligent AI Loan Assistant for Scheduled Caste (SC) beneficiaries seeking government-backed concessional loans (NSFDC / SCA schemes, Stand-Up India).
+You are "YojanaSetu AI" (योजनासेतु), an empathetic, highly adaptive, and intelligent AI Loan Assistant for Scheduled Caste (SC) beneficiaries seeking government-backed concessional loans (NSFDC / State Channelising Agency (SCA) schemes, Stand-Up India, Public Sector Bank tie-ups).
 
 ADAPTABILITY & COMMUNICATION RULES:
 1. 🌐 DYNAMIC LANGUAGE MIRRORING:
@@ -25,9 +26,10 @@ ADAPTABILITY & COMMUNICATION RULES:
 
 2. 🤝 EMPATHETIC & ADAPTIVE PROBLEM SOLVING:
    - NEVER act like a rigid interrogation questionnaire.
-   - If the user asks a question (about schemes, subsidies, interest rates, eligibility, documents, channel partners, or doubts), FIRST answer their question clearly using the provided Official Scheme Knowledge (RAG Context).
+   - If the user asks a question (about schemes, subsidies, interest rates, eligibility, documents, channel partners, branch locations, where to apply, or doubts), FIRST answer their question clearly using the provided Official Scheme & Official Channel Partner Knowledge (RAG Context).
+   - When asked where to submit or visit, name the exact official NSFDC State Channelising Agency (SCA) office or Bank, official address, contact phone/helpline, and working hours from the RAG context.
    - Then, seamlessly invite them to share any remaining application details if they want to proceed.
-   - If the user provides multiple details in one message (e.g., "I need a 2 lakh loan for my tailor shop in Agra"), extract all of them at once.
+   - If the user provides multiple details in one message (e.g., "I need a 2 lakh loan for my tailor shop in Kurukshetra"), extract all of them at once.
 
 3. 📑 REQUIRED DOCUMENTS KNOWLEDGE (NSFDC / SCA):
    - 🆔 SC Caste Certificate (जाति प्रमाण पत्र)
@@ -50,8 +52,6 @@ ADAPTABILITY & COMMUNICATION RULES:
    - credit_history ("clean", "active_loan", or "defaulter")
 """
 
-def extract_entities_from_text(text: str, current_data: dict, active_field: str = None) -> dict:
-    """Deterministic fallback and supplementary extractor for loan parameters and criteria."""
 def normalize_text(text: str) -> str:
     if not text:
         return ""
@@ -152,7 +152,8 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
     is_question_or_statement = any(w in lower for w in [
         "what", "how", "when", "where", "why", "which", "tell", "explain", "kya", "kaise",
         "kab", "kahan", "kyun", "batao", "bataiye", "document", "documents", "caste", "income",
-        "interest", "rate", "subsidy", "eligibility", "?", "क्या", "कैसे", "कब", "कहाँ", "दस्तावेज"
+        "interest", "rate", "subsidy", "eligibility", "partner", "bank", "office", "address", "?",
+        "क्या", "कैसे", "कब", "कहाँ", "दस्तावेज", "ऑफिस", "बैंक", "पार्टनर", "पता"
     ])
 
     def clean_entity_text(val: str) -> str:
@@ -161,7 +162,7 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
         res = " ".join(tokens).strip()
         return res if len(res) >= 2 else clean
 
-    # 7. Location regex matcher (e.g., "पानीपत में", "पानीपत में शुरू", "जयपुर में")
+    # 7. Location regex matcher (e.g., "पानीपत में", "कुरुक्षेत्र में", "जयपुर में", "दिल्ली में")
     loc_match = re.search(r"([a-zA-Z\u0900-\u097F]{2,20})\s+(?:में|me|mein)\s*(?:शुरू|kholna|kholni|shuru|karna|chalu|rahta|rehta|rahata)?", normalized_raw)
     if loc_match:
         cand = loc_match.group(1).strip()
@@ -189,7 +190,7 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
 def chat_with_loan_agent(session_id: str, user_message: str, current_session: dict) -> dict:
     """
     Interacts with AI LLM (Gemini with multi-model fallback) or adaptive fallback to provide
-    natural, empathetic multi-turn conversation and entity extraction.
+    natural, empathetic multi-turn conversation, entity extraction, and grounded RAG knowledge.
     """
     from services.ai_client import call_ai_chat_resilient
 
@@ -220,23 +221,33 @@ def chat_with_loan_agent(session_id: str, user_message: str, current_session: di
     ai_reply = None
     extracted_from_llm = {}
 
-    # Retrieve RAG scheme knowledge context based on current parameters and user message
+    # 1. Retrieve Scheme RAG candidates
     rag_candidates = retrieve_candidate_schemes({**collected_summary, "additional_info": user_message}, top_k=2)
-    rag_context = build_rag_scheme_context(rag_candidates)
+    rag_scheme_context = build_rag_scheme_context(rag_candidates)
+
+    # 2. Retrieve Official NSFDC Channel Partner RAG candidates
+    user_loc = collected_summary.get("location") or ""
+    partner_search_query = f"{user_loc} {user_message} {collected_summary.get('loan_type', '')}"
+    rag_partners = retrieve_channel_partners(query=partner_search_query, top_k=2)
+    rag_partner_context = build_rag_partner_context(rag_partners)
 
     try:
         instruction = f"""
 Current Session State: {json.dumps(collected_summary, ensure_ascii=False)}
 
 Official SC Schemes Knowledge Base (RAG Context):
-{rag_context}
+{rag_scheme_context}
+
+Official NSFDC Channel Partners Knowledge Base (RAG Context):
+{rag_partner_context}
 
 User's Input: "{user_message}"
 
 CRITICAL INSTRUCTIONS:
 1. Generate an empathetic, human-like response:
    - Acknowledge what the user shared (e.g. location, income, caste certificate, business type).
-   - If the user asks a question, answer it factually and warmly using the RAG Context.
+   - If the user asks a question about schemes, interest, subsidy, eligibility, documents, or WHERE to apply / WHICH bank / partner office address, answer factually and warmly using the RAG Contexts above.
+   - If the user asks for nearest office/bank/SCA, provide the exact office name, address, nodal officer, and phone number from the Channel Partner RAG context.
    - Mirror the user's language (Hindi, English, or Hinglish).
    - If key application info is still missing, smoothly ask for the next relevant detail.
 2. Accurately extract all newly mentioned facts/parameters from the user's message.
@@ -304,7 +315,13 @@ Output strictly valid JSON with this structure:
     # Fallback reply if AI call failed or returned empty
     if not ai_reply:
         user_msg_lower = user_message.lower()
-        if any(w in user_msg_lower for w in ["सही है", "स्कीम सही", "योजना सही", "correct", "right", "valid"]):
+        if any(w in user_msg_lower for w in ["पार्टनर", "बैंक", "ऑफिस", "शाखा", "कहाँ जाना", "partner", "bank", "branch", "where"]):
+            if rag_partners:
+                p = rag_partners[0]
+                ai_reply = f"आपके नजदीकी आधिकारिक NSFDC चैनल पार्टनर **{p['name']}** हैं।\n📍 **पता**: {p['address']}\n📞 **हेल्पलाइन / फोन**: {p['phone']} | {p['helpline']}\n🕒 **समय**: {p['working_hours']}\nआप यहाँ जाकर आवश्यक दस्तावेजों के साथ अपना आवेदन जमा कर सकते हैं।"
+            else:
+                ai_reply = "आप अपने जिले के राज्य अनुसूचित जाति वित्त एवं विकास निगम (HSCFDC/SCA) कार्यालय या लीड बैंक (PNB/SBI) शाखा में जाकर आवेदन कर सकते हैं।"
+        elif any(w in user_msg_lower for w in ["सही है", "स्कीम सही", "योजना सही", "correct", "right", "valid"]):
             scheme_name = rag_candidates[0]["scheme"].get("name_hi", "अनुशंसित योजना") if rag_candidates else "यह योजना"
             ai_reply = f"हाँ, आपके द्वारा दिए गए विवरण के आधार पर '{scheme_name}' बिल्कुल सही और उपयुक्त है। इसमें NSFDC के तहत रियायती ब्याज दर और सरकारी सहायता उपलब्ध है।"
         elif any(w in user_msg_lower for w in ["डॉक्यूमेंट", "दस्तावेज", "कागजात", "document", "documents"]):

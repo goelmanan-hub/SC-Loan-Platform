@@ -22,7 +22,23 @@ from models.schemas import (
     SchemeRequest,
     EMIRequest,
     PartnerRequest,
-    ReadinessRequest
+    PartnerSearchRequest,
+    ReadinessRequest,
+    SendOtpRequest,
+    VerifyOtpRequest,
+    SaveAssessmentRequest
+)
+
+from services.auth_service import (
+    send_otp_to_user,
+    verify_user_otp
+)
+
+from database.db import (
+    save_loan_assessment,
+    get_user_loan_assessments,
+    get_user_by_id,
+    get_user_by_phone
 )
 
 from services.conversation import (
@@ -231,25 +247,90 @@ def calculate_emi_api(
 
 
 # =====================================================
-# PARTNER FINDER
+# NSFDC CHANNEL PARTNER FINDER & RAG SEARCH
 # =====================================================
 
 @app.post("/api/find-partners")
 def find_partners_api(
     request: PartnerRequest
 ):
-
+    """
+    Geospatial + RAG router for official NSFDC Channel Partners.
+    """
     partners = find_suitable_partners(
         latitude=request.latitude,
         longitude=request.longitude,
         loan_type=request.loan_type,
-        scheme_id=request.scheme_id
+        scheme_id=request.scheme_id,
+        partner_type=request.partner_type,
+        query=request.query,
+        top_k=request.top_k or 10
     )
 
     return {
         "success": True,
         "count": len(partners),
         "partners": partners
+    }
+
+
+@app.post("/api/partners/rag-search")
+def partner_rag_search_api(
+    request: PartnerSearchRequest
+):
+    """
+    Semantic RAG Search across Official NSFDC Channel Partners.
+    Supports natural language queries in Hindi, English, and Hinglish.
+    """
+    from services.partner_rag_service import retrieve_channel_partners
+
+    partners = retrieve_channel_partners(
+        query=request.query,
+        latitude=request.latitude,
+        longitude=request.longitude,
+        loan_type=request.loan_type,
+        scheme_id=request.scheme_id,
+        state=request.state,
+        city=request.city,
+        partner_type=request.partner_type,
+        radius_km=request.radius_km,
+        top_k=request.top_k or 10
+    )
+
+    return {
+        "success": True,
+        "query": request.query,
+        "count": len(partners),
+        "partners": partners
+    }
+
+
+@app.get("/api/partners/all")
+def get_all_partners_api():
+    """Returns all official NSFDC Channel Partners in the knowledge base."""
+    from data.nsfdc_partners_kb import get_all_channel_partners_kb
+    partners = get_all_channel_partners_kb()
+    return {
+        "success": True,
+        "count": len(partners),
+        "partners": partners
+    }
+
+
+@app.get("/api/partners/states")
+def get_partner_states_api():
+    """Returns available states, districts, and partner agency types for frontend filtering."""
+    from data.nsfdc_partners_kb import get_all_channel_partners_kb
+    partners = get_all_channel_partners_kb()
+
+    states = sorted(list(set(p.get("state") for p in partners if p.get("state"))))
+    partner_types = sorted(list(set(p.get("type") for p in partners if p.get("type"))))
+
+    return {
+        "success": True,
+        "states": states,
+        "types": partner_types,
+        "total_partners": len(partners)
     }
 
 
@@ -518,14 +599,6 @@ def get_schemes():
         "schemes": get_all_schemes()
     }
 
-@app.get("/api/schemes")
-def get_schemes():
-
-    return {
-        "success": True,
-        "schemes": get_all_schemes()
-    }
-
 
 # =====================================================
 # GET SINGLE SCHEME
@@ -590,3 +663,126 @@ def text_to_speech_api(
     except Exception as err:
         print("TTS Generation Error:", err)
         raise HTTPException(status_code=500, detail=str(err))
+
+
+# =====================================================
+# AUTHENTICATION & OTP VERIFICATION ENDPOINTS
+# =====================================================
+
+@app.post("/api/auth/send-otp")
+def send_otp_endpoint(req: SendOtpRequest):
+    """
+    Sends a 6-digit OTP to the user's phone/email for login/registration.
+    """
+    phone = req.get_phone()
+    if not phone or len(phone) < 10:
+        raise HTTPException(status_code=400, detail="कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें।")
+
+    result = send_otp_to_user(phone=phone, email=req.email, name=req.get_name())
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("message"))
+    return result
+
+
+@app.post("/api/auth/verify-otp")
+def verify_otp_endpoint(req: VerifyOtpRequest):
+    """
+    Verifies the 6-digit OTP code and registers/authenticates the applicant in SQLite.
+    """
+    phone = req.get_phone()
+    otp_code = req.get_otp()
+
+    if not phone or len(phone) < 10:
+        raise HTTPException(status_code=400, detail="कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें।")
+    if not otp_code or len(otp_code) < 4:
+        raise HTTPException(status_code=400, detail="कृपया वैध OTP कोड दर्ज करें।")
+
+    result = verify_user_otp(
+        phone=phone,
+        otp_code=otp_code,
+        name=req.get_name(),
+        email=req.email
+    )
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("message"))
+    return result
+
+
+# =====================================================
+# USER PROFILE & SAVED ASSESSMENTS STORAGE
+# =====================================================
+
+@app.post("/api/user/save-assessment")
+def save_user_assessment_endpoint(req: SaveAssessmentRequest):
+    """
+    Stores AI recommended loan scheme, readiness score, and underwriting breakdown in the database.
+    """
+    phone = req.phone or req.phone_number or ""
+    user_id = req.user_id
+    if not user_id and phone:
+        user = get_user_by_phone(phone)
+        if user:
+            user_id = user["id"]
+
+    scheme_id = req.scheme_id or req.recommended_scheme_id
+    scheme_name = req.scheme_name or req.recommended_scheme_name
+    readiness_band = req.readiness_badge or req.readiness_band
+    loan_amount = req.loan_amount or req.loan_required
+    annual_income = req.annual_income or req.income
+    location = req.applicant_location or req.location
+    purpose = req.purpose or req.loan_type
+
+    assessment_id = save_loan_assessment(
+        user_id=user_id,
+        session_id=req.session_id,
+        recommended_scheme_id=scheme_id,
+        recommended_scheme_name=scheme_name,
+        readiness_score=req.readiness_score,
+        readiness_band=readiness_band,
+        loan_amount=loan_amount,
+        annual_income=annual_income,
+        tenure_months=req.tenure_months,
+        purpose=purpose,
+        location=location,
+        pillars=req.pillars,
+        tips=req.tips
+    )
+
+    return {
+        "success": True,
+        "message": "ऋण सिफारिश व तैयारी स्कोर डेटाबेस में सुरक्षित कर लिया गया है।",
+        "assessment_id": assessment_id,
+        "user_id": user_id
+    }
+
+
+
+@app.get("/api/user/profile/{user_id}")
+def get_user_profile_endpoint(user_id: str):
+    """
+    Retrieves the user profile and their complete history of loan assessments.
+    """
+    user = get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    assessments = get_user_loan_assessments(user_id)
+    return {
+        "success": True,
+        "user": user,
+        "assessments": assessments
+    }
+
+
+@app.get("/api/user/assessments/{user_id}")
+def get_user_assessments_endpoint(user_id: str):
+    """
+    Retrieves all saved loan recommendations and readiness scores for a user.
+    """
+    assessments = get_user_loan_assessments(user_id)
+    return {
+        "success": True,
+        "assessments": assessments,
+        "count": len(assessments)
+    }
+

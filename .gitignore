@@ -8,6 +8,11 @@ __pycache__/
 .env.*
 !.env.example
 
+# Database files and test scratch
+*.db
+*.sqlite3
+backend/carpet_test.json
+
 # Editor and OS files
 .vscode/
 .idea/

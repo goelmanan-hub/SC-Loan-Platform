@@ -1,60 +1,20 @@
-PARTNERS = [
-    {
-        "id": "partner_001",
-        "name": "State Channelising Agency (SCA) - District Office",
-        "type": "SCA",
-        "city": "Kurukshetra",
-        "latitude": 29.9695,
-        "longitude": 76.8783,
-        "loan_types": ["business", "education"],
-        "schemes": [
-            "mahila_samriddhi_yojana",
-            "micro_finance",
-            "laghu_udhyami_yojana",
-            "green_business_scheme",
-            "term_loan",
-            "education_loan",
-            "education_loan_abroad",
-            "stand_up_india_sc"
-        ]
-    },
+"""
+Channel Partner Data Access Layer.
+Connects with the official NSFDC Channel Partner Knowledge Base (SCAs, PSBs, RRBs).
+"""
 
-    {
-        "id": "partner_002",
-        "name": "Public Sector Bank - Lead Bank Office",
-        "type": "PSB",
-        "city": "Karnal",
-        "latitude": 29.6857,
-        "longitude": 76.9905,
-        "loan_types": ["business", "education"],
-        "schemes": [
-            "term_loan",
-            "education_loan",
-            "education_loan_abroad",
-            "stand_up_india_sc",
-            "green_business_scheme"
-        ]
-    },
+from typing import List, Dict, Any, Optional
+from data.nsfdc_partners_kb import NSFDC_CHANNEL_PARTNERS, get_all_channel_partners_kb, get_channel_partner_by_id_kb
 
-    {
-        "id": "partner_003",
-        "name": "Regional Rural Bank (RRB) - Gramin Branch",
-        "type": "RRB",
-        "city": "Ambala",
-        "latitude": 30.3782,
-        "longitude": 76.7767,
-        "loan_types": ["business", "education"],
-        "schemes": [
-            "mahila_samriddhi_yojana",
-            "micro_finance",
-            "laghu_udhyami_yojana",
-            "green_business_scheme",
-            "term_loan",
-            "education_loan"
-        ]
-    }
-]
+# Maintain PARTNERS list for direct import compatibility
+PARTNERS = NSFDC_CHANNEL_PARTNERS
 
 
-def get_all_partners():
-    return PARTNERS
+def get_all_partners() -> List[Dict[str, Any]]:
+    """Returns all channel partners."""
+    return get_all_channel_partners_kb()
+
+
+def get_partner_by_id(partner_id: str) -> Optional[Dict[str, Any]]:
+    """Returns a specific channel partner by ID."""
+    return get_channel_partner_by_id_kb(partner_id)
