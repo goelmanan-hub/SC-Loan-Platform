@@ -1,13 +1,14 @@
-# 🏛️ YojanaSetu (योजनासेतु) — AI-Powered SC Loan Assistance Platform
+# 🏛️ YojanaSetu (योजनासेतु) — AI-Powered Multilingual SC Loan Assistance Platform
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite_3-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
-[![OpenAI/OpenRouter](https://img.shields.io/badge/AI_Engine-RAG_%2B_LLM-412991?logo=openai&logoColor=white)](https://openrouter.ai/)
+[![AI Engine](https://img.shields.io/badge/AI_Engine-RAG_%2B_LLM-412991?logo=openai&logoColor=white)](https://openrouter.ai/)
+[![Languages](https://img.shields.io/badge/Languages-9_Indian_Languages-orange)](#-multilingual-voice-support)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Hackathon](https://img.shields.io/badge/Hackathon-Financial_Inclusion-orange)](#)
 
-> **Empowering Scheduled Caste (SC) beneficiaries across India with voice-first conversational AI, secure OTP-authenticated profiles, RAG-driven NSFDC loan discovery, instant document OCR validation, multi-pillar readiness scoring, and nationwide channel partner routing.**
+> **Empowering Scheduled Caste (SC) beneficiaries across India with voice-first conversational AI in 9 Indian languages, secure OTP-authenticated profiles, RAG-driven NSFDC loan discovery, automated official portal web crawling, instant document OCR validation, multi-pillar readiness scoring, and nationwide channel partner routing.**
 
 ---
 
@@ -19,27 +20,40 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
 - **High Document Rejection Rates**: Applications get delayed or rejected due to unverified or missing certificates (Caste, Income, Bank Passbook, Quotation).
 - **Advisory & Last-Mile Reach**: Lack of knowledge on local State Channelising Agencies (SCAs), Regional Rural Banks (RRBs), or Public Sector Banks (PSBs).
 
-**YojanaSetu** bridges this gap with an empathetic, bilingual voice-first AI platform that speaks natural Hindi, performs grounded **RAG (Retrieval-Augmented Generation)** recommendations, verifies documents via **Vision OCR**, computes loan readiness scores, and connects applicants to their closest verified financial partner.
+**YojanaSetu** bridges this gap with an empathetic, multilingual voice-first AI platform that understands and speaks in **9 Indian languages**, performs grounded **RAG (Retrieval-Augmented Generation)** recommendations, verifies documents via **Vision OCR**, computes loan readiness scores, continuously syncs government updates via an automated **Web Crawler**, and connects applicants to their closest verified financial partner.
 
 ---
 
 ## ✨ Core Features & Capabilities
 
-### 🎙️ 1. Voice-First Conversational AI Assistant
-- **Bilingual & Spoken Hindi**: Speaks naturally in polite, accessible Hindi (Devanagari script) with voice synthesis (`gTTS`) and browser voice recognition (`Web Speech API`).
-- **Entity & Intent Extractor**: Automatically parses amounts in Hindi/English (*"दो लाख"*, *"2.5 lakh"*), loan categories, business trades, tenures, and applicant details.
+### 🎙️ 1. Multilingual Voice-First Conversational AI Assistant
+- **9 Indian Languages Supported**: Native speech recognition (`Web Speech API`) and authentic spoken Text-to-Speech (`gTTS` / Web Speech synthesis) across:
+  - 🇮🇳 **हिंदी (Hindi - `hi-IN`)**
+  - 🇬🇧 **English (`en-IN`)**
+  - 🇮🇳 **বাংলা (Bengali - `bn-IN`)**
+  - 🇮🇳 **தமிழ் (Tamil - `ta-IN`)**
+  - 🇮🇳 **తెలుగు (Telugu - `te-IN`)**
+  - 🇮🇳 **मराठी (Marathi - `mr-IN`)**
+  - 🇮🇳 **ગુજરાતી (Gujarati - `gu-IN`)**
+  - 🇮🇳 **ਪੰਜਾਬੀ (Punjabi - `pa-IN`)**
+  - 🇮🇳 **ಕನ್ನಡ (Kannada - `kn-IN`)**
+- **Entity & Intent Extractor**: Automatically parses amounts in Indian numeral formats (*"दो लाख"*, *"2.5 lakh"*, *"50,000"*), loan types, business trades, education courses, tenures, and applicant locations.
 
 ### 🔐 2. Secure OTP Authentication & Persistence Layer
 - **Multi-Channel OTP Verification**: Time-bounded 6-digit OTP verification via simulated SMS and Email gateways.
 - **Persistent SQLite Database**: Automatically manages user profiles, verified applicant statuses, multi-pillar loan assessment histories, and conversation audit trails.
-- **Saved Assessments Dashboard**: Beneficiaries can track previous loan evaluations and readiness scores across sessions.
+- **Saved Assessments Dashboard**: Beneficiaries can view previous loan evaluations and readiness scores across sessions.
 
-### 🧠 3. RAG-Powered Scheme Recommendation Model
+### 🧠 3. RAG-Powered Scheme Recommendation Engine
 - **Official NSFDC Knowledge Base**: Indexes comprehensive concessional schemes with limits, interest rates, capital subsidies, and moratorium terms.
 - **Hybrid Vector Retriever**: TF-IDF semantic vector search combined with hard eligibility constraints (amount ceilings, gender rebates, skill certifications).
 - **Grounded LLM Reasoning**: Outputs a 0–100% match score, transparent eligibility justifications, government subsidy calculations, and document checklists.
 
-### 🎯 4. 100-Point Multi-Pillar Loan Readiness Score
+### 🕷️ 4. Automated Official Portal Web Crawler
+- **Live Knowledge Synchronization (`crawler_service.py` & `crawler_runner.py`)**: Periodically crawls official NSFDC and government portal updates, policy amendments, and channel partner updates into the local RAG knowledge store.
+- **Resilient Pipeline**: Parses structured scheme parameters, interest rate notifications, and nodal officer contacts.
+
+### 🎯 5. 100-Point Multi-Pillar Loan Readiness Score
 - **Multi-Factor Assessment Engine**:
   - **EMI Affordability (35 pts)**: Compares estimated monthly EMI against household income.
   - **Scheme Fit & Limits (25 pts)**: Validates ceiling and income criteria compliance.
@@ -48,7 +62,7 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
   - **Documentation Baseline (10 pts)**: Evaluates uploaded proofs and certificates.
 - Interactive visual SVG gauge with actionable recommendations to maximize loan approval odds.
 
-### 📄 5. Document OCR & Verification Pipeline
+### 📄 6. Document OCR & Verification Pipeline
 - **Vision OCR Classifier**: Extracts text and validates official keywords/seals for:
   - 🆔 **SC Caste Certificate**
   - 📄 **Income Certificate (< ₹3 Lakh)**
@@ -57,9 +71,9 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
   - 📋 **Project Report / Quotation / Admission Letter**
 - Computes real-time **Document Readiness Percentage** against scheme checklists.
 
-### 📍 6. Nationwide Partner RAG & Geolocation Router
-- **Comprehensive Partner Knowledge Base (`nsfdc_partners_kb.py`)**: Covers State Channelising Agencies (SCAs), Lead District Banks, Regional Rural Banks (RRBs), and Public Sector Banks (PSBs) across Indian states/districts.
-- **Hybrid Geo + Semantic Search**: Finds the nearest partner using the **Haversine formula** and provides semantic district/state queries with instant Leaflet map integration and branch contact details.
+### 📍 7. Nationwide Partner RAG & Geolocation Router
+- **Comprehensive Partner Knowledge Base (`nsfdc_partners_kb.py`)**: Covers State Channelising Agencies (SCAs), Lead District Banks, Regional Rural Banks (RRBs), and Public Sector Banks (PSBs) across all Indian states/UTs.
+- **Hybrid Geo + Semantic Search**: Calculates nearest partner distances using the **Haversine formula** with Leaflet interactive map integration and direct driving directions.
 
 ---
 
@@ -69,9 +83,10 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
 flowchart TD
     subgraph Client ["Frontend Layer (Web & Voice)"]
         UI["SPA Interface (index.html / script.js)"]
+        LangPicker["Multilingual Switcher (9 Languages)"]
         AuthModal["OTP Authentication & Profile Modal"]
         Mic["Voice Input (SpeechRecognition API)"]
-        Audio["Voice Playback (gTTS Audio Stream)"]
+        Audio["Voice Playback (Multilingual TTS Stream)"]
         Dropzone["Document OCR Dropzone"]
         Sim["Readiness Simulator & EMI Widget"]
         Map["Leaflet Map & Partner Directory"]
@@ -87,6 +102,7 @@ flowchart TD
         OCR["Document OCR & Classifier (services/ocr_service.py)"]
         EMI["EMI & Moratorium Calculator (services/emi.py)"]
         PartnerRouter["Geolocation Router (services/partner_router.py)"]
+        Crawler["Portal Web Crawler (services/crawler_service.py)"]
     end
 
     subgraph Persistence ["Data & Storage Layer"]
@@ -104,6 +120,7 @@ flowchart TD
     API <--> OCR
     API <--> EMI
     API <--> PartnerRouter
+    Crawler --> SchemesKB
 
     Auth <--> DB
     API <--> DB
@@ -131,7 +148,7 @@ flowchart TD
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Python 3.10+, FastAPI, Uvicorn, SQLite 3, Pydantic v2, `python-dotenv`, `gTTS`, `Pillow`, `openai` SDK.
+- **Backend**: Python 3.10+, FastAPI, Uvicorn, SQLite 3, Pydantic v2, `python-dotenv`, `gTTS`, `Pillow`, `openai` SDK, `beautifulsoup4`, `requests`.
 - **Frontend**: HTML5, Modern Responsive CSS (Glassmorphism, Flex/Grid), Vanilla JavaScript (ES6+), Web Speech API, Leaflet Maps.
 - **AI & RAG**: OpenRouter API (`gpt-4o-mini`), In-Memory TF-IDF Vector Indices, Document OCR Parser.
 - **Security & Storage**: Secure OTP generation, SQLite relational persistence.
@@ -182,7 +199,7 @@ python -m uvicorn main:app --reload --port 8000
 
 ### 5. Access the Web Application
 Open your browser and navigate to:
-👉 **[http://127.0.0.1:8000/app/index.html](http://127.0.0.1:8000/app/index.html)**
+👉 **[http://127.0.0.1:8000](http://127.0.0.1:8000)**
 
 Interactive API Documentation (Swagger):
 👉 **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
@@ -201,8 +218,8 @@ Interactive API Documentation (Swagger):
 ### 📊 Assessments & Persistence
 | Method | Endpoint | Description |
 | :---: | :--- | :--- |
-| `POST` | `/api/assessments/save` | Saves loan readiness score and recommended scheme to SQLite. |
-| `GET` | `/api/assessments/my` | Retrieves historical saved assessments for an applicant. |
+| `POST` | `/api/user/save-assessment` | Saves loan readiness score and recommended scheme to SQLite. |
+| `GET` | `/api/user/assessments/{user_id}` | Retrieves historical saved assessments for an applicant. |
 
 ### 🧠 Loan AI & RAG Discovery
 | Method | Endpoint | Description |
@@ -213,8 +230,8 @@ Interactive API Documentation (Swagger):
 | `POST` | `/api/verify-documents` | Multi-file OCR upload & scheme checklist verification. |
 | `POST` | `/api/calculate-emi` | Concessional EMI and moratorium amortization calculator. |
 | `POST` | `/api/ai/new-session` | Initiates a new multi-turn conversation session. |
-| `POST` | `/api/conversation/answer` | Multi-turn conversational voice/text handler with entity extraction. |
-| `GET` | `/api/tts` | Dynamic Hindi text-to-speech audio generator. |
+| `POST` | `/api/ai/loan-chat` | Multilingual conversational loan chat with entity extraction. |
+| `GET` | `/api/ai/tts` | Dynamic multilingual text-to-speech audio generator. |
 
 ### 📍 Channel Partner RAG & Geolocation
 | Method | Endpoint | Description |
@@ -236,11 +253,13 @@ SC-Loan-Platform/
 │   ├── main.py                         # FastAPI master application & endpoints
 │   ├── requirements.txt                # Python backend dependencies
 │   ├── .env                            # Environment variables (OpenRouter key)
+│   ├── crawler_runner.py               # Web crawler execution runner
 │   ├── test_full_system.py             # E2E system integration verification script
 │   ├── test_auth_and_db.py             # OTP auth & SQLite persistence test suite
 │   ├── test_partner_rag.py             # Channel Partner RAG search test suite
+│   ├── test_crawler.py                 # Web crawler test suite
 │   ├── ai/
-│   │   └── loan_agent.py               # Conversational AI assistant & prompt engineering
+│   │   └── loan_agent.py               # Multilingual conversational AI assistant & prompt engineering
 │   ├── data/
 │   │   ├── schemes_kb.py               # Official 8 NSFDC scheme knowledge base
 │   │   ├── schemes.py                  # Backward-compatible scheme router
@@ -260,11 +279,12 @@ SC-Loan-Platform/
 │       ├── ocr_service.py              # Vision OCR & document checklist validation
 │       ├── emi.py                      # Moratorium & concessional EMI calculations
 │       ├── partner_router.py           # Geolocation & partner routing service
+│       ├── crawler_service.py          # Portal web crawler service
 │       └── conversation.py             # Multi-turn chat session state manager
 └── frontend/
-    ├── index.html                      # Single-page application markup
+    ├── index.html                      # Single-page application markup (9 languages supported)
     ├── style.css                       # Responsive styling, modern UI & dark mode accents
-    └── script.js                       # Voice assistant, OTP auth, Leaflet maps, simulator & OCR client
+    └── script.js                       # Multilingual voice assistant, OTP auth, Leaflet maps, simulator & OCR client
 ```
 
 ---

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YojnaSetu — NSFDC Loan Assistance Platform</title>
-    
+
     <!-- External Icon Library & Map -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -53,14 +53,18 @@
                 <svg viewBox="0 0 100 100" width="52" height="52" xmlns="http://www.w3.org/2000/svg">
                     <!-- Bottom Shadow -->
                     <ellipse cx="50" cy="92" rx="30" ry="4" fill="#e0e0e0" />
-                    
+
                     <!-- Blue arc & hand (Left/Bottom) -->
-                    <path d="M 22 30 A 40 40 0 0 0 75 75 Q 60 75 40 60 Q 45 65 55 60 Q 40 55 35 40 Q 30 50 22 30 Z" fill="#0072bc"/>
-                    <path d="M 22 30 A 40 40 0 0 0 75 75 Q 65 80 40 70 A 35 35 0 0 1 22 30 Z" fill="#00568c"/> <!-- Darker edge shadow -->
-                    
+                    <path d="M 22 30 A 40 40 0 0 0 75 75 Q 60 75 40 60 Q 45 65 55 60 Q 40 55 35 40 Q 30 50 22 30 Z"
+                        fill="#0072bc" />
+                    <path d="M 22 30 A 40 40 0 0 0 75 75 Q 65 80 40 70 A 35 35 0 0 1 22 30 Z" fill="#00568c" />
+                    <!-- Darker edge shadow -->
+
                     <!-- Green arc & hand (Right/Top) -->
-                    <path d="M 78 70 A 40 40 0 0 0 25 25 Q 40 25 60 40 Q 55 35 45 40 Q 60 45 65 60 Q 70 50 78 70 Z" fill="#39b54a"/>
-                    <path d="M 78 70 A 40 40 0 0 0 25 25 Q 35 20 60 30 A 35 35 0 0 1 78 70 Z" fill="#2a8c36"/> <!-- Darker edge shadow -->
+                    <path d="M 78 70 A 40 40 0 0 0 25 25 Q 40 25 60 40 Q 55 35 45 40 Q 60 45 65 60 Q 70 50 78 70 Z"
+                        fill="#39b54a" />
+                    <path d="M 78 70 A 40 40 0 0 0 25 25 Q 35 20 60 30 A 35 35 0 0 1 78 70 Z" fill="#2a8c36" />
+                    <!-- Darker edge shadow -->
                 </svg>
             </div>
 
@@ -76,7 +80,8 @@
 
         <div class="top-actions">
             <div class="language-dropdown-wrap" style="position: relative;">
-                <button type="button" class="language" id="header-lang-btn" aria-haspopup="true" aria-expanded="false" style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                <button type="button" class="language" id="header-lang-btn" aria-haspopup="true" aria-expanded="false"
+                    style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-globe" style="color: #0072bc;"></i>
                     <span id="current-lang-label">हिंदी</span>
                     <span class="chevron"><i class="fa-solid fa-chevron-down"></i></span>
@@ -90,6 +95,41 @@
                     <button type="button" class="lang-option" data-lang="en-IN" id="lang-opt-en">
                         <span class="lang-flag">🇬🇧</span>
                         <span class="lang-text">English (English)</span>
+                        <i class="fa-solid fa-check checkmark"></i>
+                    </button>
+                    <button type="button" class="lang-option" data-lang="bn-IN" id="lang-opt-bn">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-text">বাংলা (Bengali)</span>
+                        <i class="fa-solid fa-check checkmark"></i>
+                    </button>
+                    <button type="button" class="lang-option" data-lang="ta-IN" id="lang-opt-ta">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-text">தமிழ் (Tamil)</span>
+                        <i class="fa-solid fa-check checkmark"></i>
+                    </button>
+                    <button type="button" class="lang-option" data-lang="te-IN" id="lang-opt-te">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-text">తెలుగు (Telugu)</span>
+                        <i class="fa-solid fa-check checkmark"></i>
+                    </button>
+                    <button type="button" class="lang-option" data-lang="mr-IN" id="lang-opt-mr">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-text">मराठी (Marathi)</span>
+                        <i class="fa-solid fa-check checkmark"></i>
+                    </button>
+                    <button type="button" class="lang-option" data-lang="gu-IN" id="lang-opt-gu">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-text">ગુજરાતી (Gujarati)</span>
+                        <i class="fa-solid fa-check checkmark"></i>
+                    </button>
+                    <button type="button" class="lang-option" data-lang="pa-IN" id="lang-opt-pa">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-text">ਪੰਜਾਬੀ (Punjabi)</span>
+                        <i class="fa-solid fa-check checkmark"></i>
+                    </button>
+                    <button type="button" class="lang-option" data-lang="kn-IN" id="lang-opt-kn">
+                        <span class="lang-flag">🇮🇳</span>
+                        <span class="lang-text">ಕನ್ನಡ (Kannada)</span>
                         <i class="fa-solid fa-check checkmark"></i>
                     </button>
                 </div>
@@ -112,7 +152,8 @@
                         <span id="user-menu-saved-count">0 सुरक्षित योजना रिपोर्ट</span>
                     </div>
                     <button type="button" class="user-menu-logout-btn" onclick="handleUserLogout()">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i> <span id="user-logout-text">लॉग आउट (Logout)</span>
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i> <span id="user-logout-text">लॉग आउट
+                            (Logout)</span>
                     </button>
                 </div>
             </div>
@@ -141,7 +182,8 @@
                     <i class="fa-solid fa-map-location-dot"></i> <span>चैनल पार्टनर</span>
                 </button>
 
-                <button class="nav-item" id="help-btn" onclick="openHelpModal()" title="सहायता केंद्र व हेल्पलाइन (Help & Support)">
+                <button class="nav-item" id="help-btn" onclick="openHelpModal()"
+                    title="सहायता केंद्र व हेल्पलाइन (Help & Support)">
                     <i class="fa-solid fa-headset"></i> <span>सहायता</span>
                 </button>
             </nav>
@@ -149,7 +191,8 @@
             <!-- Government Card -->
             <div class="gov-card">
                 <div class="emblem">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="भारत सरकार" width="45">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="भारत सरकार"
+                        width="45">
                 </div>
                 <strong id="gov-badge-title">भारत सरकार</strong>
                 <b>NSFDC</b>
@@ -166,13 +209,14 @@
                 </h1>
                 <div class="underline"></div>
                 <p class="intro" id="hero-intro">
-                    मैं आपकी सरकारी ऋण योजनाओं में जानकारी, पात्रता, और ऋण तैयारी स्कोर (Readiness Score) के मूल्यांकन में मदद करने के लिए यहाँ हूँ।
+                    मैं आपकी सरकारी ऋण योजनाओं में जानकारी, पात्रता, और ऋण तैयारी स्कोर (Readiness Score) के मूल्यांकन
+                    में मदद करने के लिए यहाँ हूँ।
                 </p>
 
                 <!-- ================= AI ASSISTANT ================= -->
                 <div class="assistant-area">
                     <div class="robot-wrap">
-                        
+
                         <!-- 9-Bar Sound Wave Element -->
                         <div class="sound-wave">
                             <span></span>
@@ -185,7 +229,7 @@
                             <span></span>
                             <span></span>
                         </div>
-                        
+
                         <div class="robot-glow"></div>
 
                         <div class="robot">
@@ -198,31 +242,40 @@
                                     <span class="eye"></span>
                                     <!-- Centered Single Smile -->
                                     <div class="smile" style="display: flex; justify-content: center; margin-top: 5px;">
-                                        <svg width="24" height="12" viewBox="0 0 24 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M 3 3 C 3 10, 21 10, 21 3" stroke="#00d2ff" stroke-width="3" stroke-linecap="round" fill="transparent"/>
+                                        <svg width="24" height="12" viewBox="0 0 24 12" fill="none"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M 3 3 C 3 10, 21 10, 21 3" stroke="#00d2ff" stroke-width="3"
+                                                stroke-linecap="round" fill="transparent" />
                                         </svg>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- Neck Component -->
                             <div class="neck"></div>
 
                             <div class="body">
                                 <!-- Indian Flag Swish -->
                                 <svg class="flag-swish" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M 0 60 Q 50 50 100 20 L 100 35 Q 50 65 0 75 Z" fill="#ff9933"/>
-                                    <path d="M 0 75 Q 50 65 100 35 L 100 50 Q 50 80 0 90 Z" fill="#ffffff"/>
-                                    <path d="M 0 90 Q 50 80 100 50 L 100 65 Q 50 95 0 105 Z" fill="#138808"/>
+                                    <path d="M 0 60 Q 50 50 100 20 L 100 35 Q 50 65 0 75 Z" fill="#ff9933" />
+                                    <path d="M 0 75 Q 50 65 100 35 L 100 50 Q 50 80 0 90 Z" fill="#ffffff" />
+                                    <path d="M 0 90 Q 50 80 100 50 L 100 65 Q 50 95 0 105 Z" fill="#138808" />
                                 </svg>
-                                
+
                                 <!-- YojnaSetu Logo on Chest -->
                                 <div class="logo-mini">
-                                    <svg viewBox="0 0 100 100" width="42" height="42" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M 22 30 A 40 40 0 0 0 75 75 Q 60 75 40 60 Q 45 65 55 60 Q 40 55 35 40 Q 30 50 22 30 Z" fill="#0072bc"/>
-                                        <path d="M 22 30 A 40 40 0 0 0 75 75 Q 65 80 40 70 A 35 35 0 0 1 22 30 Z" fill="#00568c"/>
-                                        <path d="M 78 70 A 40 40 0 0 0 25 25 Q 40 25 60 40 Q 55 35 45 40 Q 60 45 65 60 Q 70 50 78 70 Z" fill="#39b54a"/>
-                                        <path d="M 78 70 A 40 40 0 0 0 25 25 Q 35 20 60 30 A 35 35 0 0 1 78 70 Z" fill="#2a8c36"/>
+                                    <svg viewBox="0 0 100 100" width="42" height="42"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M 22 30 A 40 40 0 0 0 75 75 Q 60 75 40 60 Q 45 65 55 60 Q 40 55 35 40 Q 30 50 22 30 Z"
+                                            fill="#0072bc" />
+                                        <path d="M 22 30 A 40 40 0 0 0 75 75 Q 65 80 40 70 A 35 35 0 0 1 22 30 Z"
+                                            fill="#00568c" />
+                                        <path
+                                            d="M 78 70 A 40 40 0 0 0 25 25 Q 40 25 60 40 Q 55 35 45 40 Q 60 45 65 60 Q 70 50 78 70 Z"
+                                            fill="#39b54a" />
+                                        <path d="M 78 70 A 40 40 0 0 0 25 25 Q 35 20 60 30 A 35 35 0 0 1 78 70 Z"
+                                            fill="#2a8c36" />
                                     </svg>
                                 </div>
                             </div>
@@ -243,14 +296,16 @@
 
                 <!-- ================= LANGUAGES ================= -->
                 <div class="languages">
-                    <button class="lang active" data-lang="hi-IN" id="hero-lang-hi">
-                        <i class="fa-solid fa-circle-check"></i> <span>हिंदी</span> <i class="fa-solid fa-chevron-down"></i>
-                    </button>
+                    <button class="lang active" data-lang="hi-IN" id="hero-lang-hi">हिंदी</button>
                     <button class="lang" data-lang="en-IN" id="hero-lang-en">English</button>
-                    <button class="lang" data-lang="bn-IN">বাংলা</button>
-                    <button class="lang" data-lang="ta-IN">தமிழ்</button>
-                    <button class="lang" data-lang="te-IN">తెలుగు</button>
-                    <button class="lang"><i class="fa-solid fa-plus"></i> <span id="hero-lang-more">और भाषाएँ</span></button>
+                    <button class="lang" data-lang="bn-IN" id="hero-lang-bn">বাংলা</button>
+                    <button class="lang" data-lang="ta-IN" id="hero-lang-ta">தமிழ்</button>
+                    <button class="lang" data-lang="te-IN" id="hero-lang-te">తెలుగు</button>
+                    <button class="lang" data-lang="mr-IN" id="hero-lang-mr">मराठी</button>
+                    <button class="lang" data-lang="gu-IN" id="hero-lang-gu">ગુજરાતી</button>
+                    <button class="lang" data-lang="pa-IN" id="hero-lang-pa">ਪੰਜਾਬੀ</button>
+                    <button class="lang" data-lang="kn-IN" id="hero-lang-kn">ಕನ್ನಡ</button>
+                    <button class="lang" id="hero-lang-more" title="सभी भाषाएँ देखें"><i class="fa-solid fa-globe"></i> <span id="hero-lang-more-text">+ और भाषाएँ</span></button>
                 </div>
 
                 <!-- ================= MICROPHONE ================= -->
@@ -265,8 +320,10 @@
                 <!-- ================= AI ASSISTANT & CHAT INTERACTIVE AREA ================= -->
                 <div class="chat-container">
                     <div class="chat-header">
-                        <div class="status-badge" id="chat-status-badge"><span class="pulse-dot"></span> FastAPI Backend Online</div>
-                        <button id="reset-session-btn" class="btn-sm"><i class="fa-solid fa-rotate-right"></i> <span id="reset-btn-text">नया संवाद (New Chat)</span></button>
+                        <div class="status-badge" id="chat-status-badge"><span class="pulse-dot"></span> FastAPI Backend
+                            Online</div>
+                        <button id="reset-session-btn" class="btn-sm"><i class="fa-solid fa-rotate-right"></i> <span
+                                id="reset-btn-text">नया संवाद (New Chat)</span></button>
                     </div>
 
                     <div id="chat-messages" class="chat-messages">
@@ -274,9 +331,11 @@
                             <div class="msg-avatar"><i class="fa-solid fa-robot"></i></div>
                             <div class="msg-content-wrapper">
                                 <div class="msg-content" id="init-bot-msg-content">
-                                    <strong>नमस्ते!</strong> मैं आपका AI सहायता एजेंट हूँ। आपको किस प्रकार का ऋण चाहिए? (शिक्षा ऋण / व्यवसाय ऋण)
+                                    <strong>नमस्ते!</strong> मैं आपका AI सहायता एजेंट हूँ। आपको किस प्रकार का ऋण चाहिए?
+                                    (शिक्षा ऋण / व्यवसाय ऋण)
                                 </div>
-                                <button type="button" class="chat-listen-btn" title="आवाज़ सुनें (Listen Voice)" onclick="speakChatMessage('msg-init')">
+                                <button type="button" class="chat-listen-btn" title="आवाज़ सुनें (Listen Voice)"
+                                    onclick="speakChatMessage('msg-init')">
                                     <i class="fa-solid fa-volume-high"></i>
                                 </button>
                             </div>
@@ -285,18 +344,25 @@
 
                     <!-- Prompt Quick Chips -->
                     <div class="prompt-chips">
-                        <button class="chip-btn" data-msg="I need an Education Loan for my studies" id="chip-edu">🎓 <span>शिक्षा ऋण (Education Loan)</span></button>
-                        <button class="chip-btn" data-msg="I need a Business Loan for a new shop" id="chip-biz">💼 <span>व्यवसाय ऋण (Business Loan)</span></button>
-                        <button class="chip-btn" onclick="scrollToSection('readiness-section')" id="chip-score">📊 <span>तैयारी स्कोर (Readiness)</span></button>
-                        <button class="chip-btn" onclick="scrollToSection('doc-ocr-section')" id="chip-ocr">📄 <span>दस्तावेज OCR (Doc OCR)</span></button>
-                        <button class="chip-btn" onclick="scrollToSection('emi-section')" id="chip-emi">🧮 <span>EMI कैलकुलेटर</span></button>
-                        <button class="chip-btn" onclick="scrollToSection('partner-section')" id="chip-partner">🏦 <span>नजदीकी चैनल पार्टनर</span></button>
+                        <button class="chip-btn" data-msg="I need an Education Loan for my studies" id="chip-edu">🎓
+                            <span>शिक्षा ऋण (Education Loan)</span></button>
+                        <button class="chip-btn" data-msg="I need a Business Loan for a new shop" id="chip-biz">💼
+                            <span>व्यवसाय ऋण (Business Loan)</span></button>
+                        <button class="chip-btn" onclick="scrollToSection('readiness-section')" id="chip-score">📊
+                            <span>तैयारी स्कोर (Readiness)</span></button>
+                        <button class="chip-btn" onclick="scrollToSection('doc-ocr-section')" id="chip-ocr">📄
+                            <span>दस्तावेज OCR (Doc OCR)</span></button>
+                        <button class="chip-btn" onclick="scrollToSection('emi-section')" id="chip-emi">🧮 <span>EMI
+                                कैलकुलेटर</span></button>
+                        <button class="chip-btn" onclick="scrollToSection('partner-section')" id="chip-partner">🏦
+                            <span>नजदीकी चैनल पार्टनर</span></button>
                     </div>
 
 
                     <!-- Chat Input Box -->
                     <form id="chat-form" class="chat-input-area">
-                        <input type="text" id="chat-input" placeholder="यहाँ संदेश लिखें या बोलें..." autocomplete="off" />
+                        <input type="text" id="chat-input" placeholder="यहाँ संदेश लिखें या बोलें..."
+                            autocomplete="off" />
                         <button type="button" id="mic-toggle-btn" class="mic-btn" title="आवाज़ से बोलें">
                             <i class="fa-solid fa-microphone"></i>
                         </button>
@@ -309,30 +375,33 @@
                 <!-- ================= RECOMMENDED SCHEME DISPLAY ================= -->
                 <div id="recommendation-card" class="recommendation-card" style="display: none;">
                     <div class="rag-badges-row">
-                        <div class="card-badge"><i class="fa-solid fa-star"></i> अनुशंसित योजना (Recommended Scheme)</div>
-                        <div id="rec-match-badge" class="rag-match-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> <span id="rec-match-score">95% मैच</span> (RAG AI Match)</div>
+                        <div class="card-badge" id="rec-card-badge"><i class="fa-solid fa-star"></i> <span
+                                id="rec-card-badge-text">अनुशंसित योजना (Recommended Scheme)</span></div>
+                        <div id="rec-match-badge" class="rag-match-badge"><i
+                                class="fa-solid fa-wand-magic-sparkles"></i> <span id="rec-match-score">95% मैच</span>
+                            <span id="rec-match-badge-sub">(RAG AI Match)</span></div>
                     </div>
                     <h2 id="rec-scheme-name">Scheme Name</h2>
                     <p id="rec-scheme-desc">Scheme Description</p>
                     <div class="rec-details">
                         <div class="rec-stat">
-                            <span>अधिकतम राशि</span>
+                            <span id="rec-label-max-loan">अधिकतम राशि</span>
                             <strong id="rec-max-loan">₹0</strong>
                         </div>
                         <div class="rec-stat">
-                            <span>ब्याज दर</span>
+                            <span id="rec-label-interest">ब्याज दर</span>
                             <strong id="rec-interest">0%</strong>
                         </div>
                         <div class="rec-stat">
-                            <span>छूट अवधि (Moratorium)</span>
+                            <span id="rec-label-moratorium">छूट अवधि (Moratorium)</span>
                             <strong id="rec-moratorium">0 माह</strong>
                         </div>
                         <div class="rec-stat">
-                            <span>अनुमानित मासिक EMI</span>
+                            <span id="rec-label-monthly-emi">अनुमानित मासिक EMI</span>
                             <strong id="rec-monthly-emi">₹0</strong>
                         </div>
                         <div class="rec-stat">
-                            <span>कुल भुगतान</span>
+                            <span id="rec-label-total-payable">कुल भुगतान</span>
                             <strong id="rec-total-payable">₹0</strong>
                         </div>
                     </div>
@@ -345,13 +414,15 @@
 
                     <!-- RAG Matching Reasons -->
                     <div id="rec-reasons-box" class="rag-reasons-box" style="display: none;">
-                        <h4><i class="fa-solid fa-circle-check"></i> यह योजना आपके लिए क्यों उपयुक्त है (RAG Match Reasons):</h4>
+                        <h4 id="rec-reasons-title"><i class="fa-solid fa-circle-check"></i> यह योजना आपके लिए क्यों
+                            उपयुक्त है (RAG Match Reasons):</h4>
                         <ul id="rec-reasons-list"></ul>
                     </div>
 
                     <!-- Required Documents Checklist -->
                     <div id="rec-docs-box" class="rag-docs-box" style="display: none;">
-                        <h4><i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज (Mandatory Documents Checklist):</h4>
+                        <h4 id="rec-docs-title"><i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज (Mandatory
+                            Documents Checklist):</h4>
                         <ul id="rec-docs-list"></ul>
                     </div>
 
@@ -359,7 +430,8 @@
                     <div id="rec-readiness-box" class="readiness-assessment-box" style="margin-top: 20px;">
                         <div class="readiness-header-row">
                             <div class="readiness-title-group">
-                                <h3><i class="fa-solid fa-gauge-high"></i> आपका ऋण तैयारी स्कोर (Loan Readiness Score)</h3>
+                                <h3 id="rec-readiness-title"><i class="fa-solid fa-gauge-high"></i> आपका ऋण तैयारी स्कोर
+                                    (Loan Readiness Score)</h3>
                                 <p id="rec-readiness-summary">आपकी दी गई जानकारी के आधार पर मूल्यांकन।</p>
                             </div>
                             <div id="rec-readiness-badge" class="readiness-status-badge">85 / 100 — उत्कृष्ट</div>
@@ -371,7 +443,8 @@
                                 <div class="readiness-gauge">
                                     <svg viewBox="0 0 120 120" class="gauge-svg">
                                         <circle cx="60" cy="60" r="50" class="gauge-bg"></circle>
-                                        <circle id="rec-gauge-circle" cx="60" cy="60" r="50" class="gauge-fill" stroke-dasharray="314" stroke-dashoffset="60"></circle>
+                                        <circle id="rec-gauge-circle" cx="60" cy="60" r="50" class="gauge-fill"
+                                            stroke-dasharray="314" stroke-dashoffset="60"></circle>
                                     </svg>
                                     <div class="gauge-center-text">
                                         <span id="rec-readiness-score-num">85</span>
@@ -389,7 +462,8 @@
 
                         <!-- Tips & Advice Box -->
                         <div class="readiness-tips-box">
-                            <h4><i class="fa-solid fa-lightbulb"></i> ऋण तैयारी बेहतर करने के सुझाव (Actionable Guidance)</h4>
+                            <h4 id="rec-tips-title"><i class="fa-solid fa-lightbulb"></i> ऋण तैयारी बेहतर करने के सुझाव
+                                (Actionable Guidance)</h4>
                             <ul id="rec-readiness-tips">
                                 <!-- Populated dynamically -->
                             </ul>
@@ -397,7 +471,8 @@
 
                         <!-- Document Readiness Checklist -->
                         <div class="readiness-docs-box">
-                            <h4><i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज चेकलिस्ट (Required Documents)</h4>
+                            <h4 id="rec-checklist-title"><i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज
+                                चेकलिस्ट (Required Documents)</h4>
                             <div class="docs-grid" id="rec-readiness-docs">
                                 <!-- Populated dynamically -->
                             </div>
@@ -408,88 +483,132 @@
                 <!-- ================= STANDALONE READINESS SCORE SIMULATOR ================= -->
                 <section id="readiness-section" class="interactive-widget-card">
                     <div class="widget-header">
-                        <div class="widget-icon" style="background: linear-gradient(135deg, #10b981, #059669); color: white;"><i class="fa-solid fa-chart-pie"></i></div>
+                        <div class="widget-icon"
+                            style="background: linear-gradient(135deg, #10b981, #059669); color: white;"><i
+                                class="fa-solid fa-chart-pie"></i></div>
                         <div>
-                            <h2>ऋण तैयारी स्कोर सिम्युलेटर (Loan Readiness Simulator)</h2>
-                            <p>अपनी आय, ऋण मांग और अवधि बदलकर देखें कि आपका लोन अप्रूवल स्कोर कितना बनता है</p>
+                            <h2 id="sim-header-title">ऋण तैयारी स्कोर सिम्युलेटर (Loan Readiness Simulator)</h2>
+                            <p id="sim-header-desc">अपनी आय, ऋण मांग और अवधि बदलकर देखें कि आपका लोन अप्रूवल स्कोर कितना
+                                बनता है</p>
                         </div>
                     </div>
                     <form id="readiness-sim-form" class="widget-form">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label for="sim-loan-type">ऋण का प्रकार (Loan Type)</label>
-                                <select id="sim-loan-type" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;" required>
-                                    <option value="" disabled selected>चुनें (Select Loan Type)</option>
-                                    <option value="business">💼 व्यवसाय ऋण (Business Loan)</option>
-                                    <option value="education">🎓 शिक्षा ऋण (Education Loan)</option>
+                                <label for="sim-loan-type" id="sim-label-loan-type">ऋण का प्रकार (Loan Type)</label>
+                                <select id="sim-loan-type" class="custom-select"
+                                    style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;"
+                                    required>
+                                    <option value="" disabled selected id="sim-opt-loan-type-default">चुनें (Select Loan
+                                        Type)</option>
+                                    <option value="business" id="sim-opt-loan-type-biz">💼 व्यवसाय ऋण (Business Loan)
+                                    </option>
+                                    <option value="education" id="sim-opt-loan-type-edu">🎓 शिक्षा ऋण (Education Loan)
+                                    </option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="sim-loan-amount">आवश्यक ऋण राशि (Loan Required ₹)</label>
-                                <input type="number" id="sim-loan-amount" placeholder="उदा. 120000" min="10000" step="10000" required />
+                                <label for="sim-loan-amount" id="sim-label-loan-amount">आवश्यक ऋण राशि (Loan Required
+                                    ₹)</label>
+                                <input type="number" id="sim-loan-amount" placeholder="उदा. 120000" min="10000"
+                                    step="10000" required />
                             </div>
                             <div class="form-group">
-                                <label for="sim-income">वार्षिक पारिवारिक आय (Annual Income ₹)</label>
-                                <input type="number" id="sim-income" placeholder="उदा. 300000" min="10000" step="10000" required />
+                                <label for="sim-income" id="sim-label-income">वार्षिक पारिवारिक आय (Annual Income
+                                    ₹)</label>
+                                <input type="number" id="sim-income" placeholder="उदा. 300000" min="10000" step="10000"
+                                    required />
                             </div>
                             <div class="form-group">
-                                <label for="sim-tenure">पुनर्भुगतान अवधि (Tenure Months)</label>
+                                <label for="sim-tenure" id="sim-label-tenure">पुनर्भुगतान अवधि (Tenure Months)</label>
                                 <input type="number" id="sim-tenure" placeholder="उदा. 36" min="6" max="120" required />
                             </div>
                             <div class="form-group">
-                                <label for="sim-purpose">व्यवसाय या कोर्स का नाम (Purpose / Course)</label>
+                                <label for="sim-purpose" id="sim-label-purpose">व्यवसाय या कोर्स का नाम (Purpose /
+                                    Course)</label>
                                 <input type="text" id="sim-purpose" placeholder="उदा. सिलाई, दुकान, B.Tech" required />
                             </div>
                             <div class="form-group">
-                                <label for="sim-location">आपका जिला / शहर (City / Location)</label>
-                                <input type="text" id="sim-location" placeholder="उदा. करनाल, अंबाला, दिल्ली" required />
+                                <label for="sim-location" id="sim-label-location">आपका जिला / शहर (City /
+                                    Location)</label>
+                                <input type="text" id="sim-location" placeholder="उदा. करनाल, अंबाला, दिल्ली"
+                                    required />
                             </div>
 
                             <!-- Underwriting Criteria Fields -->
                             <div class="form-group">
-                                <label for="sim-caste-status"><i class="fa-solid fa-id-card" style="color: #0072bc;"></i> जाति श्रेणी व प्रमाण पत्र (Caste Status)</label>
-                                <select id="sim-caste-status" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
-                                    <option value="sc_certified">🆔 SC प्रमाण पत्र उपलब्ध है (SC with Certificate)</option>
-                                    <option value="sc_pending">⏳ SC श्रेणी (प्रमाण पत्र बनवाना शेष)</option>
-                                    <option value="other">📄 अन्य श्रेणी (Other Category)</option>
+                                <label for="sim-caste-status" id="sim-label-caste"><i class="fa-solid fa-id-card"
+                                        style="color: #0072bc;"></i> जाति श्रेणी व प्रमाण पत्र (Caste Status)</label>
+                                <select id="sim-caste-status" class="custom-select"
+                                    style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
+                                    <option value="sc_certified" id="sim-opt-caste-sc">🆔 SC प्रमाण पत्र उपलब्ध है (SC
+                                        with Certificate)</option>
+                                    <option value="sc_pending" id="sim-opt-caste-pending">⏳ SC श्रेणी (प्रमाण पत्र
+                                        बनवाना शेष)</option>
+                                    <option value="other" id="sim-opt-caste-other">📄 अन्य श्रेणी (Other Category)
+                                    </option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="sim-docs-status"><i class="fa-solid fa-file-shield" style="color: #39b54a;"></i> दस्तावेज तैयारी स्थिति (Document Readiness)</label>
-                                <select id="sim-docs-status" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
-                                    <option value="all_ready">📁 सभी 5 मुख्य दस्तावेज तैयार हैं (All 5 Ready)</option>
-                                    <option value="partial_ready" selected>📑 3-4 दस्तावेज तैयार हैं (Partial Ready)</option>
-                                    <option value="basic">📄 केवल 1-2 दस्तावेज हैं (Basic Only)</option>
+                                <label for="sim-docs-status" id="sim-label-docs"><i class="fa-solid fa-file-shield"
+                                        style="color: #39b54a;"></i> दस्तावेज तैयारी स्थिति (Document Readiness)</label>
+                                <select id="sim-docs-status" class="custom-select"
+                                    style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
+                                    <option value="all_ready" id="sim-opt-docs-all">📁 सभी 5 मुख्य दस्तावेज तैयार हैं
+                                        (All 5 Ready)</option>
+                                    <option value="partial_ready" id="sim-opt-docs-partial" selected>📑 3-4 दस्तावेज
+                                        तैयार हैं (Partial Ready)</option>
+                                    <option value="basic" id="sim-opt-docs-basic">📄 केवल 1-2 दस्तावेज हैं (Basic Only)
+                                    </option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="sim-experience"><i class="fa-solid fa-briefcase" style="color: #ea580c;"></i> अनुभव / प्रशिक्षण / प्रवेश स्थिति (Experience / Admission)</label>
-                                <select id="sim-experience" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
-                                    <option value="experienced">🛠️ 2+ वर्ष अनुभव / ITI कौशल प्रशिक्षित / पक्का एडमिशन</option>
-                                    <option value="moderate" selected>💼 1-2 वर्ष सामान्य अनुभव / प्रक्रियाधीन</option>
-                                    <option value="fresher">🌱 नया प्रयास / फ्रेशर (Fresher)</option>
+                                <label for="sim-experience" id="sim-label-exp"><i class="fa-solid fa-briefcase"
+                                        style="color: #ea580c;"></i> अनुभव / प्रशिक्षण / प्रवेश स्थिति (Experience /
+                                    Admission)</label>
+                                <select id="sim-experience" class="custom-select"
+                                    style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
+                                    <option value="experienced" id="sim-opt-exp-high">🛠️ 2+ वर्ष अनुभव / ITI कौशल
+                                        प्रशिक्षित / पक्का एडमिशन</option>
+                                    <option value="moderate" id="sim-opt-exp-mid" selected>💼 1-2 वर्ष सामान्य अनुभव /
+                                        प्रक्रियाधीन</option>
+                                    <option value="fresher" id="sim-opt-exp-fresher">🌱 नया प्रयास / फ्रेशर (Fresher)
+                                    </option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="sim-credit-history"><i class="fa-solid fa-building-columns" style="color: #6366f1;"></i> पूर्व ऋण व क्रेडिट स्थिति (Credit Record)</label>
-                                <select id="sim-credit-history" class="custom-select" style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
-                                    <option value="clean" selected>🟢 कोई बकाया नहीं - स्वच्छ रिकॉर्ड (Clean Record)</option>
-                                    <option value="active_loan">🟡 सक्रिय ऋण चालू है (Active Loan)</option>
-                                    <option value="defaulter">🔴 पूर्व में विलंब / डिफ़ॉल्ट (Past Delays)</option>
+                                <label for="sim-credit-history" id="sim-label-credit"><i
+                                        class="fa-solid fa-building-columns" style="color: #6366f1;"></i> पूर्व ऋण व
+                                    क्रेडिट स्थिति (Credit Record)</label>
+                                <select id="sim-credit-history" class="custom-select"
+                                    style="padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%;">
+                                    <option value="clean" id="sim-opt-credit-clean" selected>🟢 कोई बकाया नहीं - स्वच्छ
+                                        रिकॉर्ड (Clean Record)</option>
+                                    <option value="active_loan" id="sim-opt-credit-active">🟡 सक्रिय ऋण चालू है (Active
+                                        Loan)</option>
+                                    <option value="defaulter" id="sim-opt-credit-default">🔴 पूर्व में विलंब / डिफ़ॉल्ट
+                                        (Past Delays)</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label for="sim-existing-emi">मौजूदा मासिक EMI यदि कोई हो (Existing EMI ₹)</label>
-                                <input type="number" id="sim-existing-emi" placeholder="उदा. 0 या 2000" min="0" step="500" value="0" />
+                                <label for="sim-existing-emi" id="sim-label-existing-emi">मौजूदा मासिक EMI यदि कोई हो
+                                    (Existing EMI ₹)</label>
+                                <input type="number" id="sim-existing-emi" placeholder="उदा. 0 या 2000" min="0"
+                                    step="500" value="0" />
                             </div>
                         </div>
-                        <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #059669, #047857);"><i class="fa-solid fa-calculator"></i> वास्तविक स्कोर की गणना करें (Evaluate Readiness Criteria)</button>
+                        <button type="submit" id="sim-submit-btn" class="btn-primary"
+                            style="background: linear-gradient(135deg, #059669, #047857);"><i
+                                class="fa-solid fa-calculator"></i> <span id="sim-submit-btn-text">वास्तविक स्कोर की
+                                गणना करें (Evaluate Readiness Criteria)</span></button>
                     </form>
 
-                    <div id="sim-result-box" class="readiness-assessment-box" style="display: none; margin-top: 20px; background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b;">
+                    <div id="sim-result-box" class="readiness-assessment-box"
+                        style="display: none; margin-top: 20px; background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b;">
                         <div class="readiness-header-row">
                             <div class="readiness-title-group">
-                                <h3 style="color: #0f172a;"><i class="fa-solid fa-award"></i> मूल्यांकित ऋण तत्परता स्कोर</h3>
+                                <h3 id="sim-result-title" style="color: #0f172a;"><i class="fa-solid fa-award"></i>
+                                    मूल्यांकित ऋण तत्परता स्कोर</h3>
                                 <p id="sim-readiness-summary" style="color: #64748b;">विवरण</p>
                             </div>
                             <div id="sim-readiness-badge" class="readiness-status-badge">85 / 100</div>
@@ -499,15 +618,18 @@
                             <div class="readiness-gauge-wrap">
                                 <div class="readiness-gauge">
                                     <svg viewBox="0 0 120 120" class="gauge-svg">
-                                        <circle cx="60" cy="60" r="50" class="gauge-bg" style="stroke: #e2e8f0;"></circle>
-                                        <circle id="sim-gauge-circle" cx="60" cy="60" r="50" class="gauge-fill" stroke-dasharray="314" stroke-dashoffset="60"></circle>
+                                        <circle cx="60" cy="60" r="50" class="gauge-bg" style="stroke: #e2e8f0;">
+                                        </circle>
+                                        <circle id="sim-gauge-circle" cx="60" cy="60" r="50" class="gauge-fill"
+                                            stroke-dasharray="314" stroke-dashoffset="60"></circle>
                                     </svg>
                                     <div class="gauge-center-text">
                                         <span id="sim-readiness-score-num" style="color: #0f172a;">85</span>
                                         <small style="color: #64748b;">/ 100</small>
                                     </div>
                                 </div>
-                                <span id="sim-readiness-band-label" class="gauge-caption" style="color: #059669;">उत्कृष्ट तैयारी</span>
+                                <span id="sim-readiness-band-label" class="gauge-caption"
+                                    style="color: #059669;">उत्कृष्ट तैयारी</span>
                             </div>
 
                             <div class="readiness-pillars-list" id="sim-readiness-pillars">
@@ -515,13 +637,16 @@
                             </div>
                         </div>
 
-                        <div class="readiness-tips-box" style="background: #f8fafc; border-color: #e2e8f0; color: #334155;">
-                            <h4 style="color: #1e293b;"><i class="fa-solid fa-lightbulb" style="color: #f59e0b;"></i> सुधार सुझाव (Recommendations)</h4>
+                        <div class="readiness-tips-box"
+                            style="background: #f8fafc; border-color: #e2e8f0; color: #334155;">
+                            <h4 id="sim-tips-title" style="color: #1e293b;"><i class="fa-solid fa-lightbulb"
+                                    style="color: #f59e0b;"></i> सुधार सुझाव (Recommendations)</h4>
                             <ul id="sim-readiness-tips" style="color: #475569;"></ul>
                         </div>
 
                         <div class="readiness-docs-box" style="background: #f8fafc; border-color: #e2e8f0;">
-                            <h4 style="color: #1e293b;"><i class="fa-solid fa-folder-open" style="color: #0284c7;"></i> चेकलिस्ट (Document Checklist)</h4>
+                            <h4 id="sim-checklist-title" style="color: #1e293b;"><i class="fa-solid fa-folder-open"
+                                    style="color: #0284c7;"></i> चेकलिस्ट (Document Checklist)</h4>
                             <div class="docs-grid" id="sim-readiness-docs"></div>
                         </div>
                     </div>
@@ -530,32 +655,42 @@
                 <!-- ================= DOCUMENT OCR & SCHEME READINESS VERIFICATION ================= -->
                 <section id="doc-ocr-section" class="interactive-widget-card">
                     <div class="widget-header">
-                        <div class="widget-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white;">
+                        <div class="widget-icon"
+                            style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white;">
                             <i class="fa-solid fa-file-shield"></i>
                         </div>
                         <div>
-                            <h2>दस्तावेज OCR व पात्रता सत्यापन (Document OCR & Scheme Readiness)</h2>
-                            <p>अपने प्रमाण पत्र (जाति, आय, आधार, पासबुक, प्रोजेक्ट रिपोर्ट) अपलोड करें और योजना हेतु 100% तैयारी जांचें</p>
+                            <h2 id="ocr-header-title">दस्तावेज OCR व पात्रता सत्यापन (Document OCR & Scheme Readiness)
+                            </h2>
+                            <p id="ocr-header-desc">अपने प्रमाण पत्र (जाति, आय, आधार, पासबुक, प्रोजेक्ट रिपोर्ट) अपलोड
+                                करें और योजना हेतु 100% तैयारी जांचें</p>
                         </div>
                     </div>
 
                     <!-- Upload Controls Area -->
                     <div class="ocr-upload-container">
                         <div class="ocr-dropzone" id="ocr-dropzone">
-                            <input type="file" id="ocr-file-input" multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.txt" style="display: none;" />
+                            <input type="file" id="ocr-file-input" multiple accept=".png,.jpg,.jpeg,.webp,.pdf,.txt"
+                                style="display: none;" />
                             <div class="dropzone-inner">
                                 <div class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-                                <h3>यहाँ दस्तावेज खींचें या चयन करें (Upload Documents)</h3>
-                                <p>जाति प्रमाण पत्र, आय प्रमाण पत्र, आधार कार्ड, बैंक पासबुक या प्रोजेक्ट रिपोर्ट (JPG, PNG, PDF, TXT)</p>
+                                <h3 id="ocr-dropzone-title">यहाँ दस्तावेज खींचें या चयन करें (Upload Documents)</h3>
+                                <p id="ocr-dropzone-sub">जाति प्रमाण पत्र, आय प्रमाण पत्र, आधार कार्ड, बैंक पासबुक या
+                                    प्रोजेक्ट रिपोर्ट (JPG, PNG, PDF, TXT)</p>
                                 <div class="dropzone-actions">
-                                    <button type="button" class="btn-primary" onclick="document.getElementById('ocr-file-input').click()">
-                                        <i class="fa-solid fa-folder-open"></i> फ़ाइलें चुनें (Browse Files)
+                                    <button type="button" id="ocr-browse-btn" class="btn-primary"
+                                        onclick="document.getElementById('ocr-file-input').click()">
+                                        <i class="fa-solid fa-folder-open"></i> <span id="ocr-browse-btn-text">फ़ाइलें
+                                            चुनें (Browse Files)</span>
                                     </button>
                                     <button type="button" id="ocr-camera-btn" class="btn-secondary">
-                                        <i class="fa-solid fa-camera"></i> कैमरा से फोटो लें (Camera)
+                                        <i class="fa-solid fa-camera"></i> <span id="ocr-camera-btn-text">कैमरा से फोटो
+                                            लें (Camera)</span>
                                     </button>
-                                    <button type="button" id="ocr-sample-btn" class="btn-secondary" style="background: #eef2ff; color: #4338ca; border-color: #c7d2fe;">
-                                        <i class="fa-solid fa-wand-magic-sparkles"></i> डेमो दस्तावेज लोड करें (Demo Sample)
+                                    <button type="button" id="ocr-sample-btn" class="btn-secondary"
+                                        style="background: #eef2ff; color: #4338ca; border-color: #c7d2fe;">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i> <span
+                                            id="ocr-sample-btn-text">डेमो दस्तावेज लोड करें (Demo Sample)</span>
                                     </button>
                                 </div>
                             </div>
@@ -564,21 +699,29 @@
                         <!-- Selected Files Staging List -->
                         <div id="ocr-staged-files" class="staged-files-list" style="display: none;">
                             <div class="staged-header">
-                                <strong><i class="fa-solid fa-paperclip"></i> चयनित दस्तावेज (<span id="staged-count">0</span> फ़ाइलें):</strong>
-                                <button type="button" id="clear-staged-btn" class="btn-text-danger"><i class="fa-solid fa-trash-can"></i> सभी हटाएँ</button>
+                                <strong><i class="fa-solid fa-paperclip"></i> <span id="ocr-staged-header-text">चयनित
+                                        दस्तावेज</span> (<span id="staged-count">0</span> फ़ाइलें):</strong>
+                                <button type="button" id="clear-staged-btn" class="btn-text-danger"><i
+                                        class="fa-solid fa-trash-can"></i> <span id="clear-staged-btn-text">सभी
+                                        हटाएँ</span></button>
                             </div>
                             <div id="staged-chips-container" class="staged-chips"></div>
 
                             <div class="ocr-submit-row">
                                 <div class="ocr-scheme-selector">
-                                    <label for="ocr-scheme-type">ऋण श्रेणी:</label>
-                                    <select id="ocr-scheme-type" class="custom-select" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
-                                        <option value="business">💼 व्यवसाय ऋण (Micro Finance / Term Loan)</option>
-                                        <option value="education">🎓 शिक्षा ऋण (Education Loan)</option>
+                                    <label for="ocr-scheme-type" id="ocr-scheme-label-text">ऋण श्रेणी:</label>
+                                    <select id="ocr-scheme-type" class="custom-select"
+                                        style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                                        <option value="business" id="ocr-opt-biz">💼 व्यवसाय ऋण (Micro Finance / Term
+                                            Loan)</option>
+                                        <option value="education" id="ocr-opt-edu">🎓 शिक्षा ऋण (Education Loan)
+                                        </option>
                                     </select>
                                 </div>
-                                <button type="button" id="start-ocr-btn" class="btn-primary" style="background: linear-gradient(135deg, #4f46e5, #4338ca); padding: 12px 24px;">
-                                    <i class="fa-solid fa-bolt-lightning"></i> AI OCR से स्कैन व सत्यापन करें
+                                <button type="button" id="start-ocr-btn" class="btn-primary"
+                                    style="background: linear-gradient(135deg, #4f46e5, #4338ca); padding: 12px 24px;">
+                                    <i class="fa-solid fa-bolt-lightning"></i> <span id="start-ocr-btn-text">AI OCR से
+                                        स्कैन व सत्यापन करें</span>
                                 </button>
                             </div>
                         </div>
@@ -587,54 +730,77 @@
                     <!-- OCR Processing Scanning Bar -->
                     <div id="ocr-scanning-loader" class="ocr-scan-banner" style="display: none;">
                         <div class="scanner-laser"></div>
-                        <div class="scanner-text">
-                            <i class="fa-solid fa-microchip fa-spin"></i> AI Vision & OCR इंजन दस्तावेजों का विश्लेषण कर रहा है...
+                        <div class="scanner-text" id="ocr-loader-text">
+                            <i class="fa-solid fa-microchip fa-spin"></i> AI Vision & OCR इंजन दस्तावेजों का विश्लेषण कर
+                            रहा है...
                         </div>
                     </div>
 
                     <!-- OCR Verification Results Output Box -->
-                    <div id="ocr-results-box" class="readiness-assessment-box" style="display: none; margin-top: 22px; background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b;">
+                    <div id="ocr-results-box" class="readiness-assessment-box"
+                        style="display: none; margin-top: 22px; background: #ffffff; border: 1px solid #e2e8f0; color: #1e293b;">
                         <div class="readiness-header-row">
                             <div class="readiness-title-group">
-                                <h3 style="color: #0f172a;"><i class="fa-solid fa-file-circle-check" style="color: #4f46e5;"></i> दस्तावेज सत्यापन रिपोर्ट (Verification Report)</h3>
-                                <p id="ocr-report-summary" style="color: #64748b;">योजना पात्रता के अनुसार दस्तावेजों की स्थिति।</p>
+                                <h3 id="ocr-result-title" style="color: #0f172a;"><i
+                                        class="fa-solid fa-file-circle-check" style="color: #4f46e5;"></i> दस्तावेज
+                                    सत्यापन रिपोर्ट (Verification Report)</h3>
+                                <p id="ocr-report-summary" style="color: #64748b;">योजना पात्रता के अनुसार दस्तावेजों की
+                                    स्थिति।</p>
                             </div>
-                            <div id="ocr-overall-badge" class="readiness-status-badge" style="background: #10b981;">100% तैयार — आवेदन हेतु तैयार</div>
+                            <div id="ocr-overall-badge" class="readiness-status-badge" style="background: #10b981;">100%
+                                तैयार — आवेदन हेतु तैयार</div>
                         </div>
 
                         <!-- Progress Bar for Document Readiness -->
                         <div class="doc-readiness-bar-wrap" style="margin: 14px 0 20px;">
-                            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 6px;">
-                                <span style="color: #334155;">दस्तावेज पूर्णता स्कोर (Readiness)</span>
-                                <span id="ocr-progress-label" style="color: #4f46e5;">4 / 4 दस्तावेज सत्यापित (100%)</span>
+                            <div
+                                style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 6px;">
+                                <span id="ocr-progress-title-text" style="color: #334155;">दस्तावेज पूर्णता स्कोर
+                                    (Readiness)</span>
+                                <span id="ocr-progress-label" style="color: #4f46e5;">4 / 4 दस्तावेज सत्यापित
+                                    (100%)</span>
                             </div>
                             <div style="height: 10px; background: #e2e8f0; border-radius: 6px; overflow: hidden;">
-                                <div id="ocr-progress-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #6366f1, #10b981); transition: width 0.8s ease;"></div>
+                                <div id="ocr-progress-bar"
+                                    style="width: 100%; height: 100%; background: linear-gradient(90deg, #6366f1, #10b981); transition: width 0.8s ease;">
+                                </div>
                             </div>
                         </div>
 
                         <!-- Verified Document Cards Grid -->
-                        <h4 style="margin: 16px 0 10px 0; color: #0f172a; font-size: 15px;"><i class="fa-solid fa-list-check" style="color: #0284c7;"></i> सत्यापित दस्तावेज विवरण (Extracted Entities):</h4>
+                        <h4 id="ocr-entities-title-text"
+                            style="margin: 16px 0 10px 0; color: #0f172a; font-size: 15px;"><i
+                                class="fa-solid fa-list-check" style="color: #0284c7;"></i> सत्यापित दस्तावेज विवरण
+                            (Extracted Entities):</h4>
                         <div id="verified-docs-grid" class="verified-cards-grid">
                             <!-- Populated dynamically -->
                         </div>
 
                         <!-- Scheme Mandatory Document Checklist -->
-                        <div class="readiness-docs-box" style="background: #f8fafc; border-color: #e2e8f0; margin-top: 18px;">
-                            <h4 style="color: #1e293b;"><i class="fa-solid fa-clipboard-check" style="color: #10b981;"></i> योजना अनुसार चेकलिस्ट स्थिति (Required Checklist Status)</h4>
+                        <div class="readiness-docs-box"
+                            style="background: #f8fafc; border-color: #e2e8f0; margin-top: 18px;">
+                            <h4 id="ocr-checklist-title-text" style="color: #1e293b;"><i
+                                    class="fa-solid fa-clipboard-check" style="color: #10b981;"></i> योजना अनुसार
+                                चेकलिस्ट स्थिति (Required Checklist Status)</h4>
                             <div class="checklist-grid" id="ocr-checklist-items">
                                 <!-- Populated dynamically -->
                             </div>
                         </div>
 
                         <!-- Direct Next Action Callout -->
-                        <div id="ocr-next-action" class="ocr-action-card" style="margin-top: 18px; padding: 14px 18px; background: #eff6ff; border-radius: 10px; border-left: 4px solid #0072bc; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
+                        <div id="ocr-next-action" class="ocr-action-card"
+                            style="margin-top: 18px; padding: 14px 18px; background: #eff6ff; border-radius: 10px; border-left: 4px solid #0072bc; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
                             <div>
-                                <strong style="color: #003366; display: block; font-size: 14px;">🎯 अगला कदम (Next Step):</strong>
-                                <span style="font-size: 13px; color: #475569;">दस्तावेज सत्यापित हैं! अब अपने निकटतम NSFDC चैनल पार्टनर से संपर्क करें।</span>
+                                <strong id="ocr-next-step-title"
+                                    style="color: #003366; display: block; font-size: 14px;">🎯 अगला कदम (Next
+                                    Step):</strong>
+                                <span id="ocr-next-step-sub" style="font-size: 13px; color: #475569;">दस्तावेज सत्यापित
+                                    हैं! अब अपने निकटतम NSFDC चैनल पार्टनर से संपर्क करें।</span>
                             </div>
-                            <button type="button" class="btn-primary" onclick="scrollToSection('partner-section')">
-                                <i class="fa-solid fa-map-location-dot"></i> नजदीकी चैनल पार्टनर देखें
+                            <button type="button" id="ocr-next-step-btn" class="btn-primary"
+                                onclick="scrollToSection('partner-section')">
+                                <i class="fa-solid fa-map-location-dot"></i> <span id="ocr-next-step-btn-text">नजदीकी
+                                    चैनल पार्टनर देखें</span>
                             </button>
                         </div>
                     </div>
@@ -645,43 +811,45 @@
                     <div class="widget-header">
                         <div class="widget-icon"><i class="fa-solid fa-calculator"></i></div>
                         <div>
-                            <h2>NSFDC EMI कैलकुलेटर</h2>
-                            <p>मासिक किश्त (EMI) और कुल ब्याज की गणना FastAPI backend से करें</p>
+                            <h2 id="emi-header-title">NSFDC EMI कैलकुलेटर</h2>
+                            <p id="emi-header-desc">मासिक किश्त (EMI) और कुल ब्याज की गणना FastAPI backend से करें</p>
                         </div>
                     </div>
                     <form id="emi-form" class="widget-form">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label for="emi-principal">ऋण राशि (Principal ₹)</label>
-                                <input type="number" id="emi-principal" placeholder="उदा. 100000" min="1000" step="1" required />
+                                <label for="emi-principal" id="emi-label-principal">ऋण राशि (Principal ₹)</label>
+                                <input type="number" id="emi-principal" placeholder="उदा. 100000" min="1000" step="1"
+                                    required />
                             </div>
                             <div class="form-group">
-                                <label for="emi-rate">वार्षिक ब्याज दर (% Rate)</label>
+                                <label for="emi-rate" id="emi-label-rate">वार्षिक ब्याज दर (% Rate)</label>
                                 <input type="number" id="emi-rate" placeholder="उदा. 6.5" step="0.1" min="0" required />
                             </div>
                             <div class="form-group">
-                                <label for="emi-tenure">अवधि (Tenure in Months)</label>
+                                <label for="emi-tenure" id="emi-label-tenure">अवधि (Tenure in Months)</label>
                                 <input type="number" id="emi-tenure" placeholder="उदा. 36" min="1" required />
                             </div>
                             <div class="form-group">
-                                <label for="emi-moratorium">मोरैटोरियम अवधि (Months)</label>
+                                <label for="emi-moratorium" id="emi-label-moratorium">मोरैटोरियम अवधि (Months)</label>
                                 <input type="number" id="emi-moratorium" placeholder="उदा. 3" min="0" />
                             </div>
                         </div>
-                        <button type="submit" class="btn-primary"><i class="fa-solid fa-play"></i> EMI की गणना करें</button>
+                        <button type="submit" id="emi-submit-btn" class="btn-primary"><i class="fa-solid fa-play"></i>
+                            <span id="emi-submit-btn-text">EMI की गणना करें</span></button>
                     </form>
 
                     <div id="emi-result-box" class="emi-result-grid" style="display: none;">
                         <div class="result-card emi-highlight">
-                            <span>मासिक EMI</span>
+                            <span id="emi-res-monthly-label">मासिक EMI</span>
                             <strong id="res-monthly-emi">₹0</strong>
                         </div>
                         <div class="result-card">
-                            <span>कुल ब्याज (Total Interest)</span>
+                            <span id="emi-res-interest-label">कुल ब्याज (Total Interest)</span>
                             <strong id="res-total-interest">₹0</strong>
                         </div>
                         <div class="result-card">
-                            <span>कुल भुगतान (Total Payable)</span>
+                            <span id="emi-res-payable-label">कुल भुगतान (Total Payable)</span>
                             <strong id="res-total-payable">₹0</strong>
                         </div>
                     </div>
@@ -690,13 +858,13 @@
                 <!-- ================= CHANNEL PARTNERS RAG LOCATOR ================= -->
                 <section id="partner-section" class="interactive-widget-card">
                     <div class="widget-header">
-                        <div class="widget-icon" style="background: linear-gradient(135deg, #003366, #0072bc); color: #ffffff;"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <div class="widget-icon"
+                            style="background: linear-gradient(135deg, #003366, #0072bc); color: #ffffff;"><i
+                                class="fa-solid fa-map-location-dot"></i></div>
                         <div>
-                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                <h2>निकटतम NSFDC चैनल पार्टनर (Channel Partner Locator)</h2>
-                                <span class="rag-badge" style="background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;"><i class="fa-solid fa-brain"></i> RAG AI खोज सक्षम</span>
-                            </div>
-                            <p>आधिकारिक NSFDC स्टेट चैनलाइजिंग एजेंसी (SCA), लीड बैंक (PSB) एवं क्षेत्रीय ग्रामीण बैंक (RRB) खोजें</p>
+                            <h2 id="partner-header-title">निकटतम NSFDC चैनल पार्टनर (Channel Partner Locator)</h2>
+                            <p id="partner-header-desc">आधिकारिक NSFDC स्टेट चैनलाइजिंग एजेंसी (SCA), लीड बैंक (PSB) एवं
+                                क्षेत्रीय ग्रामीण बैंक (RRB) खोजें</p>
                         </div>
                     </div>
 
@@ -705,15 +873,18 @@
                         <div class="location-perm-info">
                             <div class="loc-icon-circle"><i class="fa-solid fa-location-crosshairs"></i></div>
                             <div>
-                                <strong>स्थान अनुमति (Location Permission)</strong>
-                                <p style="margin: 2px 0 0 0; font-size: 12px; color: #475569;">
-                                    सटीक नजदीकी कार्यालय व दूरी देखने के लिए ब्राउज़र स्थान की अनुमति दें। स्थान की जानकारी केवल निकटतम शाखा खोजने हेतु उपयोग होती है।
+                                <strong id="loc-perm-title">स्थान अनुमति (Location Permission)</strong>
+                                <p id="loc-perm-desc" style="margin: 2px 0 0 0; font-size: 12px; color: #475569;">
+                                    सटीक नजदीकी कार्यालय व दूरी देखने के लिए ब्राउज़र स्थान की अनुमति दें। स्थान की
+                                    जानकारी केवल निकटतम शाखा खोजने हेतु उपयोग होती है।
                                 </p>
                             </div>
                         </div>
                         <div class="location-perm-actions">
-                            <button id="find-location-btn" type="button" class="btn-primary" style="background: #0072bc; display: inline-flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-crosshairs"></i> मेरा स्थान उपयोग करें (Use Current Location)
+                            <button id="find-location-btn" type="button" class="btn-primary"
+                                style="background: #0072bc; display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-crosshairs"></i> <span id="find-location-btn-text">मेरा स्थान
+                                    उपयोग करें (Use Current Location)</span>
                             </button>
                             <span id="geo-status-badge" class="geo-status-badge waiting">
                                 <span class="pulse-dot"></span> स्थान प्रतीक्षित
@@ -727,47 +898,54 @@
                         <div class="partner-search-row">
                             <div class="search-input-wrap">
                                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                                <input type="text" id="partner-query-input" placeholder="प्राकृतिक भाषा में खोजें (जैसे: 'कुरुक्षेत्र में महिला समृद्धि योजना', 'Karnal PNB Bank', 'Delhi DSFDC')...">
+                                <input type="text" id="partner-query-input"
+                                    placeholder="प्राकृतिक भाषा में खोजें (जैसे: 'कुरुक्षेत्र में महिला समृद्धि योजना', 'Karnal PNB Bank', 'Delhi DSFDC')...">
                             </div>
                             <button id="partner-rag-search-btn" type="button" class="btn-primary">
-                                <i class="fa-solid fa-magnifying-glass"></i> RAG खोजें
+                                <i class="fa-solid fa-magnifying-glass"></i> <span id="partner-rag-btn-text">खोजें</span>
                             </button>
                         </div>
 
                         <!-- Dropdown & Chip Filters -->
                         <div class="partner-filter-row">
                             <div class="filter-group">
-                                <label for="partner-state-select"><i class="fa-solid fa-map"></i> राज्य (State):</label>
+                                <label for="partner-state-select" id="partner-state-label"><i
+                                        class="fa-solid fa-map"></i> राज्य (State):</label>
                                 <select id="partner-state-select" class="custom-select">
-                                    <option value="ALL">सभी राज्य (All States)</option>
-                                    <option value="Haryana" selected>Haryana (हरियाणा)</option>
-                                    <option value="Delhi">Delhi NCR (दिल्ली)</option>
-                                    <option value="Uttar Pradesh">Uttar Pradesh (उत्तर प्रदेश)</option>
-                                    <option value="Punjab">Punjab (पंजाब)</option>
-                                    <option value="Rajasthan">Rajasthan (राजस्थान)</option>
-                                    <option value="Maharashtra">Maharashtra (महाराष्ट्र)</option>
-                                    <option value="Karnataka">Karnataka (कर्नाटक)</option>
-                                    <option value="Tamil Nadu">Tamil Nadu (तमिलनाडु)</option>
+                                    <option value="ALL" id="state-opt-all">सभी राज्य (All States)</option>
+                                    <option value="Haryana" id="state-opt-hr" selected>Haryana (हरियाणा)</option>
+                                    <option value="Delhi" id="state-opt-dl">Delhi NCR (दिल्ली)</option>
+                                    <option value="Uttar Pradesh" id="state-opt-up">Uttar Pradesh (उत्तर प्रदेश)
+                                    </option>
+                                    <option value="Punjab" id="state-opt-pb">Punjab (पंजाब)</option>
+                                    <option value="Rajasthan" id="state-opt-rj">Rajasthan (राजस्थान)</option>
+                                    <option value="Maharashtra" id="state-opt-mh">Maharashtra (महाराष्ट्र)</option>
+                                    <option value="Karnataka" id="state-opt-ka">Karnataka (कर्नाटक)</option>
+                                    <option value="Tamil Nadu" id="state-opt-tn">Tamil Nadu (तमिलनाडु)</option>
                                 </select>
                             </div>
 
                             <div class="filter-group">
-                                <label for="partner-scheme-select"><i class="fa-solid fa-hand-holding-dollar"></i> योजना (Scheme):</label>
+                                <label for="partner-scheme-select" id="partner-scheme-label"><i
+                                        class="fa-solid fa-hand-holding-dollar"></i> योजना (Scheme):</label>
                                 <select id="partner-scheme-select" class="custom-select">
-                                    <option value="">सभी योजनाएं (All Schemes)</option>
-                                    <option value="mahila_samriddhi_yojana">महिला समृद्धि योजना (Mahila Samriddhi)</option>
+                                    <option value="" id="scheme-opt-all">सभी योजनाएं (All Schemes)</option>
+                                    <option value="mahila_samriddhi_yojana">महिला समृद्धि योजना (Mahila Samriddhi)
+                                    </option>
                                     <option value="micro_finance">माइक्रो फाइनेंस योजना (Micro Finance)</option>
                                     <option value="laghu_udhyami_yojana">लघु उद्यमी योजना (Laghu Udhyami)</option>
                                     <option value="green_business_scheme">ग्रीन बिजनेस स्कीम (Green Business)</option>
                                     <option value="term_loan">टर्म लोन (Term Loan)</option>
                                     <option value="education_loan">शिक्षा ऋण (Education Loan)</option>
-                                    <option value="education_loan_abroad">विदेश शिक्षा ऋण (Education Loan Abroad)</option>
+                                    <option value="education_loan_abroad">विदेश शिक्षा ऋण (Education Loan Abroad)
+                                    </option>
                                     <option value="stand_up_india_sc">स्टैंड-अप इंडिया (Stand-Up India SC)</option>
                                 </select>
                             </div>
 
                             <div class="filter-group">
-                                <label for="city-select"><i class="fa-solid fa-city"></i> त्वरित शहर (Quick City):</label>
+                                <label for="city-select" id="city-select-label"><i class="fa-solid fa-city"></i> त्वरित
+                                    शहर (Quick City):</label>
                                 <select id="city-select" class="custom-select">
                                     <option value="29.9695,76.8783">कुरुक्षेत्र (Kurukshetra - HSCFDC Office)</option>
                                     <option value="29.6857,76.9905">करनाल (Karnal - HSCFDC & PNB Lead)</option>
@@ -780,18 +958,26 @@
 
                         <!-- Agency Type Pills -->
                         <div class="partner-type-pills">
-                            <span style="font-size: 12px; font-weight: 600; color: #475569; align-self: center;">एजेंसी प्रकार:</span>
-                            <button type="button" class="type-pill active" data-type="ALL">सभी (All)</button>
-                            <button type="button" class="type-pill" data-type="SCA">🏛️ राज्य चैनलाइजिंग एजेंसी (SCA)</button>
-                            <button type="button" class="type-pill" data-type="PSB">🏦 सार्वजनिक बैंक (PSB)</button>
-                            <button type="button" class="type-pill" data-type="RRB">🌾 क्षेत्रीय ग्रामीण बैंक (RRB)</button>
+                            <span id="partner-type-pills-label"
+                                style="font-size: 12px; font-weight: 600; color: #475569; align-self: center;">एजेंसी
+                                प्रकार:</span>
+                            <button type="button" class="type-pill active" data-type="ALL" id="pill-all">सभी
+                                (All)</button>
+                            <button type="button" class="type-pill" data-type="SCA" id="pill-sca">🏛️ राज्य चैनलाइजिंग
+                                एजेंसी (SCA)</button>
+                            <button type="button" class="type-pill" data-type="PSB" id="pill-psb">🏦 सार्वजनिक बैंक
+                                (PSB)</button>
+                            <button type="button" class="type-pill" data-type="RRB" id="pill-rrb">🌾 क्षेत्रीय ग्रामीण
+                                बैंक (RRB)</button>
                         </div>
                     </div>
 
                     <!-- Results Count & Partner Grid -->
                     <div class="partner-results-header">
                         <span id="partner-count-text">चैनल पार्टनर खोजे जा रहे हैं...</span>
-                        <span id="partner-sort-indicator" style="font-size: 12px; color: #64748b;"><i class="fa-solid fa-arrow-down-short-wide"></i> नजदीकी दूरी व प्रासंगिकता के आधार पर</span>
+                        <span id="partner-sort-indicator" style="font-size: 12px; color: #64748b;"><i
+                                class="fa-solid fa-arrow-down-short-wide"></i> नजदीकी दूरी व प्रासंगिकता के आधार
+                            पर</span>
                     </div>
 
                     <div id="partners-list" class="partners-grid">
@@ -800,45 +986,56 @@
 
                     <!-- Interactive Map Container -->
                     <div class="partner-map-wrap">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
-                            <h3 style="margin: 0;"><i class="fa-solid fa-map-location-dot" style="color: #0072bc;"></i> मानचित्र पर नजदीकी चैनल पार्टनर (Interactive Map)</h3>
-                            <span style="font-size: 12px; color: #64748b;">📍 नीले रंग का मार्कर आपका स्थान दर्शाता है</span>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 8px;">
+                            <h3 id="partner-map-title" style="margin: 0;"><i class="fa-solid fa-map-location-dot"
+                                    style="color: #0072bc;"></i> मानचित्र पर नजदीकी चैनल पार्टनर (Interactive Map)</h3>
+                            <span id="partner-map-note" style="font-size: 12px; color: #64748b;">📍 नीले रंग का मार्कर
+                                आपका स्थान दर्शाता है</span>
                         </div>
-                        <div id="partner-map" aria-label="नजदीकी चैनल पार्टनर का मानचित्र" style="height: 380px; width: 100%; border-radius: 10px; border: 1px solid #cbd5e1;"></div>
+                        <div id="partner-map" aria-label="नजदीकी चैनल पार्टनर का मानचित्र"
+                            style="height: 380px; width: 100%; border-radius: 10px; border: 1px solid #cbd5e1;"></div>
                     </div>
                 </section>
 
             </section>
 
             <!-- ================= STEPS ================= -->
-            <section class="steps" style="display: flex; justify-content: space-between; align-items: center; gap: 20px; background: #f4f7fc; padding: 20px 25px; border-radius: 12px; margin-top: 20px;">
-                
+            <section class="steps"
+                style="display: flex; justify-content: space-between; align-items: center; gap: 20px; background: #f4f7fc; padding: 20px 25px; border-radius: 12px; margin-top: 20px;">
+
                 <div class="step" style="display: flex; align-items: center; gap: 15px; flex: 1;">
-                    <div class="step-icon" style="width: 55px; height: 55px; min-width: 55px; border: 3px solid #dbe4f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #ffffff;">
+                    <div class="step-icon"
+                        style="width: 55px; height: 55px; min-width: 55px; border: 3px solid #dbe4f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #ffffff;">
                         <i class="fa-solid fa-microphone-lines" style="color: #003366; font-size: 24px;"></i>
                     </div>
                     <div style="text-align: left;">
-                        <b id="step1-b" style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">1. अपनी भाषा में बात करें</b>
+                        <b id="step1-b" style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">1.
+                            अपनी भाषा में बात करें</b>
                         <span id="step1-span" style="font-size: 13px; color: #666;">बस अपनी बात बताइए</span>
                     </div>
                 </div>
 
                 <div class="step" style="display: flex; align-items: center; gap: 15px; flex: 1;">
-                    <div class="step-icon" style="width: 55px; height: 55px; min-width: 55px; border: 3px solid #dbe4f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #ffffff;">
+                    <div class="step-icon"
+                        style="width: 55px; height: 55px; min-width: 55px; border: 3px solid #dbe4f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #ffffff;">
                         <i class="fa-solid fa-gauge-high" style="color: #003366; font-size: 22px;"></i>
                     </div>
                     <div style="text-align: left;">
-                        <b id="step2-b" style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">2. तैयारी स्कोर व योजना पाएँ</b>
+                        <b id="step2-b" style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">2.
+                            तैयारी स्कोर व योजना पाएँ</b>
                         <span id="step2-span" style="font-size: 13px; color: #666;">तत्परता स्कोर व सही योजना</span>
                     </div>
                 </div>
 
                 <div class="step" style="display: flex; align-items: center; gap: 15px; flex: 1;">
-                    <div class="step-icon" style="width: 55px; height: 55px; min-width: 55px; border: 3px solid #dbe4f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #ffffff;">
+                    <div class="step-icon"
+                        style="width: 55px; height: 55px; min-width: 55px; border: 3px solid #dbe4f0; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: #ffffff;">
                         <i class="fa-solid fa-circle-check" style="color: #008000; font-size: 28px;"></i>
                     </div>
                     <div style="text-align: left;">
-                        <b id="step3-b" style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">3. आपका लक्ष्य, हमारा साथ</b>
+                        <b id="step3-b" style="display: block; font-size: 15px; color: #003366; margin-bottom: 3px;">3.
+                            आपका लक्ष्य, हमारा साथ</b>
                         <span id="step3-span" style="font-size: 13px; color: #666;">ऋण प्राप्ति तक पूरी सहायता</span>
                     </div>
                 </div>
@@ -858,10 +1055,15 @@
             </section>
 
             <!-- Available Schemes List Card -->
-            <section class="help-card schemes-card" style="background: #ffffff; border: 1px solid #e1e8ed; text-align: center; padding: 18px 14px;">
-                <h3 id="schemes-card-h3" style="text-align: center; justify-content: center; display: flex; align-items: center; gap: 8px;"><i class="fa-solid fa-list-check" style="color: #0072bc;"></i> <span>उपलब्ध योजनाएँ (Schemes)</span></h3>
+            <section class="help-card schemes-card"
+                style="background: #ffffff; border: 1px solid #e1e8ed; text-align: center; padding: 18px 14px;">
+                <h3 id="schemes-card-h3"
+                    style="text-align: center; justify-content: center; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-list-check" style="color: #0072bc;"></i> <span>उपलब्ध योजनाएँ (Schemes)</span>
+                </h3>
                 <div id="quick-schemes-list" style="margin-top: 10px; font-size: 13px; text-align: center;">
-                    <div style="padding: 6px 0; border-bottom: 1px dashed #eee; text-align: center;">⏳ Schemes load हो रही हैं...</div>
+                    <div style="padding: 6px 0; border-bottom: 1px dashed #eee; text-align: center;">⏳ Schemes load हो
+                        रही हैं...</div>
                 </div>
             </section>
 
@@ -912,53 +1114,58 @@
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <div class="modal-icon-circle"><i class="fa-solid fa-headset"></i></div>
                     <div>
-                        <h2 id="help-modal-title" style="margin: 0; font-size: 18px; color: #003366;">योजनासेतु सहायता एवं हेल्पलाइन केंद्र</h2>
-                        <p style="margin: 2px 0 0 0; font-size: 12px; color: #64748b;">Help & Support Center — National Scheduled Castes Finance & Dev Corp</p>
+                        <h2 id="help-modal-title" style="margin: 0; font-size: 18px; color: #003366;">योजनासेतु सहायता
+                            एवं हेल्पलाइन केंद्र</h2>
+                        <p id="help-modal-sub" style="margin: 2px 0 0 0; font-size: 12px; color: #64748b;">Help &
+                            Support Center — National Scheduled Castes Finance & Dev Corp</p>
                     </div>
                 </div>
-                <button type="button" class="modal-close-btn" onclick="closeHelpModal()" aria-label="बंद करें">&times;</button>
+                <button type="button" class="modal-close-btn" onclick="closeHelpModal()"
+                    aria-label="बंद करें">&times;</button>
             </div>
 
             <div class="modal-body">
                 <!-- 1. Toll Free National & State Helplines -->
                 <div class="help-section-block">
-                    <h3 style="font-size: 14px; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-phone-volume" style="color: #16a34a;"></i> आधिकारिक टोल-फ्री हेल्पलाइन (Toll-Free Numbers)
+                    <h3 id="help-helpline-title"
+                        style="font-size: 14px; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-phone-volume" style="color: #16a34a;"></i> आधिकारिक टोल-फ्री हेल्पलाइन
+                        (Toll-Free Numbers)
                     </h3>
                     <div class="helpline-grid">
                         <div class="helpline-card">
-                            <span class="helpline-badge national">राष्ट्रीय निगम</span>
-                            <h4>NSFDC केंद्रीय हेल्पलाइन</h4>
-                            <p>सोमवार से शुक्रवार, 09:30 AM - 06:00 PM</p>
-                            <a href="tel:1800118877" class="helpline-call-btn">
-                                <i class="fa-solid fa-phone"></i> 1800-11-8877 (टोल-फ्री)
+                            <span class="helpline-badge national" id="helpline-badge-1">राष्ट्रीय निगम (Apex)</span>
+                            <h4 id="helpline-card-1-title">NSFDC केंद्रीय हेल्पलाइन</h4>
+                            <p id="helpline-card-1-time">सोमवार से शुक्रवार, 09:30 AM - 06:00 PM</p>
+                            <a href="tel:1800110396" class="helpline-call-btn" id="helpline-card-1-call">
+                                <i class="fa-solid fa-phone"></i> 1800-11-0396 (टोल-फ्री)
                             </a>
                         </div>
 
                         <div class="helpline-card">
-                            <span class="helpline-badge central">सामाजिक न्याय</span>
-                            <h4>राष्ट्रीय हेल्पलाइन (MoSJE)</h4>
-                            <p>अनुसूचित जाति कल्याण व सहायता</p>
-                            <a href="tel:14566" class="helpline-call-btn">
-                                <i class="fa-solid fa-phone"></i> 14566 (शॉर्ट कोड)
+                            <span class="helpline-badge state" id="helpline-badge-2">हरियाणा SCA</span>
+                            <h4 id="helpline-card-2-title">HSCFDC हरियाणा सहायता</h4>
+                            <p id="helpline-card-2-time">मुख्यालय पंचकूला व सभी जिले</p>
+                            <a href="tel:01722567063" class="helpline-call-btn" id="helpline-card-2-call">
+                                <i class="fa-solid fa-phone"></i> 0172-2567063
                             </a>
                         </div>
 
                         <div class="helpline-card">
-                            <span class="helpline-badge state">हरियाणा SCA</span>
-                            <h4>HSCFDC हरियाणा सहायता</h4>
-                            <p>सभी हरियाणा जिलों के लिए</p>
-                            <a href="tel:18001802015" class="helpline-call-btn">
-                                <i class="fa-solid fa-phone"></i> 1800-180-2015
-                            </a>
-                        </div>
-
-                        <div class="helpline-card">
-                            <span class="helpline-badge state">उत्तर प्रदेश SCA</span>
-                            <h4>UPSCFDC समाज कल्याण</h4>
-                            <p>उत्तर प्रदेश राज्य मुख्यालय</p>
-                            <a href="tel:18001805131" class="helpline-call-btn">
+                            <span class="helpline-badge state" id="helpline-badge-3">उत्तर प्रदेश SCA</span>
+                            <h4 id="helpline-card-3-title">UPSCFDC समाज कल्याण</h4>
+                            <p id="helpline-card-3-time">उत्तर प्रदेश राज्य मुख्यालय</p>
+                            <a href="tel:18001805131" class="helpline-call-btn" id="helpline-card-3-call">
                                 <i class="fa-solid fa-phone"></i> 1800-180-5131
+                            </a>
+                        </div>
+
+                        <div class="helpline-card">
+                            <span class="helpline-badge state" id="helpline-badge-4">दिल्ली SCA</span>
+                            <h4 id="helpline-card-4-title">DSFDC दिल्ली सहायता</h4>
+                            <p id="helpline-card-4-time">दिल्ली राज्य मुख्यालय / शाखाएं</p>
+                            <a href="tel:01123378418" class="helpline-call-btn" id="helpline-card-4-call">
+                                <i class="fa-solid fa-phone"></i> 011-23378418
                             </a>
                         </div>
                     </div>
@@ -966,24 +1173,32 @@
 
                 <!-- 2. Quick AI Assistant Action Prompts -->
                 <div class="help-section-block">
-                    <h3 style="font-size: 14px; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-robot" style="color: #0072bc;"></i> AI सहायक से सीधे पूछें (Instant AI Assistance)
+                    <h3 id="help-ai-title"
+                        style="font-size: 14px; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-robot" style="color: #0072bc;"></i> AI सहायक से सीधे पूछें (Instant AI
+                        Assistance)
                     </h3>
-                    <p style="font-size: 12px; color: #64748b; margin-top: -4px; margin-bottom: 10px;">किसी भी विकल्प पर क्लिक करने पर AI सहायक तुरंत मार्गदर्शन प्रदान करेगा:</p>
+                    <p id="help-ai-sub" style="font-size: 12px; color: #64748b; margin-top: -4px; margin-bottom: 10px;">
+                        किसी भी विकल्प पर क्लिक करने पर AI सहायक तुरंत मार्गदर्शन प्रदान करेगा:</p>
                     <div class="quick-help-prompts">
-                        <button type="button" class="help-prompt-pill" onclick="askAiFromHelp('मुझे कम ब्याज दर पर व्यवसाय के लिए कौन सी योजना मिल सकती है?')">
+                        <button type="button" class="help-prompt-pill" id="help-pill-1"
+                            onclick="askAiFromHelp('मुझे कम ब्याज दर पर व्यवसाय के लिए कौन सी योजना मिल सकती है?')">
                             💼 व्यवसाय ऋण व ब्याज दरें
                         </button>
-                        <button type="button" class="help-prompt-pill" onclick="askAiFromHelp('महिला समृद्धि योजना के लिए क्या पात्रता और सब्सिडी है?')">
+                        <button type="button" class="help-prompt-pill" id="help-pill-2"
+                            onclick="askAiFromHelp('महिला समृद्धि योजना के लिए क्या पात्रता और सब्सिडी है?')">
                             👩 महिला समृद्धि योजना सहायता
                         </button>
-                        <button type="button" class="help-prompt-pill" onclick="askAiFromHelp('लोन आवेदन के लिए कौन-कौन से मुख्य 5 दस्तावेज अनिवार्य हैं?')">
+                        <button type="button" class="help-prompt-pill" id="help-pill-3"
+                            onclick="askAiFromHelp('लोन आवेदन के लिए कौन-कौन से मुख्य 5 दस्तावेज अनिवार्य हैं?')">
                             📁 आवश्यक दस्तावेजों की सूची
                         </button>
-                        <button type="button" class="help-prompt-pill" onclick="askAiFromHelp('मेरे नजदीकी स्टेट चैनल पार्टनर या बैंक कार्यालय का पता क्या है?')">
+                        <button type="button" class="help-prompt-pill" id="help-pill-4"
+                            onclick="askAiFromHelp('मेरे नजदीकी स्टेट चैनल पार्टनर या बैंक कार्यालय का पता क्या है?')">
                             🏦 नजदीकी कार्यालय व शाखा खोजें
                         </button>
-                        <button type="button" class="help-prompt-pill" onclick="askAiFromHelp('शिक्षा ऋण और विदेश में पढ़ाई के लिए NSFDC की क्या योजना है?')">
+                        <button type="button" class="help-prompt-pill" id="help-pill-5"
+                            onclick="askAiFromHelp('शिक्षा ऋण और विदेश में पढ़ाई के लिए NSFDC की क्या योजना है?')">
                             🎓 शिक्षा ऋण (Education Loan)
                         </button>
                     </div>
@@ -991,35 +1206,50 @@
 
                 <!-- 3. Frequently Asked Questions (FAQ Accordion) -->
                 <div class="help-section-block">
-                    <h3 style="font-size: 14px; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-circle-question" style="color: #f59e0b;"></i> अक्सर पूछे जाने वाले प्रश्न (FAQs)
+                    <h3 id="help-faq-title"
+                        style="font-size: 14px; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-circle-question" style="color: #f59e0b;"></i> अक्सर पूछे जाने वाले प्रश्न
+                        (FAQs)
                     </h3>
                     <div class="faq-list">
                         <details class="faq-item">
-                            <summary class="faq-question">योजनासेतु (YojnaSetu) क्या है और यह कैसे मदद करता है?</summary>
-                            <div class="faq-answer">
-                                योजनासेतु भारत सरकार के NSFDC द्वारा समर्थित एक AI संचालित प्लेटफ़ॉर्म है। यह अनुसूचित जाति (SC) समुदाय के लाभार्थियों को उनकी पात्रता के अनुसार सबसे उपयुक्त रियायती ऋण योजना, सब्सिडी, मासिक EMI और नजदीकी चैनल पार्टनर खोजने में मातृभाषा (हिंदी) में संपूर्ण सहायता प्रदान करता है।
+                            <summary class="faq-question" id="faq-q-1">योजनासेतु (YojnaSetu) क्या है और यह कैसे मदद करता
+                                है?</summary>
+                            <div class="faq-answer" id="faq-a-1">
+                                योजनासेतु भारत सरकार के NSFDC द्वारा समर्थित एक AI संचालित प्लेटफ़ॉर्म है। यह अनुसूचित
+                                जाति (SC) समुदाय के लाभार्थियों को उनकी पात्रता के अनुसार सबसे उपयुक्त रियायती ऋण योजना,
+                                सब्सिडी, मासिक EMI और नजदीकी चैनल पार्टनर खोजने में मातृभाषा (हिंदी) में संपूर्ण सहायता
+                                प्रदान करता है।
                             </div>
                         </details>
 
                         <details class="faq-item">
-                            <summary class="faq-question">क्या ₹10 लाख तक के ऋण के लिए कोई गारंटी या संपत्ति गिरवी रखनी होगी?</summary>
-                            <div class="faq-answer">
-                                नहीं! NSFDC की अधिकांश योजनाओं में CGTMSE (क्रेडिट गारंटी फंड ट्रस्ट) के तहत ₹10 लाख तक का ऋण बिना किसी तीसरे पक्ष की गारंटी अथवा संपत्ति गिरवी रखे (Collateral-Free) प्रदान किया जाता है।
+                            <summary class="faq-question" id="faq-q-2">क्या ₹10 लाख तक के ऋण के लिए कोई गारंटी या
+                                संपत्ति गिरवी रखनी होगी?</summary>
+                            <div class="faq-answer" id="faq-a-2">
+                                नहीं! NSFDC की अधिकांश योजनाओं में CGTMSE (क्रेडिट गारंटी फंड ट्रस्ट) के तहत ₹10 लाख तक
+                                का ऋण बिना किसी तीसरे पक्ष की गारंटी अथवा संपत्ति गिरवी रखे (Collateral-Free) प्रदान
+                                किया जाता है।
                             </div>
                         </details>
 
                         <details class="faq-item">
-                            <summary class="faq-question">महिला समृद्धि योजना की मुख्य विशेषताएं क्या हैं?</summary>
-                            <div class="faq-answer">
-                                महिला समृद्धि योजना विशेष रूप से अनुसूचित जाति की महिला उद्यमियों के लिए है। इसमें ₹1,40,000 तक की वित्तीय सहायता केवल 4% वार्षिक की अत्यधिक रियायती ब्याज दर पर दी जाती है, जिसमें NSFDC द्वारा परियोजना लागत का 95% तक वित्तपोषण किया जाता है।
+                            <summary class="faq-question" id="faq-q-3">महिला समृद्धि योजना की मुख्य विशेषताएं क्या हैं?
+                            </summary>
+                            <div class="faq-answer" id="faq-a-3">
+                                महिला समृद्धि योजना विशेष रूप से अनुसूचित जाति की महिला उद्यमियों के लिए है। इसमें
+                                ₹1,40,000 तक की वित्तीय सहायता केवल 4% वार्षिक की अत्यधिक रियायती ब्याज दर पर दी जाती
+                                है, जिसमें NSFDC द्वारा परियोजना लागत का 95% तक वित्तपोषण किया जाता है।
                             </div>
                         </details>
 
                         <details class="faq-item">
-                            <summary class="faq-question">ऋण आवेदन के लिए आवश्यक मुख्य दस्तावेज कौन से हैं?</summary>
-                            <div class="faq-answer">
-                                मुख्य रूप से 5 दस्तावेज आवश्यक हैं: (1) जाति प्रमाण पत्र (SC Certificate), (2) आय प्रमाण पत्र (Income Certificate), (3) आधार कार्ड / पहचान पत्र, (4) बैंक पासबुक (IFSC सहित), और (5) व्यवसाय परियोजना रिपोर्ट अथवा कॉलेज प्रवेश पत्र।
+                            <summary class="faq-question" id="faq-q-4">ऋण आवेदन के लिए आवश्यक मुख्य दस्तावेज कौन से हैं?
+                            </summary>
+                            <div class="faq-answer" id="faq-a-4">
+                                मुख्य रूप से 5 दस्तावेज आवश्यक हैं: (1) जाति प्रमाण पत्र (SC Certificate), (2) आय प्रमाण
+                                पत्र (Income Certificate), (3) आधार कार्ड / पहचान पत्र, (4) बैंक पासबुक (IFSC सहित), और
+                                (5) व्यवसाय परियोजना रिपोर्ट अथवा कॉलेज प्रवेश पत्र।
                             </div>
                         </details>
                     </div>
@@ -1028,22 +1258,24 @@
                 <!-- 4. Support Email & Physical Address -->
                 <div class="help-contact-footer">
                     <div>
-                        <strong><i class="fa-regular fa-envelope"></i> आधिकारिक ईमेल:</strong>
+                        <strong id="help-email-label"><i class="fa-regular fa-envelope"></i> आधिकारिक ईमेल:</strong>
                         <a href="mailto:support@nsfdc.nic.in">support@nsfdc.nic.in</a>
                     </div>
                     <div>
-                        <strong><i class="fa-solid fa-building"></i> प्रधान कार्यालय:</strong>
-                        <span>स्कोप मीनार, कोर 1 व 2, लक्ष्मी नगर / भीकाजी कामा प्लेस, नई दिल्ली</span>
+                        <strong id="help-hq-label"><i class="fa-solid fa-building"></i> प्रधान कार्यालय:</strong>
+                        <span id="help-hq-val">स्कोप मीनार, कोर 1 व 2, लक्ष्मी नगर / भीकाजी कामा प्लेस, नई दिल्ली</span>
                     </div>
                 </div>
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn-secondary" onclick="closeHelpModal()">
+                <button type="button" class="btn-secondary" id="help-close-btn" onclick="closeHelpModal()">
                     बंद करें (Close)
                 </button>
-                <button type="button" class="btn-primary" onclick="closeHelpModal(); scrollToSection('partner-section');">
-                    <i class="fa-solid fa-map-location-dot"></i> नजदीकी चैनल पार्टनर देखें
+                <button type="button" class="btn-primary" id="help-partners-btn"
+                    onclick="closeHelpModal(); scrollToSection('partner-section');">
+                    <i class="fa-solid fa-map-location-dot"></i> <span id="help-partners-btn-text">नजदीकी चैनल पार्टनर
+                        देखें</span>
                 </button>
             </div>
         </div>
@@ -1051,56 +1283,79 @@
 
     <!-- ================= AUTHENTICATION & OTP MODAL ================= -->
     <div id="auth-modal" class="modal-backdrop" style="display: none;">
-        <div class="modal-container auth-modal-container" role="dialog" aria-labelledby="auth-modal-title" aria-modal="true" style="max-width: 440px;">
+        <div class="modal-container auth-modal-container" role="dialog" aria-labelledby="auth-modal-title"
+            aria-modal="true" style="max-width: 440px;">
             <div class="modal-header">
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div class="modal-icon-circle" style="background: #e0f2fe; color: #0284c7;"><i class="fa-solid fa-user-shield"></i></div>
+                    <div class="modal-icon-circle" style="background: #e0f2fe; color: #0284c7;"><i
+                            class="fa-solid fa-user-shield"></i></div>
                     <div>
-                        <h2 id="auth-modal-title" style="margin: 0; font-size: 17px; color: #0f172a;">आवेदक लॉगिन / पंजीकरण</h2>
-                        <p id="auth-modal-sub" style="margin: 2px 0 0 0; font-size: 12px; color: #64748b;">योजनासेतु NSFDC ऋण सहायता प्रोफ़ाइल</p>
+                        <h2 id="auth-modal-title" style="margin: 0; font-size: 17px; color: #0f172a;">आवेदक लॉगिन /
+                            पंजीकरण</h2>
+                        <p id="auth-modal-sub" style="margin: 2px 0 0 0; font-size: 12px; color: #64748b;">योजनासेतु
+                            NSFDC ऋण सहायता प्रोफ़ाइल</p>
                     </div>
                 </div>
-                <button type="button" class="modal-close-btn" onclick="closeAuthModal()" aria-label="बंद करें">&times;</button>
+                <button type="button" class="modal-close-btn" onclick="closeAuthModal()"
+                    aria-label="बंद करें">&times;</button>
             </div>
 
             <div class="modal-body" style="padding: 20px 24px;">
                 <!-- STEP 1: Enter Phone, Name & Email -->
                 <div id="auth-step-1">
                     <div style="margin-bottom: 18px; text-align: center;">
-                        <p style="font-size: 13.5px; color: #334155; line-height: 1.5; margin: 0;">
+                        <p id="auth-step-1-intro"
+                            style="font-size: 13.5px; color: #334155; line-height: 1.5; margin: 0;">
                             अपनी ऋण योजना सिफारिशें और ऋण तैयारी स्कोर सुरक्षित रखने के लिए मोबाइल नंबर दर्ज करें:
                         </p>
                     </div>
 
                     <form id="auth-send-otp-form" onsubmit="handleSendOtpSubmit(event)">
                         <div class="form-group" style="margin-bottom: 14px;">
-                            <label for="auth-name-input" style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 5px;">
+                            <label for="auth-name-input" id="auth-label-name"
+                                style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 5px;">
                                 <i class="fa-regular fa-user" style="color: #0072bc;"></i> आपका पूरा नाम (Full Name)
                             </label>
-                            <input type="text" id="auth-name-input" placeholder="उदा: रमेश कुमार" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;" required />
+                            <input type="text" id="auth-name-input" placeholder="उदा: रमेश कुमार"
+                                style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;"
+                                required />
                         </div>
 
                         <div class="form-group" style="margin-bottom: 14px;">
-                            <label for="auth-phone-input" style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 5px;">
-                                <i class="fa-solid fa-mobile-screen" style="color: #16a34a;"></i> 10-अंकीय मोबाइल नंबर (Mobile Number) <span style="color: #ef4444;">*</span>
+                            <label for="auth-phone-input" id="auth-label-phone"
+                                style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 5px;">
+                                <i class="fa-solid fa-mobile-screen" style="color: #16a34a;"></i> 10-अंकीय मोबाइल नंबर
+                                (Mobile Number) <span style="color: #ef4444;">*</span>
                             </label>
-                            <div style="display: flex; align-items: center; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #fff;">
-                                <span style="background: #f1f5f9; padding: 10px 12px; font-size: 13.5px; font-weight: 600; color: #475569; border-right: 1px solid #cbd5e1;">+91</span>
-                                <input type="tel" id="auth-phone-input" placeholder="9876543210" pattern="[0-9]{10}" maxlength="10" style="width: 100%; padding: 10px 12px; border: none; outline: none; font-size: 14px;" required />
+                            <div
+                                style="display: flex; align-items: center; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #fff;">
+                                <span
+                                    style="background: #f1f5f9; padding: 10px 12px; font-size: 13.5px; font-weight: 600; color: #475569; border-right: 1px solid #cbd5e1;">+91</span>
+                                <input type="tel" id="auth-phone-input" placeholder="9876543210" pattern="[0-9]{10}"
+                                    maxlength="10"
+                                    style="width: 100%; padding: 10px 12px; border: none; outline: none; font-size: 14px;"
+                                    required />
                             </div>
                         </div>
 
                         <div class="form-group" style="margin-bottom: 18px;">
-                            <label for="auth-email-input" style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 5px;">
-                                <i class="fa-regular fa-envelope" style="color: #f59e0b;"></i> ईमेल पता (Email Address) <small style="color: #64748b; font-weight: normal;">(वैकल्पिक)</small>
+                            <label for="auth-email-input" id="auth-label-email"
+                                style="display: block; font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 5px;">
+                                <i class="fa-regular fa-envelope" style="color: #f59e0b;"></i> ईमेल पता (Email Address)
+                                <small style="color: #64748b; font-weight: normal;">(वैकल्पिक)</small>
                             </label>
-                            <input type="email" id="auth-email-input" placeholder="applicant@example.com" style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;" />
+                            <input type="email" id="auth-email-input" placeholder="applicant@example.com"
+                                style="width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;" />
                         </div>
 
-                        <div id="auth-error-msg" style="display: none; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12.5px; margin-bottom: 14px;"></div>
+                        <div id="auth-error-msg"
+                            style="display: none; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12.5px; margin-bottom: 14px;">
+                        </div>
 
-                        <button type="submit" id="auth-send-btn" class="btn-primary" style="width: 100%; padding: 12px; font-size: 14.5px; font-weight: 600; justify-content: center;">
-                            <i class="fa-solid fa-paper-plane"></i> OTP प्राप्त करें (Send OTP)
+                        <button type="submit" id="auth-send-btn" class="btn-primary"
+                            style="width: 100%; padding: 12px; font-size: 14.5px; font-weight: 600; justify-content: center;">
+                            <i class="fa-solid fa-paper-plane"></i> <span id="auth-send-btn-text">OTP प्राप्त करें (Send
+                                OTP)</span>
                         </button>
                     </form>
                 </div>
@@ -1108,17 +1363,22 @@
                 <!-- STEP 2: Enter & Verify 6-digit OTP -->
                 <div id="auth-step-2" style="display: none;">
                     <div style="text-align: center; margin-bottom: 16px;">
-                        <div style="font-size: 13px; color: #475569;">
+                        <div id="auth-step-2-intro" style="font-size: 13px; color: #475569;">
                             सत्यापन कोड इस नंबर पर भेजा गया:
                         </div>
-                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px;">
-                            <strong id="auth-sent-target" style="font-size: 15px; color: #003366;">+91 98765 43210</strong>
-                            <button type="button" onclick="goToAuthStep1()" style="background: none; border: none; color: #0072bc; font-size: 12px; text-decoration: underline; cursor: pointer;">बदलें (Edit)</button>
+                        <div
+                            style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px;">
+                            <strong id="auth-sent-target" style="font-size: 15px; color: #003366;">+91 98765
+                                43210</strong>
+                            <button type="button" id="auth-edit-phone-btn" onclick="goToAuthStep1()"
+                                style="background: none; border: none; color: #0072bc; font-size: 12px; text-decoration: underline; cursor: pointer;">बदलें
+                                (Edit)</button>
                         </div>
                     </div>
 
                     <!-- OTP Inputs Grid -->
-                    <div class="otp-inputs-grid" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 16px;">
+                    <div class="otp-inputs-grid"
+                        style="display: flex; justify-content: center; gap: 8px; margin-bottom: 16px;">
                         <input type="text" maxlength="1" class="otp-box" id="otp-1" inputmode="numeric" autofocus />
                         <input type="text" maxlength="1" class="otp-box" id="otp-2" inputmode="numeric" />
                         <input type="text" maxlength="1" class="otp-box" id="otp-3" inputmode="numeric" />
@@ -1128,35 +1388,54 @@
                     </div>
 
                     <!-- Demo Preview Hint Badge for Easy Testing -->
-                    <div id="otp-demo-badge" class="otp-demo-badge" style="display: flex; align-items: center; justify-content: space-between; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; margin-bottom: 16px;">
+                    <div id="otp-demo-badge" class="otp-demo-badge"
+                        style="display: flex; align-items: center; justify-content: space-between; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; margin-bottom: 16px;">
                         <div style="font-size: 12px; color: #166534;">
-                            <i class="fa-solid fa-wand-magic-sparkles" style="color: #16a34a;"></i> परीक्षण OTP: <strong id="otp-demo-code">123456</strong>
+                            <i class="fa-solid fa-wand-magic-sparkles" style="color: #16a34a;"></i> <span
+                                id="otp-demo-label">परीक्षण OTP:</span> <strong id="otp-demo-code">123456</strong>
                         </div>
-                        <button type="button" onclick="autoFillDemoOtp()" style="background: #16a34a; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: 600;">स्वतः भरें (Fill)</button>
+                        <button type="button" id="otp-autofill-btn" onclick="autoFillDemoOtp()"
+                            style="background: #16a34a; color: white; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: 600;">स्वतः
+                            भरें (Fill)</button>
                     </div>
 
                     <!-- Resend timer -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; margin-bottom: 16px;">
-                        <span style="color: #64748b;"><i class="fa-regular fa-clock"></i> समय शेष: <strong id="otp-timer-display" style="color: #0f172a;">10:00</strong></span>
-                        <button type="button" id="auth-resend-btn" onclick="handleResendOtp()" style="background: none; border: none; color: #0072bc; cursor: pointer; text-decoration: underline; font-size: 12.5px;">पुनः भेजें (Resend OTP)</button>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; margin-bottom: 16px;">
+                        <span style="color: #64748b;"><i class="fa-regular fa-clock"></i> <span
+                                id="otp-time-left-label">समय शेष:</span> <strong id="otp-timer-display"
+                                style="color: #0f172a;">10:00</strong></span>
+                        <button type="button" id="auth-resend-btn" onclick="handleResendOtp()"
+                            style="background: none; border: none; color: #0072bc; cursor: pointer; text-decoration: underline; font-size: 12.5px;">पुनः
+                            भेजें (Resend OTP)</button>
                     </div>
 
-                    <div id="otp-verify-error-msg" style="display: none; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12.5px; margin-bottom: 14px;"></div>
+                    <div id="otp-verify-error-msg"
+                        style="display: none; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 8px 12px; border-radius: 6px; font-size: 12.5px; margin-bottom: 14px;">
+                    </div>
 
-                    <button type="button" id="auth-verify-submit-btn" class="btn-primary" onclick="handleVerifyOtpSubmit()" style="width: 100%; padding: 12px; font-size: 14.5px; font-weight: 600; justify-content: center;">
-                        <i class="fa-solid fa-circle-check"></i> सत्यापित करें व लॉगिन करें (Verify & Login)
+                    <button type="button" id="auth-verify-submit-btn" class="btn-primary"
+                        onclick="handleVerifyOtpSubmit()"
+                        style="width: 100%; padding: 12px; font-size: 14.5px; font-weight: 600; justify-content: center;">
+                        <i class="fa-solid fa-circle-check"></i> <span id="auth-verify-btn-text">सत्यापित करें व लॉगिन
+                            करें (Verify & Login)</span>
                     </button>
                 </div>
             </div>
 
-            <div class="modal-footer" style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 12px 20px; font-size: 11.5px; color: #64748b; justify-content: center; text-align: center;">
+            <div class="modal-footer" id="auth-modal-security-note"
+                style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 12px 20px; font-size: 11.5px; color: #64748b; justify-content: center; text-align: center;">
                 🔒 आपका डेटा भारत सरकार के डेटा सुरक्षा मानकों के तहत सुरक्षित है।
             </div>
         </div>
     </div>
 
     <!-- Frontend Script Connection to FastAPI -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="script.js?v=20260906-criteria-readiness"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="script.js?v=20260911-full-english-bilingual-v3"></script>
 </body>
+
+</html>
+
 </html>

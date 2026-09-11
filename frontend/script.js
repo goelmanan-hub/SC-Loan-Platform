@@ -5,8 +5,8 @@
 ===================================================== */
 
 // Dynamic API Base URL detection
-const API_BASE_URL = window.location.origin.includes("8000") 
-    ? window.location.origin 
+const API_BASE_URL = window.location.origin.includes("8000")
+    ? window.location.origin
     : "http://127.0.0.1:8000";
 
 let sessionId = null;
@@ -29,7 +29,7 @@ let activePartnerTypeFilter = "ALL";
 ===================================================== */
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Connecting YojnaSetu Frontend to FastAPI at:", API_BASE_URL);
-    
+
     initLanguageSystem();
     initAuthSystem();
     initSpeechRecognition();
@@ -39,16 +39,20 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchAvailableSchemes();
     loadDefaultPartners();
     checkBackendHealth();
+    initSavedUserLocation();
 });
 
 /* =====================================================
    BILINGUAL (HINDI & ENGLISH) TRANSLATION SYSTEM
 ===================================================== */
 let lastFetchedPartners = [];
+let lastFetchedSchemes = [];
+let lastOcrDocuments = null;
+let lastOcrReport = null;
+let lastReadinessData = null;
+let lastReadinessPrefix = "sim";
+let lastRecommendationData = null;
 
-/* =====================================================
-   BILINGUAL (HINDI & ENGLISH) TRANSLATION SYSTEM
-===================================================== */
 const TRANSLATIONS = {
     "hi-IN": {
         langName: "हिंदी",
@@ -99,7 +103,27 @@ const TRANSLATIONS = {
         helpRow5: "नजदीकी सहायता केंद्र खोजने में मदद",
         secureCardH3: "आपकी जानकारी सुरक्षित है",
         secureCardP: "आपका डेटा पूरी तरह से गोपनीय और सुरक्षित रखा जाएगा।",
+        // Schemes Prefix
+        maxLoanPrefix: "अधिकतम ऋण",
+        interestPrefix: "ब्याज",
+        moratoriumSuffix: "माह",
         // Partners
+        partnerHeaderTitle: "निकटतम NSFDC चैनल पार्टनर (Channel Partner Locator)",
+        partnerRagBadgeText: "RAG AI खोज सक्षम",
+        partnerHeaderDesc: "आधिकारिक NSFDC स्टेट चैनलाइजिंग एजेंसी (SCA), लीड बैंक (PSB) एवं क्षेत्रीय ग्रामीण बैंक (RRB) खोजें",
+        locPermTitle: "स्थान अनुमति (Location Permission)",
+        locPermDesc: "सटीक नजदीकी कार्यालय व दूरी देखने के लिए ब्राउज़र स्थान की अनुमति दें। स्थान की जानकारी केवल निकटतम शाखा खोजने हेतु उपयोग होती है।",
+        findLocationBtnText: "मेरा स्थान उपयोग करें (Use Current Location)",
+        partnerQueryPlaceholder: "प्राकृतिक भाषा में खोजें (जैसे: 'कुरुक्षेत्र में महिला समृद्धि योजना', 'Karnal PNB Bank', 'Delhi DSFDC')...",
+        partnerRagBtnText: "खोजें",
+        partnerStateLabel: '<i class="fa-solid fa-map"></i> राज्य (State):',
+        partnerSchemeLabel: '<i class="fa-solid fa-hand-holding-dollar"></i> योजना (Scheme):',
+        citySelectLabel: '<i class="fa-solid fa-city"></i> त्वरित शहर (Quick City):',
+        partnerTypePillsLabel: "एजेंसी प्रकार:",
+        pillAll: "सभी (All)",
+        pillSca: "🏛️ राज्य चैनलाइजिंग एजेंसी (SCA)",
+        pillPsb: "🏦 सार्वजनिक बैंक (PSB)",
+        pillRrb: "🌾 क्षेत्रीय ग्रामीण बैंक (RRB)",
         partnerSort: '<i class="fa-solid fa-arrow-down-short-wide"></i> नजदीकी दूरी व प्रासंगिकता के आधार पर',
         partnerCountSuffix: "आधिकारिक NSFDC चैनल पार्टनर उपलब्ध",
         partnerDistanceAway: "km दूर",
@@ -108,7 +132,158 @@ const TRANSLATIONS = {
         partnerTollFree: "टोल-फ्री",
         partnerDirections: "दिशा-निर्देश",
         partnerCall: "कॉल",
-        partnerMap: "मैप"
+        partnerMap: "मैप",
+        partnerMapTitle: '<i class="fa-solid fa-map-location-dot" style="color: #0072bc;"></i> मानचित्र पर नजदीकी चैनल पार्टनर (Interactive Map)',
+        partnerMapNote: "📍 नीले रंग का मार्कर आपका स्थान दर्शाता है",
+        // Readiness Simulator
+        simHeaderTitle: "ऋण तैयारी स्कोर सिम्युलेटर (Loan Readiness Simulator)",
+        simHeaderDesc: "अपनी आय, ऋण मांग और अवधि बदलकर देखें कि आपका लोन अप्रूवल स्कोर कितना बनता है",
+        simLabelLoanType: "ऋण का प्रकार (Loan Type)",
+        simOptLoanTypeDefault: "चुनें (Select Loan Type)",
+        simOptLoanTypeBiz: "💼 व्यवसाय ऋण (Business Loan)",
+        simOptLoanTypeEdu: "🎓 शिक्षा ऋण (Education Loan)",
+        simLabelLoanAmount: "आवश्यक ऋण राशि (Loan Required ₹)",
+        simPlaceholderLoanAmount: "उदा. 120000",
+        simLabelIncome: "वार्षिक पारिवारिक आय (Annual Income ₹)",
+        simPlaceholderIncome: "उदा. 300000",
+        simLabelTenure: "पुनर्भुगतान अवधि (Tenure Months)",
+        simPlaceholderTenure: "उदा. 36",
+        simLabelPurpose: "व्यवसाय या कोर्स का नाम (Purpose / Course)",
+        simPlaceholderPurpose: "उदा. सिलाई, दुकान, B.Tech",
+        simLabelLocation: "आपका जिला / शहर (City / Location)",
+        simPlaceholderLocation: "उदा. करनाल, अंबाला, दिल्ली",
+        simLabelCaste: '<i class="fa-solid fa-id-card" style="color: #0072bc;"></i> जाति श्रेणी व प्रमाण पत्र (Caste Status)',
+        simOptCasteSc: "🆔 SC प्रमाण पत्र उपलब्ध है (SC with Certificate)",
+        simOptCastePending: "⏳ SC श्रेणी (प्रमाण पत्र बनवाना शेष)",
+        simOptCasteOther: "📄 अन्य श्रेणी (Other Category)",
+        simLabelDocs: '<i class="fa-solid fa-file-shield" style="color: #39b54a;"></i> दस्तावेज तैयारी स्थिति (Document Readiness)',
+        simOptDocsAll: "📁 सभी 5 मुख्य दस्तावेज तैयार हैं (All 5 Ready)",
+        simOptDocsPartial: "📑 3-4 दस्तावेज तैयार हैं (Partial Ready)",
+        simOptDocsBasic: "📄 केवल 1-2 दस्तावेज हैं (Basic Only)",
+        simLabelExp: '<i class="fa-solid fa-briefcase" style="color: #ea580c;"></i> अनुभव / प्रशिक्षण / प्रवेश स्थिति (Experience / Admission)',
+        simOptExpHigh: "🛠️ 2+ वर्ष अनुभव / ITI कौशल प्रशिक्षित / पक्का एडमिशन",
+        simOptExpMid: "💼 1-2 वर्ष सामान्य अनुभव / प्रक्रियाधीन",
+        simOptExpFresher: "🌱 नया प्रयास / फ्रेशर (Fresher)",
+        simLabelCredit: '<i class="fa-solid fa-building-columns" style="color: #6366f1;"></i> पूर्व ऋण व क्रेडिट स्थिति (Credit Record)',
+        simOptCreditClean: "🟢 कोई बकाया नहीं - स्वच्छ रिकॉर्ड (Clean Record)",
+        simOptCreditActive: "🟡 सक्रिय ऋण चालू है (Active Loan)",
+        simOptCreditDefault: "🔴 पूर्व में विलंब / डिफ़ॉल्ट (Past Delays)",
+        simLabelExistingEmi: "मौजूदा मासिक EMI यदि कोई हो (Existing EMI ₹)",
+        simPlaceholderExistingEmi: "उदा. 0 या 2000",
+        simSubmitBtnText: "वास्तविक स्कोर की गणना करें (Evaluate Readiness Criteria)",
+        simResultTitle: '<i class="fa-solid fa-award"></i> मूल्यांकित ऋण तत्परता स्कोर',
+        simTipsTitle: '<i class="fa-solid fa-lightbulb" style="color: #f59e0b;"></i> सुधार सुझाव (Recommendations)',
+        simChecklistTitle: '<i class="fa-solid fa-folder-open" style="color: #0284c7;"></i> चेकलिस्ट (Document Checklist)',
+        // Document OCR
+        ocrHeaderTitle: "दस्तावेज OCR व पात्रता सत्यापन (Document OCR & Scheme Readiness)",
+        ocrHeaderDesc: "अपने प्रमाण पत्र (जाति, आय, आधार, पासबुक, प्रोजेक्ट रिपोर्ट) अपलोड करें और योजना हेतु 100% तैयारी जांचें",
+        ocrDropzoneTitle: "यहाँ दस्तावेज खींचें या चयन करें (Upload Documents)",
+        ocrDropzoneSub: "जाति प्रमाण पत्र, आय प्रमाण पत्र, आधार कार्ड, बैंक पासबुक या प्रोजेक्ट रिपोर्ट (JPG, PNG, PDF, TXT)",
+        ocrBrowseBtnText: "फ़ाइलें चुनें (Browse Files)",
+        ocrCameraBtnText: "कैमरा से फोटो लें (Camera)",
+        ocrSampleBtnText: "डेमो दस्तावेज लोड करें (Demo Sample)",
+        ocrStagedHeaderText: "चयनित दस्तावेज",
+        clearStagedBtnText: "सभी हटाएँ",
+        ocrSchemeLabelText: "ऋण श्रेणी:",
+        ocrOptBiz: "💼 व्यवसाय ऋण (Micro Finance / Term Loan)",
+        ocrOptEdu: "🎓 शिक्षा ऋण (Education Loan)",
+        startOcrBtnText: "AI OCR से स्कैन व सत्यापन करें",
+        ocrLoaderText: '<i class="fa-solid fa-microchip fa-spin"></i> AI Vision & OCR इंजन दस्तावेजों का विश्लेषण कर रहा है...',
+        ocrResultTitle: '<i class="fa-solid fa-file-circle-check" style="color: #4f46e5;"></i> दस्तावेज सत्यापन रिपोर्ट (Verification Report)',
+        ocrReportSummary: "योजना पात्रता के अनुसार दस्तावेजों की स्थिति।",
+        ocrProgressTitleText: "दस्तावेज पूर्णता स्कोर (Readiness)",
+        ocrEntitiesTitleText: '<i class="fa-solid fa-list-check" style="color: #0284c7;"></i> सत्यापित दस्तावेज विवरण (Extracted Entities):',
+        ocrChecklistTitleText: '<i class="fa-solid fa-clipboard-check" style="color: #10b981;"></i> योजना अनुसार चेकलिस्ट स्थिति (Required Checklist Status)',
+        ocrNextStepTitle: "🎯 अगला कदम (Next Step):",
+        ocrNextStepSub: "दस्तावेज सत्यापित हैं! अब अपने निकटतम NSFDC चैनल पार्टनर से संपर्क करें।",
+        ocrNextStepBtnText: "नजदीकी चैनल पार्टनर देखें",
+        // EMI Calculator
+        emiHeaderTitle: "NSFDC EMI कैलकुलेटर",
+        emiHeaderDesc: "मासिक किश्त (EMI) और कुल ब्याज की गणना FastAPI backend से करें",
+        emiLabelPrincipal: "ऋण राशि (Principal ₹)",
+        emiPlaceholderPrincipal: "उदा. 100000",
+        emiLabelRate: "वार्षिक ब्याज दर (% Rate)",
+        emiPlaceholderRate: "उदा. 6.5",
+        emiLabelTenure: "अवधि (Tenure in Months)",
+        emiPlaceholderTenure: "उदा. 36",
+        emiLabelMoratorium: "मोरैटोरियम अवधि (Months)",
+        emiPlaceholderMoratorium: "उदा. 3",
+        emiSubmitBtnText: "EMI की गणना करें",
+        emiResMonthlyLabel: "मासिक EMI",
+        emiResInterestLabel: "कुल ब्याज (Total Interest)",
+        emiResPayableLabel: "कुल भुगतान (Total Payable)",
+        // Help Modal
+        helpModalTitle: "योजनासेतु सहायता एवं हेल्पलाइन केंद्र",
+        helpModalSub: "Help & Support Center — National Scheduled Castes Finance & Dev Corp",
+        helpHelplineTitle: '<i class="fa-solid fa-phone-volume" style="color: #16a34a;"></i> आधिकारिक टोल-फ्री हेल्पलाइन (Toll-Free Numbers)',
+        helplineBadge1: "राष्ट्रीय निगम (Apex)",
+        helplineCard1Title: "NSFDC केंद्रीय हेल्पलाइन",
+        helplineCard1Time: "सोमवार से शुक्रवार, 09:30 AM - 06:00 PM",
+        helplineCard1Call: '<i class="fa-solid fa-phone"></i> 1800-11-0396 (टोल-फ्री)',
+        helplineBadge2: "हरियाणा SCA",
+        helplineCard2Title: "HSCFDC हरियाणा सहायता",
+        helplineCard2Time: "मुख्यालय पंचकूला व सभी जिले",
+        helplineBadge3: "उत्तर प्रदेश SCA",
+        helplineCard3Title: "UPSCFDC समाज कल्याण",
+        helplineCard3Time: "उत्तर प्रदेश राज्य मुख्यालय",
+        helplineBadge4: "दिल्ली SCA",
+        helplineCard4Title: "DSFDC दिल्ली सहायता",
+        helplineCard4Time: "दिल्ली राज्य मुख्यालय / शाखाएं",
+        helpAiTitle: '<i class="fa-solid fa-robot" style="color: #0072bc;"></i> AI सहायक से सीधे पूछें (Instant AI Assistance)',
+        helpAiSub: "किसी भी विकल्प पर क्लिक करने पर AI सहायक तुरंत मार्गदर्शन प्रदान करेगा:",
+        helpPill1: "💼 व्यवसाय ऋण व ब्याज दरें",
+        helpPill2: "👩 महिला समृद्धि योजना सहायता",
+        helpPill3: "📁 आवश्यक दस्तावेजों की सूची",
+        helpPill4: "🏦 नजदीकी कार्यालय व शाखा खोजें",
+        helpPill5: "🎓 शिक्षा ऋण (Education Loan)",
+        helpFaqTitle: '<i class="fa-solid fa-circle-question" style="color: #f59e0b;"></i> अक्सर पूछे जाने वाले प्रश्न (FAQs)',
+        faqQ1: "योजनासेतु (YojnaSetu) क्या है और यह कैसे मदद करता है?",
+        faqA1: "योजनासेतु भारत सरकार के NSFDC द्वारा समर्थित एक AI संचालित प्लेटफ़ॉर्म है। यह अनुसूचित जाति (SC) समुदाय के लाभार्थियों को उनकी पात्रता के अनुसार सबसे उपयुक्त रियायती ऋण योजना, सब्सिडी, मासिक EMI और नजदीकी चैनल पार्टनर खोजने में मातृभाषा (हिंदी) में संपूर्ण सहायता प्रदान करता है।",
+        faqQ2: "क्या ₹10 लाख तक के ऋण के लिए कोई गारंटी या संपत्ति गिरवी रखनी होगी?",
+        faqA2: "नहीं! NSFDC की अधिकांश योजनाओं में CGTMSE (क्रेडिट गारंटी फंड ट्रस्ट) के तहत ₹10 लाख तक का ऋण बिना किसी तीसरे पक्ष की गारंटी अथवा संपत्ति गिरवी रखे (Collateral-Free) प्रदान किया जाता है।",
+        faqQ3: "महिला समृद्धि योजना की मुख्य विशेषताएं क्या हैं?",
+        faqA3: "महिला समृद्धि योजना विशेष रूप से अनुसूचित जाति की महिला उद्यमियों के लिए है। इसमें ₹1,40,000 तक की वित्तीय सहायता केवल 4% वार्षिक की अत्यधिक रियायती ब्याज दर पर दी जाती है, जिसमें NSFDC द्वारा परियोजना लागत का 95% तक वित्तपोषण किया जाता है।",
+        faqQ4: "ऋण आवेदन के लिए आवश्यक मुख्य दस्तावेज कौन से हैं?",
+        faqA4: "मुख्य रूप से 5 दस्तावेज आवश्यक हैं: (1) जाति प्रमाण पत्र (SC Certificate), (2) आय प्रमाण पत्र (Income Certificate), (3) आधार कार्ड / पहचान पत्र, (4) बैंक पासबुक (IFSC सहित), और (5) व्यवसाय परियोजना रिपोर्ट अथवा कॉलेज प्रवेश पत्र।",
+        helpEmailLabel: '<i class="fa-regular fa-envelope"></i> आधिकारिक ईमेल:',
+        helpHqLabel: '<i class="fa-solid fa-building"></i> प्रधान कार्यालय:',
+        helpHqVal: "स्कोप मीनार, कोर 1 व 2, लक्ष्मी नगर / भीकाजी कामा प्लेस, नई दिल्ली",
+        helpCloseBtn: "बंद करें (Close)",
+        helpPartnersBtnText: "नजदीकी चैनल पार्टनर देखें",
+        // Auth Modal & Profile
+        authModalTitle: "आवेदक लॉगिन / पंजीकरण",
+        authModalSub: "योजनासेतु NSFDC ऋण सहायता प्रोफ़ाइल",
+        authStep1Intro: "अपनी ऋण योजना सिफारिशें और ऋण तैयारी स्कोर सुरक्षित रखने के लिए मोबाइल नंबर दर्ज करें:",
+        authLabelName: '<i class="fa-regular fa-user" style="color: #0072bc;"></i> आपका पूरा नाम (Full Name)',
+        authPlaceholderName: "उदा: रमेश कुमार",
+        authLabelPhone: '<i class="fa-solid fa-mobile-screen" style="color: #16a34a;"></i> 10-अंकीय मोबाइल नंबर (Mobile Number) <span style="color: #ef4444;">*</span>',
+        authLabelEmail: '<i class="fa-regular fa-envelope" style="color: #f59e0b;"></i> ईमेल पता (Email Address) <small style="color: #64748b; font-weight: normal;">(वैकल्पिक)</small>',
+        authSendBtnText: "OTP प्राप्त करें (Send OTP)",
+        authStep2Intro: "सत्यापन कोड इस नंबर पर भेजा गया:",
+        authEditPhoneBtn: "बदलें (Edit)",
+        otpDemoLabel: "परीक्षण OTP:",
+        otpAutofillBtn: "स्वतः भरें (Fill)",
+        otpTimeLeftLabel: "समय शेष:",
+        authResendBtn: "पुनः भेजें (Resend OTP)",
+        authVerifyBtnText: "सत्यापित करें व लॉगिन करें (Verify & Login)",
+        authSecurityNote: "🔒 आपका डेटा भारत सरकार के डेटा सुरक्षा मानकों के तहत सुरक्षित है।",
+        userMenuNameDefault: "आवेदक",
+        userMenuSavedSuffix: "सुरक्षित योजना रिपोर्ट",
+        userLogoutText: "लॉग आउट (Logout)",
+        // Recommendation Card
+        recCardBadgeText: "अनुशंसित योजना (Recommended Scheme)",
+        recMatchBadgeSub: "(RAG AI Match)",
+        recLabelMaxLoan: "अधिकतम राशि",
+        recLabelInterest: "ब्याज दर",
+        recLabelMoratorium: "छूट अवधि (Moratorium)",
+        recLabelMonthlyEmi: "अनुमानित मासिक EMI",
+        recLabelTotalPayable: "कुल भुगतान",
+        recSubsidyText: "विशेष सरकारी सब्सिडी व ब्याज छूट उपलब्ध है।",
+        recReasonsTitle: '<i class="fa-solid fa-circle-check"></i> यह योजना आपके लिए क्यों उपयुक्त है (RAG Match Reasons):',
+        recDocsTitle: '<i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज (Mandatory Documents Checklist):',
+        recReadinessTitle: '<i class="fa-solid fa-gauge-high"></i> आपका ऋण तैयारी स्कोर (Loan Readiness Score)',
+        recTipsTitle: '<i class="fa-solid fa-lightbulb"></i> ऋण तैयारी बेहतर करने के सुझाव (Actionable Guidance)',
+        recChecklistTitle: '<i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज चेकलिस्ट (Required Documents)'
     },
     "en-IN": {
         langName: "English",
@@ -159,7 +334,27 @@ const TRANSLATIONS = {
         helpRow5: "Nearest Support Center & Branch Locator",
         secureCardH3: "Your Information is Safe",
         secureCardP: "Your data is kept completely confidential and secure.",
+        // Schemes Prefix
+        maxLoanPrefix: "Max Loan",
+        interestPrefix: "Interest",
+        moratoriumSuffix: "Months",
         // Partners
+        partnerHeaderTitle: "Nearest NSFDC Channel Partners (Channel Partner Locator)",
+        partnerRagBadgeText: "RAG AI Search Enabled",
+        partnerHeaderDesc: "Locate Official State Channelising Agencies (SCAs), Public Sector Lead Banks (PSBs), and Regional Rural Banks (RRBs)",
+        locPermTitle: "Location Permission",
+        locPermDesc: "Allow browser location access to calculate accurate distance and driving routes to nearby partner offices.",
+        findLocationBtnText: "Use Current Location",
+        partnerQueryPlaceholder: "Search in natural language (e.g. 'Kurukshetra Mahila Samriddhi', 'Karnal PNB Bank', 'Delhi DSFDC')...",
+        partnerRagBtnText: "Search",
+        partnerStateLabel: '<i class="fa-solid fa-map"></i> State:',
+        partnerSchemeLabel: '<i class="fa-solid fa-hand-holding-dollar"></i> Scheme:',
+        citySelectLabel: '<i class="fa-solid fa-city"></i> Quick City:',
+        partnerTypePillsLabel: "Agency Type:",
+        pillAll: "All",
+        pillSca: "🏛️ State Agency (SCA)",
+        pillPsb: "🏦 Public Bank (PSB)",
+        pillRrb: "🌾 Regional Rural Bank (RRB)",
         partnerSort: '<i class="fa-solid fa-arrow-down-short-wide"></i> Sorted by Nearest Distance & Relevance',
         partnerCountSuffix: "Official NSFDC Channel Partners Available",
         partnerDistanceAway: "km away",
@@ -168,7 +363,656 @@ const TRANSLATIONS = {
         partnerTollFree: "Toll-Free",
         partnerDirections: "Directions",
         partnerCall: "Call",
-        partnerMap: "Map"
+        partnerMap: "Map",
+        partnerMapTitle: '<i class="fa-solid fa-map-location-dot" style="color: #0072bc;"></i> Channel Partners on Interactive Map',
+        partnerMapNote: "📍 Blue marker indicates your current location",
+        // Readiness Simulator
+        simHeaderTitle: "Loan Readiness Simulator",
+        simHeaderDesc: "Adjust your income, loan requirement, and tenure to evaluate your AI loan approval readiness score",
+        simLabelLoanType: "Loan Type",
+        simOptLoanTypeDefault: "Select Loan Type",
+        simOptLoanTypeBiz: "💼 Business Loan (Term / Micro Finance)",
+        simOptLoanTypeEdu: "🎓 Education Loan (ELIS / Abroad)",
+        simLabelLoanAmount: "Required Loan Amount (₹)",
+        simPlaceholderLoanAmount: "e.g. 120000",
+        simLabelIncome: "Annual Family Income (₹)",
+        simPlaceholderIncome: "e.g. 300000",
+        simLabelTenure: "Repayment Tenure (Months)",
+        simPlaceholderTenure: "e.g. 36",
+        simLabelPurpose: "Business Purpose / Course Name",
+        simPlaceholderPurpose: "e.g. Tailoring, Grocery Shop, B.Tech",
+        simLabelLocation: "Your District / City (Location)",
+        simPlaceholderLocation: "e.g. Karnal, Ambala, Delhi",
+        simLabelCaste: '<i class="fa-solid fa-id-card" style="color: #0072bc;"></i> Category & Caste Certificate Status',
+        simOptCasteSc: "🆔 SC with Valid Caste Certificate",
+        simOptCastePending: "⏳ SC Category (Certificate in process)",
+        simOptCasteOther: "📄 Other Category",
+        simLabelDocs: '<i class="fa-solid fa-file-shield" style="color: #39b54a;"></i> Document Readiness Status',
+        simOptDocsAll: "📁 All 5 Mandatory Documents Ready",
+        simOptDocsPartial: "📑 3-4 Documents Ready (Partial)",
+        simOptDocsBasic: "📄 Only 1-2 Documents Ready",
+        simLabelExp: '<i class="fa-solid fa-briefcase" style="color: #ea580c;"></i> Experience / Skill / Admission Status',
+        simOptExpHigh: "🛠️ 2+ Years Experience / ITI Certified / Confirmed Admission",
+        simOptExpMid: "💼 1-2 Years General Experience / In Progress",
+        simOptExpFresher: "🌱 New Enterprise / Fresher",
+        simLabelCredit: '<i class="fa-solid fa-building-columns" style="color: #6366f1;"></i> Credit History & Prior Loan Track',
+        simOptCreditClean: "🟢 No Dues / Clean Track Record",
+        simOptCreditActive: "🟡 Active Loan (Timely Payments)",
+        simOptCreditDefault: "🔴 Past Delays / Overdue Track",
+        simLabelExistingEmi: "Existing Monthly EMI if any (₹)",
+        simPlaceholderExistingEmi: "e.g. 0 or 2000",
+        simSubmitBtnText: "Evaluate Readiness Criteria",
+        simResultTitle: '<i class="fa-solid fa-award"></i> Evaluated Loan Readiness Score',
+        simTipsTitle: '<i class="fa-solid fa-lightbulb" style="color: #f59e0b;"></i> Actionable Recommendations',
+        simChecklistTitle: '<i class="fa-solid fa-folder-open" style="color: #0284c7;"></i> Document Readiness Checklist',
+        // Document OCR
+        ocrHeaderTitle: "Document OCR & Scheme Eligibility Verification",
+        ocrHeaderDesc: "Upload your certificates (Caste, Income, Aadhaar, Bank Passbook, Project Report) to verify 100% loan readiness",
+        ocrDropzoneTitle: "Drag & Drop or Select Documents to Upload",
+        ocrDropzoneSub: "Caste Certificate, Income Certificate, Aadhaar Card, Bank Passbook or Project Report (JPG, PNG, PDF, TXT)",
+        ocrBrowseBtnText: "Browse Files",
+        ocrCameraBtnText: "Take Photo (Camera)",
+        ocrSampleBtnText: "Load Demo Sample Documents",
+        ocrStagedHeaderText: "Selected Documents",
+        clearStagedBtnText: "Clear All",
+        ocrSchemeLabelText: "Loan Scheme Category:",
+        ocrOptBiz: "💼 Business Loan (Micro Finance / Term Loan)",
+        ocrOptEdu: "🎓 Education Loan (ELIS)",
+        startOcrBtnText: "Scan & Verify with AI OCR",
+        ocrLoaderText: '<i class="fa-solid fa-microchip fa-spin"></i> AI Vision & OCR Engine analyzing documents and verifying compliance...',
+        ocrResultTitle: '<i class="fa-solid fa-file-circle-check" style="color: #4f46e5;"></i> Document Verification Report',
+        ocrReportSummary: "Verification status according to NSFDC SC scheme eligibility.",
+        ocrProgressTitleText: "Document Readiness Score",
+        ocrEntitiesTitleText: '<i class="fa-solid fa-list-check" style="color: #0284c7;"></i> Verified Document Details (Extracted Entities):',
+        ocrChecklistTitleText: '<i class="fa-solid fa-clipboard-check" style="color: #10b981;"></i> Scheme Mandatory Checklist Status',
+        ocrNextStepTitle: "🎯 Next Step:",
+        ocrNextStepSub: "Documents are verified! Now connect with your nearest official NSFDC Channel Partner.",
+        ocrNextStepBtnText: "Find Nearest Channel Partners",
+        // EMI Calculator
+        emiHeaderTitle: "NSFDC Concessional EMI Calculator",
+        emiHeaderDesc: "Calculate monthly installments (EMI) and total interest instantly via FastAPI backend",
+        emiLabelPrincipal: "Principal Loan Amount (₹)",
+        emiPlaceholderPrincipal: "e.g. 100000",
+        emiLabelRate: "Annual Interest Rate (% Rate)",
+        emiPlaceholderRate: "e.g. 6.5",
+        emiLabelTenure: "Tenure in Months",
+        emiPlaceholderTenure: "e.g. 36",
+        emiLabelMoratorium: "Moratorium Period (Months)",
+        emiPlaceholderMoratorium: "e.g. 3",
+        emiSubmitBtnText: "Calculate EMI",
+        emiResMonthlyLabel: "Monthly EMI",
+        emiResInterestLabel: "Total Interest",
+        emiResPayableLabel: "Total Payable Amount",
+        // Help Modal
+        helpModalTitle: "YojnaSetu Help & Support Center",
+        helpModalSub: "Official National Scheduled Castes Finance & Development Corporation (NSFDC) Support",
+        helpHelplineTitle: '<i class="fa-solid fa-phone-volume" style="color: #16a34a;"></i> Official Toll-Free Helplines',
+        helplineBadge1: "National Apex Corp",
+        helplineCard1Title: "NSFDC Central Helpline",
+        helplineCard1Time: "Monday to Friday, 09:30 AM - 06:00 PM",
+        helplineCard1Call: '<i class="fa-solid fa-phone"></i> 1800-11-0396 (Toll-Free)',
+        helplineBadge2: "Haryana SCA",
+        helplineCard2Title: "HSCFDC Haryana Support",
+        helplineCard2Time: "HQ Panchkula & all districts",
+        helplineBadge3: "Uttar Pradesh SCA",
+        helplineCard3Title: "UPSCFDC Social Welfare",
+        helplineCard3Time: "UP State Headquarters",
+        helplineBadge4: "Delhi SCA",
+        helplineCard4Title: "DSFDC Delhi Support",
+        helplineCard4Time: "Delhi State HQ / Branches",
+        helpAiTitle: '<i class="fa-solid fa-robot" style="color: #0072bc;"></i> Ask AI Assistant Directly (Instant Guidance)',
+        helpAiSub: "Click any quick option below to receive immediate AI loan guidance:",
+        helpPill1: "💼 Business Loans & Concessional Rates",
+        helpPill2: "👩 Mahila Samriddhi Yojana (MSY) Support",
+        helpPill3: "📁 Mandatory Documents List",
+        helpPill4: "🏦 Locate Nearest Offices & Branches",
+        helpPill5: "🎓 Education Loans (ELIS / Abroad)",
+        helpFaqTitle: '<i class="fa-solid fa-circle-question" style="color: #f59e0b;"></i> Frequently Asked Questions (FAQs)',
+        faqQ1: "What is YojnaSetu and how does it help SC borrowers?",
+        faqA1: "YojnaSetu is an AI-powered platform supported by NSFDC, Government of India. It guides Scheduled Caste (SC) beneficiaries in their preferred language to identify concessional loans, verify document readiness, calculate EMIs, and connect with official channel partners.",
+        faqQ2: "Is collateral or third-party guarantee required for loans up to ₹10 Lakh?",
+        faqA2: "No! Most NSFDC schemes are covered under the CGTMSE credit guarantee framework, allowing collateral-free loans up to ₹10 Lakh without third-party guarantee.",
+        faqQ3: "What are the key benefits of Mahila Samriddhi Yojana (MSY)?",
+        faqA3: "Mahila Samriddhi Yojana provides micro-finance loans up to ₹1,40,000 to SC women entrepreneurs at a subsidized interest rate of only 4% p.a., with NSFDC financing up to 95% of project cost.",
+        faqQ4: "What are the 5 mandatory documents for an NSFDC loan application?",
+        faqA4: "The 5 primary documents are: (1) SC Caste Certificate, (2) Family Income Certificate, (3) Aadhaar Card / Identity Proof, (4) Active Bank Passbook with IFSC, and (5) Project Quotation or College Admission Letter.",
+        helpEmailLabel: '<i class="fa-regular fa-envelope"></i> Official Email:',
+        helpHqLabel: '<i class="fa-solid fa-building"></i> Head Office:',
+        helpHqVal: "Scope Minar, Core 1 & 2, Laxmi Nagar / Bhikaji Cama Place, New Delhi",
+        helpCloseBtn: "Close",
+        helpPartnersBtnText: "View Nearest Channel Partners",
+        // Auth Modal & Profile
+        authModalTitle: "Applicant Login / Registration",
+        authModalSub: "YojnaSetu NSFDC Loan Assistance Profile",
+        authStep1Intro: "Enter your mobile number to save loan recommendations and track your readiness scores:",
+        authLabelName: '<i class="fa-regular fa-user" style="color: #0072bc;"></i> Your Full Name',
+        authPlaceholderName: "e.g. Ramesh Kumar",
+        authLabelPhone: '<i class="fa-solid fa-mobile-screen" style="color: #16a34a;"></i> 10-Digit Mobile Number <span style="color: #ef4444;">*</span>',
+        authLabelEmail: '<i class="fa-regular fa-envelope" style="color: #f59e0b;"></i> Email Address <small style="color: #64748b; font-weight: normal;">(Optional)</small>',
+        authSendBtnText: "Send OTP",
+        authStep2Intro: "Verification OTP code sent to:",
+        authEditPhoneBtn: "Edit",
+        otpDemoLabel: "Test Demo OTP:",
+        otpAutofillBtn: "Auto Fill",
+        otpTimeLeftLabel: "Time Remaining:",
+        authResendBtn: "Resend OTP",
+        authVerifyBtnText: "Verify & Login",
+        authSecurityNote: "🔒 Your data is completely protected under Government of India data privacy guidelines.",
+        userMenuNameDefault: "Applicant",
+        userMenuSavedSuffix: "Saved Scheme Reports",
+        userLogoutText: "Logout",
+        // Recommendation Card
+        recCardBadgeText: "Recommended Scheme",
+        recMatchBadgeSub: "(RAG AI Match)",
+        recLabelMaxLoan: "Maximum Loan Amount",
+        recLabelInterest: "Interest Rate",
+        recLabelMoratorium: "Moratorium Period",
+        recLabelMonthlyEmi: "Estimated Monthly EMI",
+        recLabelTotalPayable: "Total Payable Amount",
+        recSubsidyText: "Special government interest subsidy and margin money concessions available.",
+        recReasonsTitle: '<i class="fa-solid fa-circle-check"></i> Why this scheme matches your profile (RAG Match Reasons):',
+        recDocsTitle: '<i class="fa-solid fa-folder-open"></i> Required Documents (Mandatory Checklist):',
+        recReadinessTitle: '<i class="fa-solid fa-gauge-high"></i> Your Loan Readiness Score',
+        recTipsTitle: '<i class="fa-solid fa-lightbulb"></i> Actionable Improvement Guidance',
+        recChecklistTitle: '<i class="fa-solid fa-folder-open"></i> Document Checklist'
+    },
+    "bn-IN": {
+        langName: "বাংলা",
+        tagline: "স্বপ্নের হবে পূরণ, আপনার পাশে যোজনা সেতু — “YojnaSetu”",
+        loginBtn: "লগইন / নিবন্ধন",
+        navHome: "হোম",
+        navReadiness: "ঋণ প্রস্তুতি স্কোর",
+        navOcr: "নথি OCR যাচাই",
+        navEmi: "EMI ক্যালকুলেটর",
+        navPartners: "চ্যানেল পার্টনার",
+        navHelp: "সহায়তা",
+        govTitle: "ভারত সরকার",
+        govSub: "দ্বারা সমর্থিত",
+        heroTitle: 'নমস্কার! আমি <span>যোজনা সেতু (YojnaSetu)</span>',
+        heroIntro: "আমি সরকারি ঋণ প্রকল্প, যোগ্যতা এবং AI ঋণ প্রস্তুতি স্কোর মূল্যায়নে আপনাকে সাহায্য করতে এখানে আছি।",
+        speechTitle: "নমস্কার!",
+        speechP1: "আমি যোজনা সেতু। আপনি আমার সাথে বাংলায় কথা বলতে পারেন।",
+        speechP2: "বলুন, আজ আমি আপনার ঋণের আবেদনে কীভাবে সাহায্য করতে পারি?",
+        micTitle: "কথা বলতে বোতামে চাপুন",
+        micSub: "আমি আপনার কথা শুনছি...",
+        micBtnTitle: "কথা বলতে চাপুন",
+        resetBtn: "নতুন কথোপকথন (New Chat)",
+        chatPlaceholder: "এখানে বার্তা লিখুন বা মুখে বলুন...",
+        sendBtn: "পাঠান",
+        chipEdu: "শিক্ষা ঋণ (Education Loan)",
+        chipBiz: "ব্যবসা ঋণ (Business Loan)",
+        chipScore: "প্রস্তুতি স্কোর (Readiness)",
+        chipOcr: "নথি OCR (Doc OCR)",
+        chipEmi: "EMI ক্যালকুলেটর",
+        chipPartner: "নিকটতম পার্টনার",
+        moreLang: "+ আরও ভাষা",
+        initChatMsg: "<strong>নমস্কার!</strong> আমি আপনার AI ঋণ সহায়তা এজেন্ট। আপনার কী ধরনের ঋণ প্রয়োজন? (শিক্ষা ঋণ / ব্যবসা ঋণ)",
+        step1B: "১. আপনার ভাষায় কথা বলুন",
+        step1Span: "শুধু আপনার তথ্য জানান",
+        step2B: "২. প্রস্তুতি স্কোর ও প্রকল্প পান",
+        step2Span: "সঠিক ঋণ ও মূল্যায়ন",
+        step3B: "৩. আপনার লক্ষ্য, আমাদের সাথে",
+        step3Span: "ঋণ বিতরণ পর্যন্ত সহায়তা",
+        helpCardH3: "আমরা আপনাকে সাহায্য করতে প্রস্তুত",
+        helpCardP: "যোজনা সেতু আপনার নিজস্ব ভাষায় সম্পূর্ণ ঋণ সহায়তা প্রদান করবে।",
+        schemesCardH3: "উপলব্ধ প্রকল্পসমূহ (Schemes)",
+        helpRow1: "ঋণ প্রস্তুতি স্কোর মূল্যায়ন",
+        helpRow2: "সরকারি ঋণ প্রকল্পের তথ্য",
+        helpRow3: "যোগ্যতা যাচাইয়ে সহায়তা",
+        helpRow4: "আবেদন প্রক্রিয়ার নির্দেশিকা",
+        helpRow5: "নিকটতম চ্যানেল পার্টনার সন্ধান",
+        secureCardH3: "আপনার তথ্য সম্পূর্ণ সুরক্ষিত",
+        secureCardP: "আপনার তথ্য সম্পূর্ণ গোপন এবং নিরাপদ রাখা হবে।",
+        maxLoanPrefix: "সর্বোচ্চ ঋণ",
+        interestPrefix: "সুদ",
+        moratoriumSuffix: "মাস",
+        partnerHeaderTitle: "নিকটতম NSFDC চ্যানেল পার্টনার লোকেটার",
+        partnerRagBadgeText: "RAG AI অনুসন্ধান সক্ষম",
+        partnerHeaderDesc: "অফিসিয়াল রাজ্য চ্যানেল সংস্থা (SCA), পাবলিক সেক্টর ব্যাংক ও গ্রামীণ ব্যাংক খুঁজুন",
+        locPermTitle: "অবস্থান অনুমতি (Location Permission)",
+        locPermDesc: "নিকটতম কার্যালয় ও দূরত্ব জানতে ব্রাউজার লোকেশন অনুমতি দিন।",
+        findLocationBtnText: "আমার অবস্থান ব্যবহার করুন",
+        partnerQueryPlaceholder: "প্রাকৃতিক ভাষায় অনুসন্ধান করুন (যেমন: 'কলকাতা ব্যবসা ঋণ', 'PNB Bank', 'SCA')...",
+        partnerRagBtnText: "অনুসন্ধান",
+        partnerTypePillsLabel: "সংস্থার ধরন:",
+        pillAll: "সকল (All)",
+        pillSca: "🏛️ রাজ্য সংস্থা (SCA)",
+        pillPsb: "🏦 সরকারি ব্যাংক (PSB)",
+        pillRrb: "🌾 গ্রামীণ ব্যাংক (RRB)",
+        partnerCountSuffix: "অফিসিয়াল NSFDC চ্যানেল পার্টনার উপলব্ধ",
+        partnerDistanceAway: "কিমি দূরে",
+        partnerOfficer: "আধিকারিক",
+        partnerPhone: "ফোন",
+        partnerTollFree: "টোল-ফ্রি",
+        partnerDirections: "দিকনির্দেশ",
+        partnerCall: "কল",
+        partnerMap: "ম্যাপ",
+        simHeaderTitle: "ঋণ প্রস্তুতি স্কোর সিমুলেটর",
+        simHeaderDesc: "আপনার আয় ও ঋণের পরিমাণ পরিবর্তন করে অনুমোদন স্কোর যাচাই করুন",
+        simLabelLoanType: "ঋণের ধরন (Loan Type)",
+        simOptLoanTypeDefault: "নির্বাচন করুন",
+        simOptLoanTypeBiz: "💼 ব্যবসা ঋণ (Business Loan)",
+        simOptLoanTypeEdu: "🎓 শিক্ষা ঋণ (Education Loan)",
+        simLabelLoanAmount: "প্রয়োজনীয় ঋণের পরিমাণ (₹)",
+        simLabelIncome: "বার্ষিক পারিবারিক আয় (₹)",
+        simLabelTenure: "পরিশোধের মেয়াদ (মাস)",
+        simSubmitBtnText: "প্রস্তুতি স্কোর গণনা করুন",
+        ocrHeaderTitle: "নথি OCR ও স্কিম প্রস্তুতি যাচাই",
+        ocrHeaderDesc: "আপনার সার্টিফিকেট আপলোড করুন এবং ঋণ প্রস্তুতির নির্ভুল রিপোর্ট পান",
+        ocrDropzoneTitle: "নথি আপলোড করুন (Drag & Drop or Browse)",
+        ocrBrowseBtnText: "ফাইল বাছুন",
+        ocrCameraBtnText: "ক্যামেরা",
+        ocrSampleBtnText: "ডেমো নথি লোড করুন",
+        startOcrBtnText: "AI OCR দিয়ে স্ক্যান ও যাচাই করুন",
+        emiHeaderTitle: "NSFDC EMI ক্যালকুলেটর",
+        emiSubmitBtnText: "EMI গণনা করুন",
+        emiResMonthlyLabel: "মাসিক EMI",
+        emiResInterestLabel: "মোট সুদ",
+        emiResPayableLabel: "মোট পরিশোধযোগ্য"
+    },
+    "ta-IN": {
+        langName: "தமிழ்",
+        tagline: "கனவுகள் நனவாகும், உங்களுடன் யோஜனாசேது — “YojnaSetu”",
+        loginBtn: "உள்நுழைவு / பதிவு",
+        navHome: "முகப்பு",
+        navReadiness: "கடன் தயார்நிலை மதிப்பெண்",
+        navOcr: "ஆவண OCR சரிபார்ப்பு",
+        navEmi: "EMI கால்குலேட்டர்",
+        navPartners: "சேனல் பங்குதாரர்கள்",
+        navHelp: "உதவி",
+        govTitle: "இந்திய அரசு",
+        govSub: "ஆதரவுடன்",
+        heroTitle: 'வணக்கம்! நான் <span>யோஜனாசேது (YojnaSetu)</span>',
+        heroIntro: "NSFDC அரசு மானியக் கடன் திட்டங்கள், தகுதி மற்றும் AI கடன் தயார்நிலை மதிப்பெண்ணை அறிய நான் உங்களுக்கு உதவுகிறேன்.",
+        speechTitle: "வணக்கம்!",
+        speechP1: "நான் யோஜனாசேது. நீங்கள் என்னிடம் தமிழில் பேசலாம்.",
+        speechP2: "சொல்லுங்கள், இன்று உங்கள் கடன் விண்ணப்பத்தில் நான் எவ்வாறு உதவ முடியும்?",
+        micTitle: "பேச பொத்தானை அழுத்தவும்",
+        micSub: "நான் உங்கள் பேச்சைக் கேட்கிறேன்...",
+        micBtnTitle: "பேச அழுத்தவும்",
+        resetBtn: "புதிய உரையாடல் (New Chat)",
+        chatPlaceholder: "இங்கு தட்டச்சு செய்யவும் அல்லது பேசவும்...",
+        sendBtn: "அனுப்பு",
+        chipEdu: "கல்விக் கடன் (Education Loan)",
+        chipBiz: "தொழில் கடன் (Business Loan)",
+        chipScore: "தயார்நிலை மதிப்பெண்",
+        chipOcr: "ஆவண OCR",
+        chipEmi: "EMI கால்குலேட்டர்",
+        chipPartner: "அருகிலுள்ள கிளைகள்",
+        moreLang: "+ கூடுதல் மொழிகள்",
+        initChatMsg: "<strong>வணக்கம்!</strong> நான் உங்கள் AI கடன் உதவி முகவர். உங்களுக்கு எந்த வகையான கடன் தேவை? (கல்விக் கடன் / தொழில் கடன்)",
+        step1B: "1. உங்கள் மொழியில் பேசுங்கள்",
+        step1Span: "விவரங்களைப் பகிருங்கள்",
+        step2B: "2. மதிப்பெண் மற்றும் திட்டத்தைப் பெறுங்கள்",
+        step2Span: "சரியான கடன் திட்டம்",
+        step3B: "3. உங்கள் இலக்கு, எங்கள் ஆதரவு",
+        step3Span: "கடன் பெறும் வரை முழு உதவி",
+        helpCardH3: "நாங்கள் உங்களுக்கு உதவ இங்கு உள்ளோம்",
+        helpCardP: "யோஜனாசேது உங்கள் சொந்த மொழியிலேயே முழுமையான வழிகாட்டுதலை வழங்கும்.",
+        schemesCardH3: "கிடைக்கும் திட்டங்கள் (Schemes)",
+        helpRow1: "கடன் தயார்நிலை மதிப்பீடு",
+        helpRow2: "அரசு கடன் திட்டங்கள் தகவல்",
+        helpRow3: "தகுதி சரிபார்ப்பு உதவி",
+        helpRow4: "விண்ணப்ப செயல்முறை வழிகாட்டுதல்",
+        helpRow5: "அருகிலுள்ள ஆதரவு மையம் கண்டறிதல்",
+        secureCardH3: "உங்கள் தகவல் பாதுகாப்பானது",
+        secureCardP: "உங்கள் தகவல்கள் முற்றிலும் ரகசியமாகவும் பாதுகாப்பாகவும் வைக்கப்படும்.",
+        maxLoanPrefix: "அதிகபட்ச கடன்",
+        interestPrefix: "வட்டி விகிதம்",
+        moratoriumSuffix: "மாதங்கள்",
+        partnerHeaderTitle: "அருகிலுள்ள NSFDC சேனல் பங்குதாரர்கள்",
+        partnerRagBadgeText: "RAG AI தேடல் இயக்கப்பட்டது",
+        partnerHeaderDesc: "மாநில சேனலைசிங் முகமைகள் (SCA) மற்றும் வங்கிகளைக் கண்டறியவும்",
+        locPermTitle: "இருப்பிட அனுமதி (Location Permission)",
+        locPermDesc: "துல்லியமான தூரத்தைக் கணக்கிட இருப்பிட அனுமதியை வழங்கவும்.",
+        findLocationBtnText: "தற்போதைய இருப்பிடத்தைப் பயன்படுத்து",
+        partnerQueryPlaceholder: "இயற்கை மொழியில் தேடவும் (எ.கா. 'சென்னை தொழில் கடன்', 'TAHDCO', 'Indian Bank')...",
+        partnerRagBtnText: "தேடல்",
+        partnerTypePillsLabel: "முகமை வகை:",
+        pillAll: "அனைத்தும் (All)",
+        pillSca: "🏛️ மாநில முகமை (SCA)",
+        pillPsb: "🏦 பொதுத்துறை வங்கி (PSB)",
+        pillRrb: "🌾 கிராமிய வங்கி (RRB)",
+        partnerCountSuffix: "அதிகாரப்பூர்வ சேனல் பங்குதாரர்கள் உள்ளனர்",
+        partnerDistanceAway: "கி.மீ தூரம்",
+        partnerOfficer: "அதிகாரி",
+        partnerPhone: "தொலைபேசி",
+        partnerTollFree: "கட்டணமில்லா எண்",
+        partnerDirections: "வழிசெலுத்து",
+        partnerCall: "அழைப்பு",
+        partnerMap: "வரைபடம்",
+        simHeaderTitle: "கடன் தயார்நிலை சிமுலேட்டர்",
+        simHeaderDesc: "உங்கள் வருமானம் மற்றும் கடன் தேவையை மாற்றி ஒப்புதல் மதிப்பெண்ணைக் கணக்கிடுங்கள்",
+        simLabelLoanType: "கடன் வகை",
+        simOptLoanTypeDefault: "தேர்வு செய்க",
+        simOptLoanTypeBiz: "💼 தொழில் கடன் (Business Loan)",
+        simOptLoanTypeEdu: "🎓 கல்விக் கடன் (Education Loan)",
+        simLabelLoanAmount: "தேவையான கடன் தொகை (₹)",
+        simLabelIncome: "ஆண்டு குடும்ப வருமானம் (₹)",
+        simLabelTenure: "திருப்பிச் செலுத்தும் காலம் (மாதங்கள்)",
+        simSubmitBtnText: "தயார்நிலை மதிப்பெண்ணைக் கணக்கிடுங்கள்",
+        ocrHeaderTitle: "ஆவண OCR & தகுதி சரிபார்ப்பு",
+        ocrHeaderDesc: "உங்கள் சான்றிதழ்களைப் பதிவேற்றி கடன் தயார்நிலையைச் சரிபார்க்கவும்",
+        ocrDropzoneTitle: "ஆவணங்களைப் பதிவேற்றவும் (Upload Documents)",
+        ocrBrowseBtnText: "கோப்புகளைத் தேர்ந்தெடுக்கவும்",
+        ocrCameraBtnText: "கேமரா",
+        ocrSampleBtnText: "டெமோ ஆவணங்கள்",
+        startOcrBtnText: "AI OCR மூலம் ஸ்கேன் செய்க",
+        emiHeaderTitle: "NSFDC EMI கால்குலேட்டர்",
+        emiSubmitBtnText: "EMI கணக்கிடுக",
+        emiResMonthlyLabel: "மாதாந்திர EMI",
+        emiResInterestLabel: "மொத்த வட்டி",
+        emiResPayableLabel: "மொத்த திருப்பிச் செலுத்துகை"
+    },
+    "te-IN": {
+        langName: "తెలుగు",
+        tagline: "కలలకు లభిస్తుంది ఆసరా, మీతో ఉంది యోజనాసేతు — “YojnaSetu”",
+        loginBtn: "లాగిన్ / రిజిస్టర్",
+        navHome: "హోమ్",
+        navReadiness: "రుణ సంసిద్ధత స్కోర్",
+        navOcr: "పత్రాల OCR తనిఖీ",
+        navEmi: "EMI కాలిక్యులేటర్",
+        navPartners: "ఛానల్ భాగస్వాములు",
+        navHelp: "సహాయం",
+        govTitle: "భారత ప్రభుత్వం",
+        govSub: "ద్వారా మద్దతు",
+        heroTitle: 'నమస్కారం! నేను <span>యోజనాసేతు (YojnaSetu)</span>',
+        heroIntro: "నేను NSFDC ప్రభుత్వ రాయితీ రుణాలు, అర్హత మరియు AI రుణ సంసిద్ధత స్కోర్ మూల్యాంకనంలో మీకు సహాయం చేయడానికి ఇక్కడ ఉన్నాను.",
+        speechTitle: "నమస్కారం!",
+        speechP1: "నేను యోజనాసేతును. మీరు నాతో తెలుగులో మాట్లాడవచ్చు.",
+        speechP2: "చెప్పండి, మీ రుణ దరఖాస్తులో నేను ఈరోజు మీకు ఎలా సహాయపడగలను?",
+        micTitle: "మాట్లాడటానికి బటన్ నొక్కండి",
+        micSub: "నేను మీ మాట వింటున్నాను...",
+        micBtnTitle: "మాట్లాడటానికి నొక్కండి",
+        resetBtn: "కొత్త సంభాషణ (New Chat)",
+        chatPlaceholder: "ఇక్కడ సందేశం రాయండి లేదా మాట్లాడండి...",
+        sendBtn: "పంపండి",
+        chipEdu: "విద్య రుణం (Education Loan)",
+        chipBiz: "వ్యాపార రుణం (Business Loan)",
+        chipScore: "సంసిద్ధత స్కోర్ (Readiness)",
+        chipOcr: "పత్రాల OCR (Doc OCR)",
+        chipEmi: "EMI కాలిక్యులేటర్",
+        chipPartner: "సమీప భాగస్వాములు",
+        moreLang: "+ మరిన్ని భాషలు",
+        initChatMsg: "<strong>నమస్కారం!</strong> నేను మీ AI రుణ సహాయ ఏజెంట్‌ను. మీకు ఏ రకమైన రుణం కావాలి? (విద్యా రుణం / వ్యాపార రుణం)",
+        step1B: "1. మీ భాషలో మాట్లాడండి",
+        step1Span: "మీ వివరాలను పంచుకోండి",
+        step2B: "2. స్కోర్ & సరైన పథకం పొందండి",
+        step2Span: "ఖచ్చితమైన రుణ ప్రణాళిక",
+        step3B: "3. మీ లక్ష్యం, మా తోడ్పాటు",
+        step3Span: "రుణ పంపిణీ వరకు పూర్తి సహాయం",
+        helpCardH3: "మేము మీకు సహాయం చేయడానికి సిద్ధంగా ఉన్నాము",
+        helpCardP: "యోజనాసేతు మీ స్వంత భాషలోనే పూర్తి రుణ మార్గదర్శకత్వాన్ని అందిస్తుంది.",
+        schemesCardH3: "అందుబాటులో ఉన్న పథకాలు (Schemes)",
+        helpRow1: "రుణ సంసిద్ధత స్కోర్ మూల్యాంకనం",
+        helpRow2: "ప్రభుత్వ రుణ పథకాల సమాచారం",
+        helpRow3: "అర్హత తనిఖీలో సహాయం",
+        helpRow4: "దరఖాస్తు ప్రక్రియ మార్గదర్శకత్వం",
+        helpRow5: "సమీప సహాయ కేంద్రం శోధన",
+        secureCardH3: "మీ సమాచారం సురక్షితం",
+        secureCardP: "మీ డేటా పూర్తిగా గోప్యంగా మరియు సురక్షితంగా ఉంచబడుతుంది.",
+        maxLoanPrefix: "గరిష్ట రుణం",
+        interestPrefix: "వడ్డీ రేటు",
+        moratoriumSuffix: "నెలలు",
+        partnerHeaderTitle: "సమీప NSFDC ఛానల్ భాగస్వాముల లొకేటర్",
+        partnerRagBadgeText: "RAG AI శోధన ప్రారంభించబడింది",
+        partnerHeaderDesc: "అధికారిక స్టేట్ ఛానలైజింగ్ ఏజెన్సీలు (SCA) మరియు బ్యాంకులను కనుగొనండి",
+        locPermTitle: "లొకేషన్ అనుమతి (Location Permission)",
+        locPermDesc: "సమీప కార్యాలయాలు మరియు దూరాన్ని తెలుసుకోవడానికి లొకేషన్ యాక్సెస్ ఇవ్వండి.",
+        findLocationBtnText: "ప్రస్తుత లొకేషన్ ఉపయోగించండి",
+        partnerQueryPlaceholder: "సహజ భాషలో శోధించండి (ఉదా: 'హైదరాబాద్ వ్యాపార రుణం', 'ఆంధ్రా బ్యాంక్', 'SCA')...",
+        partnerRagBtnText: "శోధన",
+        partnerTypePillsLabel: "ఏజెన్సీ రకం:",
+        pillAll: "అన్నీ (All)",
+        pillSca: "🏛️ రాష్ట్ర ఏజెన్సీ (SCA)",
+        pillPsb: "🏦 ప్రభుత్వ బ్యాంకు (PSB)",
+        pillRrb: "🌾 గ్రామీణ బ్యాంకు (RRB)",
+        partnerCountSuffix: "అధికారిక ఛానల్ భాగస్వాములు అందుబాటులో ఉన్నారు",
+        partnerDistanceAway: "కి.మీ దూరం",
+        partnerOfficer: "అధికారి",
+        partnerPhone: "ఫోన్",
+        partnerTollFree: "టోల్-ఫ్రీ",
+        partnerDirections: "దిశలు",
+        partnerCall: "కాల్",
+        partnerMap: "మ్యాప్",
+        simHeaderTitle: "రుణ సంసిద్ధత స్కోర్ సిమ్యులేటర్",
+        simHeaderDesc: "మీ ఆదాయం మరియు రుణ అవసరాన్ని మార్చి ఆమోద స్కోర్‌ను అంచనా వేయండి",
+        simLabelLoanType: "రుణ రకం (Loan Type)",
+        simOptLoanTypeDefault: "ఎంచుకోండి",
+        simOptLoanTypeBiz: "💼 వ్యాపార రుణం (Business Loan)",
+        simOptLoanTypeEdu: "🎓 విద్యా రుణం (Education Loan)",
+        simLabelLoanAmount: "అవసరమైన రుణ మొత్తం (₹)",
+        simLabelIncome: "వార్షిక కుటుంబ ఆదాయం (₹)",
+        simLabelTenure: "తిరిగి చెల్లించే వ్యవధి (నెలలు)",
+        simSubmitBtnText: "సంసిద్ధత స్కోర్‌ను లెక్కించండి",
+        ocrHeaderTitle: "పత్రాల OCR & పథక సంసిద్ధత తనిఖీ",
+        ocrHeaderDesc: "మీ సర్టిఫికేట్‌లను అప్‌లోడ్ చేసి రుణ సంసిద్ధతను ధృవీకరించండి",
+        ocrDropzoneTitle: "పత్రాలను అప్‌లోడ్ చేయండి (Upload Documents)",
+        ocrBrowseBtnText: "ఫైల్‌లను ఎంచుకోండి",
+        ocrCameraBtnText: "కెమెరా",
+        ocrSampleBtnText: "డెమో పత్రాలు",
+        startOcrBtnText: "AI OCR తో స్కాన్ & ధృవీకరించండి",
+        emiHeaderTitle: "NSFDC EMI కాలిక్యులేటర్",
+        emiSubmitBtnText: "EMI లెక్కించండి",
+        emiResMonthlyLabel: "నెలవారీ EMI",
+        emiResInterestLabel: "మొత్తం వడ్డీ",
+        emiResPayableLabel: "మొత్తం చెల్లింపు"
+    },
+    "mr-IN": {
+        langName: "मराठी",
+        tagline: "स्वप्नांना मिळेल आधार, सोबत आहे योजनासेतू — “YojnaSetu”",
+        loginBtn: "लॉगिन / नोंदणी",
+        navHome: "मुख्यपृष्ठ",
+        navReadiness: "कर्ज तयारी स्कोअर",
+        navOcr: "कागदपत्र OCR पडताळणी",
+        navEmi: "EMI कॅल्क्युलेटर",
+        navPartners: "चॅनेल भागीदार",
+        navHelp: "मदत व सहाय्य",
+        govTitle: "भारत सरकार",
+        govSub: "द्वारे समर्थित",
+        heroTitle: 'नमस्कार! मी <span>योजनासेतू (YojnaSetu)</span> आहे',
+        heroIntro: "मी तुम्हाला NSFDC सरकारी सवलतीच्या कर्ज योजना, पात्रता आणि AI कर्ज तयारी स्कोअर तपासण्यात मदत करण्यासाठी येथे आहे.",
+        speechTitle: "नमस्कार!",
+        speechP1: "मी योजनासेतू आहे. तुम्ही माझ्याशी मराठीत बोलू शकता.",
+        speechP2: "सांगा, आज मी तुमच्या कर्ज अर्जात कशी मदत करू शकतो?",
+        micTitle: "बोलण्यासाठी बटण दाबा",
+        micSub: "मी तुमचे ऐकत आहे...",
+        micBtnTitle: "बोलण्यासाठी दाबा",
+        resetBtn: "नवीन संवाद (New Chat)",
+        chatPlaceholder: "येथे संदेश लिहा किंवा बोला...",
+        sendBtn: "पाठवा",
+        chipEdu: "शिक्षण कर्ज (Education Loan)",
+        chipBiz: "व्यवसाय कर्ज (Business Loan)",
+        chipScore: "तयारी स्कोअर (Readiness)",
+        chipOcr: "कागदपत्र OCR",
+        chipEmi: "EMI कॅल्क्युलेटर",
+        chipPartner: "जवळचे भागीदार",
+        moreLang: "+ इतर भाषा",
+        initChatMsg: "<strong>नमस्कार!</strong> मी तुमचा AI कर्ज सहाय्यक आहे. तुम्हाला कोणत्या प्रकारचे कर्ज हवे आहे? (शिक्षण कर्ज / व्यवसाय कर्ज)",
+        step1B: "१. तुमच्या भाषेत बोला",
+        step1Span: "फक्त माहिती सांगा",
+        step2B: "२. स्कोअर व योग्य योजना मिळवा",
+        step2Span: "अचूक कर्ज मार्गदर्शन",
+        step3B: "३. तुमचे ध्येय, आमची साथ",
+        step3Span: "कर्ज मिळेपर्यंत पूर्ण मदत",
+        maxLoanPrefix: "कमाल कर्ज",
+        interestPrefix: "व्याजदर",
+        moratoriumSuffix: "महिने",
+        partnerHeaderTitle: "जवळचे NSFDC चॅनेल भागीदार",
+        findLocationBtnText: "माझे सध्याचे स्थान वापरा",
+        partnerQueryPlaceholder: "शोधा (उदा. 'पुणे व्यवसाय कर्ज', 'MPBCDC', 'बँक')...",
+        partnerRagBtnText: "शोधा",
+        simHeaderTitle: "कर्ज तयारी स्कोअर सिम्युलेटर",
+        simSubmitBtnText: "स्कोअरची गणना करा",
+        ocrHeaderTitle: "कागदपत्र OCR व पात्रता पडताळणी",
+        startOcrBtnText: "AI OCR द्वारे स्कॅन करा",
+        emiHeaderTitle: "NSFDC EMI कॅल्क्युलेटर",
+        emiSubmitBtnText: "EMI गणना करा",
+        emiResMonthlyLabel: "मासिक EMI",
+        emiResInterestLabel: "एकूण व्याज",
+        emiResPayableLabel: "एकूण परतफेड"
+    },
+    "gu-IN": {
+        langName: "ગુજરાતી",
+        tagline: "સપનાઓને મળશે સહારો, સાથે છે યોજનાસેતુ — “YojnaSetu”",
+        loginBtn: "લૉગિન / નોંધણી",
+        navHome: "હોમ",
+        navReadiness: "લોન તૈયારી સ્કોર",
+        navOcr: "દસ્તાવેજ OCR ચકાસણી",
+        navEmi: "EMI કેલ્ક્યુલેટર",
+        navPartners: "ચેનલ પાર્ટનર્સ",
+        navHelp: "સહાય",
+        govTitle: "ભારત સરકાર",
+        govSub: "દ્વારા સમર્થિત",
+        heroTitle: 'નમસ્તે! હું <span>યોજનાસેતુ (YojnaSetu)</span> છું',
+        heroIntro: "હું તમને સરકારી લોન યોજનાઓ, પાત્રતા અને AI લોન રેડીનેસ સ્કોર મૂલ્યાંકનમાં મદદ કરવા અહીં છું.",
+        speechTitle: "નમસ્તે!",
+        speechP1: "હું યોજનાસેતુ છું. તમે મારી સાથે ગુજરાતીમાં વાત કરી શકો છો.",
+        speechP2: "કહો, આજે હું તમારી લોન અરજીમાં કેવી રીતે મદદ કરી શકું?",
+        micTitle: "બોલવા માટે બટન દબાવો",
+        micSub: "હું તમને સાંભળી રહ્યો છું...",
+        micBtnTitle: "બોલવા માટે દબાવો",
+        resetBtn: "નવો સંવાદ (New Chat)",
+        chatPlaceholder: "અહીં સંદેશ લખો અથવા બોલો...",
+        sendBtn: "મોકલો",
+        chipEdu: "શિક્ષણ લોન (Education Loan)",
+        chipBiz: "વ્યવસાય લોન (Business Loan)",
+        chipScore: "તૈયારી સ્કોર",
+        chipOcr: "દસ્તાવેજ OCR",
+        chipEmi: "EMI કેલ્ક્યુલેટર",
+        chipPartner: "નજીકના પાર્ટનર",
+        moreLang: "+ વધુ ભાષાઓ",
+        initChatMsg: "<strong>નમસ્તે!</strong> હું તમારો AI લોન સહાયક છું. તમને કયા પ્રકારની લોન જોઈએ છે? (શિક્ષણ લોન / વ્યવસાય લોન)",
+        step1B: "૧. તમારી ભાષામાં બોલો",
+        step1Span: "ફક્ત તમારી વિગતો જણાવો",
+        step2B: "૨. તૈયારી સ્કોર અને યોજના મેળવો",
+        step2Span: "યોગ્ય લોન માર્ગદર્શન",
+        step3B: "૩. તમારું લક્ષ્ય, અમારો સાથ",
+        step3Span: "લોન મંજૂરી સુધી સંપૂર્ણ સહાય",
+        maxLoanPrefix: "મહત્તમ લોન",
+        interestPrefix: "વ્યાજ દર",
+        moratoriumSuffix: "મહિના",
+        partnerHeaderTitle: "નજીકના NSFDC ચેનલ પાર્ટનર",
+        findLocationBtnText: "મારું વર્તમાન સ્થાન વાપરો",
+        partnerQueryPlaceholder: "શોધો (દા.ત. 'અમદાવાદ બિઝનેસ લોન', 'બેંક')...",
+        partnerRagBtnText: "શોધો",
+        simHeaderTitle: "લોન તૈયારી સ્કોર સિમ્યુલેટર",
+        simSubmitBtnText: "સ્કોર ગણતરી કરો",
+        ocrHeaderTitle: "દસ્તાવેજ OCR અને ચકાસણી",
+        startOcrBtnText: "AI OCR થી સ્કેન કરો",
+        emiHeaderTitle: "NSFDC EMI કેલ્ક્યુલેટર",
+        emiSubmitBtnText: "EMI ગણો",
+        emiResMonthlyLabel: "માસિક EMI",
+        emiResInterestLabel: "કુલ વ્યાજ",
+        emiResPayableLabel: "કુલ ચૂકવણી"
+    },
+    "pa-IN": {
+        langName: "ਪੰਜਾਬੀ",
+        tagline: "ਸੁਪਨਿਆਂ ਨੂੰ ਮਿਲੇਗਾ ਸਹਾਰਾ, ਤੁਹਾਡੇ ਨਾਲ ਹੈ ਯੋਜਨਾਸੇਤੂ — “YojnaSetu”",
+        loginBtn: "ਲਾਗਇਨ / ਰਜਿਸਟਰ",
+        navHome: "ਹੋਮ",
+        navReadiness: "ਕਰਜ਼ ਤਿਆਰੀ ਸਕੋਰ",
+        navOcr: "ਦਸਤਾਵੇਜ਼ OCR ਜਾਂਚ",
+        navEmi: "EMI ਕੈਲਕੁਲੇਟਰ",
+        navPartners: "ਚੈਨਲ ਪਾਰਟਨਰ",
+        navHelp: "ਸਹਾਇਤਾ",
+        govTitle: "ਭਾਰਤ ਸਰਕਾਰ",
+        govSub: "ਦੁਆਰਾ ਸਮਰਥਿਤ",
+        heroTitle: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! ਮੈਂ <span>ਯੋਜਨਾਸੇਤੂ (YojnaSetu)</span> ਹਾਂ',
+        heroIntro: "ਮੈਂ ਤੁਹਾਨੂੰ ਸਰਕਾਰੀ ਕਰਜ਼ਾ ਯੋਜਨਾਵਾਂ, ਯੋਗਤਾ ਅਤੇ AI ਕਰਜ਼ ਤਿਆਰੀ ਸਕੋਰ ਦੇ ਮੁਲਾਂਕਣ ਵਿੱਚ ਮਦਦ ਕਰਨ ਲਈ ਇੱਥੇ ਹਾਂ।",
+        speechTitle: "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ!",
+        speechP1: "ਮੈਂ ਯੋਜਨਾਸੇਤੂ ਹਾਂ। ਤੁਸੀਂ ਮੇਰੇ ਨਾਲ ਪੰਜਾਬੀ ਵਿੱਚ ਗੱਲ ਕਰ ਸਕਦੇ ਹੋ।",
+        speechP2: "ਦੱਸੋ, ਅੱਜ ਮੈਂ ਤੁਹਾਡੀ ਕਰਜ਼ਾ ਅਰਜ਼ੀ ਵਿੱਚ ਕਿਵੇਂ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ?",
+        micTitle: "ਬੋਲਣ ਲਈ ਬਟਨ ਦਬਾਓ",
+        micSub: "ਮੈਂ ਤੁਹਾਡੀ ਗੱਲ ਸੁਣ ਰਿਹਾ ਹਾਂ...",
+        micBtnTitle: "ਬੋਲਣ ਲਈ ਦਬਾਓ",
+        resetBtn: "ਨਵੀਂ ਗੱਲਬਾਤ (New Chat)",
+        chatPlaceholder: "ਇੱਥੇ ਸੁਨੇਹਾ ਲਿਖੋ ਜਾਂ ਬੋਲੋ...",
+        sendBtn: "ਭੇਜੋ",
+        chipEdu: "ਸਿੱਖਿਆ ਕਰਜ਼ਾ (Education Loan)",
+        chipBiz: "ਵਪਾਰ ਕਰਜ਼ਾ (Business Loan)",
+        chipScore: "ਤਿਆਰੀ ਸਕੋਰ",
+        chipOcr: "ਦਸਤਾਵੇਜ਼ OCR",
+        chipEmi: "EMI ਕੈਲਕੁਲੇਟਰ",
+        chipPartner: "ਨੇੜਲੇ ਪਾਰਟਨਰ",
+        moreLang: "+ ਹੋਰ ਭਾਸ਼ਾਵਾਂ",
+        initChatMsg: "<strong>ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ!</strong> ਮੈਂ ਤੁਹਾਡਾ AI ਲੋਨ ਸਹਾਇਕ ਹਾਂ। ਤੁਹਾਨੂੰ ਕਿਸ ਤਰ੍ਹਾਂ ਦਾ ਕਰਜ਼ਾ ਚਾਹੀਦਾ ਹੈ? (ਸਿੱਖਿਆ ਕਰਜ਼ਾ / ਵਪਾਰ ਕਰਜ਼ਾ)",
+        step1B: "੧. ਆਪਣੀ ਭਾਸ਼ਾ ਵਿੱਚ ਬੋਲੋ",
+        step1Span: "ਬਸ ਆਪਣੇ ਵੇਰਵੇ ਦੱਸੋ",
+        step2B: "੨. ਤਿਆਰੀ ਸਕੋਰ ਤੇ ਯੋਜਨਾ ਪ੍ਰਾਪਤ ਕਰੋ",
+        step2Span: "ਸਹੀ ਕਰਜ਼ਾ ਮਾਰਗਦਰਸ਼ਨ",
+        step3B: "੩. ਤੁਹਾਡਾ ਟੀਚਾ, ਸਾਡਾ ਸਾਥ",
+        step3Span: "ਕਰਜ਼ਾ ਮਿਲਣ ਤੱਕ ਪੂਰੀ ਸਹਾਇਤਾ",
+        maxLoanPrefix: "ਵੱਧ ਤੋਂ ਵੱਧ ਕਰਜ਼ਾ",
+        interestPrefix: "ਵਿਆਜ ਦਰ",
+        moratoriumSuffix: "ਮਹੀਨੇ",
+        partnerHeaderTitle: "ਨੇੜਲੇ NSFDC ਚੈਨਲ ਪਾਰਟਨਰ",
+        findLocationBtnText: "ਮੇਰਾ ਮੌਜੂਦਾ ਸਥਾਨ ਵਰਤੋ",
+        partnerQueryPlaceholder: "ਖੋਜੋ (ਜਿਵੇਂ 'ਲੁਧਿਆਣਾ ਵਪਾਰ ਕਰਜ਼ਾ', 'PSCFC', 'PNB')...",
+        partnerRagBtnText: "ਖੋਜ",
+        simHeaderTitle: "ਕਰਜ਼ ਤਿਆਰੀ ਸਕੋਰ ਸਿਮੂਲੇਟਰ",
+        simSubmitBtnText: "ਸਕੋਰ ਦੀ ਗਣਨਾ ਕਰੋ",
+        ocrHeaderTitle: "ਦਸਤਾਵੇਜ਼ OCR ਅਤੇ ਜਾਂਚ",
+        startOcrBtnText: "AI OCR ਨਾਲ ਸਕੈਨ ਕਰੋ",
+        emiHeaderTitle: "NSFDC EMI ਕੈਲਕੁਲੇਟਰ",
+        emiSubmitBtnText: "EMI ਗਣਨਾ ਕਰੋ",
+        emiResMonthlyLabel: "ਮਹੀਨਾਵਾਰ EMI",
+        emiResInterestLabel: "ਕੁੱਲ ਵਿਆਜ",
+        emiResPayableLabel: "ਕੁੱਲ ਭੁਗਤਾਨ"
+    },
+    "kn-IN": {
+        langName: "ಕನ್ನಡ",
+        tagline: "ಕನಸುಗಳಿಗೆ ಸಿಗಲಿದೆ ಆಸರೆ, ನಿಮ್ಮೊಂದಿಗೆ ಯೋಜನೆಸೇತು — “YojnaSetu”",
+        loginBtn: "ಲಾಗಿನ್ / ನೋಂದಣಿ",
+        navHome: "ಮುಖಪುಟ",
+        navReadiness: "ಸಾಲ ಸಿದ್ಧತೆ ಸ್ಕೋರ್",
+        navOcr: "ದಾಖಲೆ OCR ಪರಿಶೀಲನೆ",
+        navEmi: "EMI ಕ್ಯಾಲ್ಕುಲೇಟರ್",
+        navPartners: "ಚಾನೆಲ್ ಪಾಲುದಾರರು",
+        navHelp: "ಸಹಾಯ",
+        govTitle: "ಭಾರತ ಸರ್ಕಾರ",
+        govSub: "ಬೆಂಬಲಿತ",
+        heroTitle: 'ನಮಸ್ಕಾರ! ನಾನು <span>ಯೋಜನೆಸೇತು (YojnaSetu)</span>',
+        heroIntro: "NSFDC ಸರ್ಕಾರಿ ರಿಯಾಯಿತಿ ಸಾಲ ಯೋಜನೆಗಳು, ಅರ್ಹತೆ ಮತ್ತು AI ಸಾಲ ಸಿದ್ಧತೆ ಸ್ಕೋರ್ ಮೌಲ್ಯಮಾಪನದಲ್ಲಿ ನಿಮಗೆ ಸಹಾಯ ಮಾಡಲು ನಾನು ಇಲ್ಲಿದ್ದೇನೆ.",
+        speechTitle: "ನಮಸ್ಕಾರ!",
+        speechP1: "ನಾನು ಯೋಜನೆಸೇತು. ನೀವು ನನ್ನೊಂದಿಗೆ ಕನ್ನಡದಲ್ಲಿ ಮಾತನಾಡಬಹುದು.",
+        speechP2: "ಹೇಳಿ, ಇಂದು ನಿಮ್ಮ ಸಾಲದ ಅರ್ಜಿಯಲ್ಲಿ ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
+        micTitle: "ಮಾತನಾಡಲು ಬಟನ್ ಒತ್ತಿರಿ",
+        micSub: "ನಾನು ನಿಮ್ಮ ಮಾತನ್ನು ಕೇಳುತ್ತಿದ್ದೇನೆ...",
+        micBtnTitle: "ಮಾತನಾಡಲು ಒತ್ತಿರಿ",
+        resetBtn: "ಹೊಸ ಸಂಭಾಷಣೆ (New Chat)",
+        chatPlaceholder: "ಇಲ್ಲಿ ಸಂದೇಶ ಬರೆಯಿರಿ ಅಥವಾ ಮಾತನಾಡಿ...",
+        sendBtn: "ಕಳುಹಿಸಿ",
+        chipEdu: "ಶಿಕ್ಷಣ ಸಾಲ (Education Loan)",
+        chipBiz: "ವ್ಯವಹಾರ ಸಾಲ (Business Loan)",
+        chipScore: "ಸಿದ್ಧತೆ ಸ್ಕೋರ್",
+        chipOcr: "ದಾಖಲೆ OCR",
+        chipEmi: "EMI ಕ್ಯಾಲ್ಕುಲೇಟರ್",
+        chipPartner: "ಹತ್ತಿರದ ಪಾಲುದಾರರು",
+        moreLang: "+ ಇನ್ನಷ್ಟು ಭಾಷೆಗಳು",
+        initChatMsg: "<strong>ನಮಸ್ಕಾರ!</strong> ನಾನು ನಿಮ್ಮ AI ಸಾಲ ಸಹಾಯಕ ಏಜೆಂಟ್. ನಿಮಗೆ ಯಾವ ರೀತಿಯ ಸಾಲ ಬೇಕು? (ಶಿಕ್ಷಣ ಸಾಲ / ವ್ಯವಹಾರ ಸಾಲ)",
+        step1B: "೧. ನಿಮ್ಮ ಭಾಷೆಯಲ್ಲಿ ಮಾತನಾಡಿ",
+        step1Span: "ನಿಮ್ಮ ವಿವರಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ",
+        step2B: "೨. ಸಿದ್ಧತೆ ಸ್ಕೋರ್ ಮತ್ತು ಯೋಜನೆ ಪಡೆಯಿರಿ",
+        step2Span: "ಸೂಕ್ತ ಸಾಲ ಯೋಜನೆ",
+        step3B: "೩. ನಿಮ್ಮ ಗುರಿ, ನಮ್ಮ ಬೆಂಬಲ",
+        step3Span: "ಸಾಲ ವಿತರಣೆಯವರೆಗೆ ಸಂಪೂರ್ಣ ನೆರವು",
+        maxLoanPrefix: "ಗರಿಷ್ಠ ಸಾಲ",
+        interestPrefix: "ಬಡ್ಡಿ ದರ",
+        moratoriumSuffix: "ತಿಂಗಳುಗಳು",
+        partnerHeaderTitle: "ಹತ್ತಿರದ NSFDC ಚಾನೆಲ್ ಪಾಲುದಾರರು",
+        findLocationBtnText: "ನನ್ನ ಪ್ರಸ್ತುತ ಸ್ಥಳ ಬಳಸಿ",
+        partnerQueryPlaceholder: "ಹುಡುಕಿ (ಉದಾ: 'ಬೆಂಗಳೂರು ವ್ಯವಹಾರ ಸಾಲ', 'ಅಂಬೇಡ್ಕರ್ ನಿಗಮ', 'ಬ್ಯಾಂಕ್')...",
+        partnerRagBtnText: "ಹುಡುಕಿ",
+        simHeaderTitle: "ಸಾಲ ಸಿದ್ಧತೆ ಸ್ಕೋರ್ ಸಿಮ್ಯುಲೇಟರ್",
+        simSubmitBtnText: "ಸ್ಕೋರ್ ಲೆಕ್ಕಾಚಾರ ಮಾಡಿ",
+        ocrHeaderTitle: "ದಾಖಲೆ OCR ಮತ್ತು ಪರಿಶೀಲನೆ",
+        startOcrBtnText: "AI OCR ಮೂಲಕ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
+        emiHeaderTitle: "NSFDC EMI ಕ್ಯಾಲ್ಕುಲೇಟರ್",
+        emiSubmitBtnText: "EMI ಲೆಕ್ಕ ಹಾಕಿ",
+        emiResMonthlyLabel: "ಮಾಸಿಕ EMI",
+        emiResInterestLabel: "ಒಟ್ಟು ಬಡ್ಡಿ",
+        emiResPayableLabel: "ಒಟ್ಟು ಪಾವತಿ"
     }
 };
 
@@ -194,11 +1038,25 @@ function toggleHeaderLangDropdown(show) {
 }
 
 function setAppLanguage(langCode, speakGreeting = false) {
-    const effectiveLang = langCode && langCode.startsWith("en") ? "en-IN" : "hi-IN";
+    const supportedLangCodes = ["hi-IN", "en-IN", "bn-IN", "ta-IN", "te-IN", "mr-IN", "gu-IN", "pa-IN", "kn-IN"];
+    let effectiveLang = "hi-IN";
+    if (langCode) {
+        if (supportedLangCodes.includes(langCode)) {
+            effectiveLang = langCode;
+        } else {
+            const prefix = langCode.split("-")[0].toLowerCase();
+            const matched = supportedLangCodes.find(c => c.startsWith(prefix));
+            if (matched) effectiveLang = matched;
+            else if (prefix === "en") effectiveLang = "en-IN";
+            else effectiveLang = "hi-IN";
+        }
+    }
+
     currentLanguage = effectiveLang;
     localStorage.setItem("yojnaSetuLang", effectiveLang);
 
-    const t = TRANSLATIONS[effectiveLang] || TRANSLATIONS["hi-IN"];
+    const t = Object.assign({}, TRANSLATIONS["hi-IN"], TRANSLATIONS[effectiveLang] || {});
+    const isEn = effectiveLang.startsWith("en");
 
     // 1. Update Header Button Label
     const currentLangLabel = document.getElementById("current-lang-label");
@@ -219,41 +1077,40 @@ function setAppLanguage(langCode, speakGreeting = false) {
     // 3. Update Hero Language Buttons active states
     document.querySelectorAll(".languages .lang").forEach(btn => {
         const dataLang = btn.getAttribute("data-lang");
-        const btnText = btn.textContent.trim().toLowerCase();
-        if ((dataLang && dataLang === effectiveLang) || 
-            (effectiveLang === "en-IN" && btnText.includes("english")) || 
-            (effectiveLang === "hi-IN" && btnText.includes("हिंदी"))) {
+        if (dataLang && dataLang === effectiveLang) {
             btn.classList.add("active");
-        } else if (!dataLang && !btnText.includes("বাংলা") && !btnText.includes("தமிழ்") && !btnText.includes("తెలుగు") && !btnText.includes("भाषाएँ")) {
+        } else if (dataLang) {
             btn.classList.remove("active");
         }
     });
 
-    // 4. Update Header & Navigation Text
-    const headerTagline = document.getElementById("header-tagline");
-    if (headerTagline) headerTagline.textContent = t.tagline;
-
-    const navLoginText = document.getElementById("nav-login-text");
-    if (navLoginText) navLoginText.textContent = t.loginBtn;
-
+    // Helper update utilities
     const updateSpan = (id, text) => {
         const el = document.getElementById(id);
         if (el) {
-            const span = el.querySelector("span");
+            const span = el.querySelector("span") || el;
             if (span) span.textContent = text;
         }
     };
 
     const updateText = (id, text) => {
         const el = document.getElementById(id);
-        if (el) el.textContent = text;
+        if (el && text !== undefined) el.textContent = text;
     };
 
     const updateHTML = (id, html) => {
         const el = document.getElementById(id);
-        if (el) el.innerHTML = html;
+        if (el && html !== undefined) el.innerHTML = html;
     };
 
+    const updatePlaceholder = (id, placeholder) => {
+        const el = document.getElementById(id);
+        if (el && placeholder !== undefined) el.placeholder = placeholder;
+    };
+
+    // 4. Update Header & Navigation Text
+    updateText("header-tagline", t.tagline);
+    updateText("nav-login-text", currentUser ? (currentUser.name || "User").split(" ")[0] : t.loginBtn);
     updateSpan("nav-item-home", t.navHome);
     updateSpan("nav-item-readiness", t.navReadiness);
     updateSpan("nav-item-ocr", t.navOcr);
@@ -275,15 +1132,11 @@ function setAppLanguage(langCode, speakGreeting = false) {
 
     const heroMicBtn = document.getElementById("hero-mic-btn");
     if (heroMicBtn) heroMicBtn.setAttribute("aria-label", t.micBtnTitle);
-
     updateText("hero-lang-more", t.moreLang);
 
     // 6. Update Chat Area
     updateText("reset-btn-text", t.resetBtn);
-
-    const chatInput = document.getElementById("chat-input");
-    if (chatInput) chatInput.placeholder = t.chatPlaceholder;
-
+    updatePlaceholder("chat-input", t.chatPlaceholder);
     updateText("send-btn-text", t.sendBtn);
 
     // Chips
@@ -294,7 +1147,6 @@ function setAppLanguage(langCode, speakGreeting = false) {
     updateSpan("chip-emi", t.chipEmi);
     updateSpan("chip-partner", t.chipPartner);
 
-    // Initial bot message if not interacted yet
     const initBotMsg = document.getElementById("init-bot-msg-content");
     if (initBotMsg && (!sessionId || sessionId === null)) {
         initBotMsg.innerHTML = t.initChatMsg;
@@ -320,18 +1172,203 @@ function setAppLanguage(langCode, speakGreeting = false) {
     updateText("secure-card-h3", t.secureCardH3);
     updateText("secure-card-p", t.secureCardP);
 
-    // 9. Update Channel Partners Sort & Re-render if cached
+    // 9. Update Readiness Simulator
+    updateText("sim-header-title", t.simHeaderTitle);
+    updateText("sim-header-desc", t.simHeaderDesc);
+    updateText("sim-label-loan-type", t.simLabelLoanType);
+    updateText("sim-opt-loan-type-default", t.simOptLoanTypeDefault);
+    updateText("sim-opt-loan-type-biz", t.simOptLoanTypeBiz);
+    updateText("sim-opt-loan-type-edu", t.simOptLoanTypeEdu);
+    updateText("sim-label-loan-amount", t.simLabelLoanAmount);
+    updatePlaceholder("sim-loan-amount", t.simPlaceholderLoanAmount);
+    updateText("sim-label-income", t.simLabelIncome);
+    updatePlaceholder("sim-income", t.simPlaceholderIncome);
+    updateText("sim-label-tenure", t.simLabelTenure);
+    updatePlaceholder("sim-tenure", t.simPlaceholderTenure);
+    updateText("sim-label-purpose", t.simLabelPurpose);
+    updatePlaceholder("sim-purpose", t.simPlaceholderPurpose);
+    updateText("sim-label-location", t.simLabelLocation);
+    updatePlaceholder("sim-location", t.simPlaceholderLocation);
+    updateHTML("sim-label-caste", t.simLabelCaste);
+    updateText("sim-opt-caste-sc", t.simOptCasteSc);
+    updateText("sim-opt-caste-pending", t.simOptCastePending);
+    updateText("sim-opt-caste-other", t.simOptCasteOther);
+    updateHTML("sim-label-docs", t.simLabelDocs);
+    updateText("sim-opt-docs-all", t.simOptDocsAll);
+    updateText("sim-opt-docs-partial", t.simOptDocsPartial);
+    updateText("sim-opt-docs-basic", t.simOptDocsBasic);
+    updateHTML("sim-label-exp", t.simLabelExp);
+    updateText("sim-opt-exp-high", t.simOptExpHigh);
+    updateText("sim-opt-exp-mid", t.simOptExpMid);
+    updateText("sim-opt-exp-fresher", t.simOptExpFresher);
+    updateHTML("sim-label-credit", t.simLabelCredit);
+    updateText("sim-opt-credit-clean", t.simOptCreditClean);
+    updateText("sim-opt-credit-active", t.simOptCreditActive);
+    updateText("sim-opt-credit-default", t.simOptCreditDefault);
+    updateText("sim-label-existing-emi", t.simLabelExistingEmi);
+    updatePlaceholder("sim-existing-emi", t.simPlaceholderExistingEmi);
+    updateText("sim-submit-btn-text", t.simSubmitBtnText);
+    updateHTML("sim-result-title", t.simResultTitle);
+    updateHTML("sim-tips-title", t.simTipsTitle);
+    updateHTML("sim-checklist-title", t.simChecklistTitle);
+
+    // 10. Update Document OCR Section
+    updateText("ocr-header-title", t.ocrHeaderTitle);
+    updateText("ocr-header-desc", t.ocrHeaderDesc);
+    updateText("ocr-dropzone-title", t.ocrDropzoneTitle);
+    updateText("ocr-dropzone-sub", t.ocrDropzoneSub);
+    updateText("ocr-browse-btn-text", t.ocrBrowseBtnText);
+    updateText("ocr-camera-btn-text", t.ocrCameraBtnText);
+    updateText("ocr-sample-btn-text", t.ocrSampleBtnText);
+    updateText("ocr-staged-header-text", t.ocrStagedHeaderText);
+    updateText("clear-staged-btn-text", t.clearStagedBtnText);
+    updateText("ocr-scheme-label-text", t.ocrSchemeLabelText);
+    updateText("ocr-opt-biz", t.ocrOptBiz);
+    updateText("ocr-opt-edu", t.ocrOptEdu);
+    updateText("start-ocr-btn-text", t.startOcrBtnText);
+    updateHTML("ocr-loader-text", t.ocrLoaderText);
+    updateHTML("ocr-result-title", t.ocrResultTitle);
+    updateText("ocr-report-summary", t.ocrReportSummary);
+    updateText("ocr-progress-title-text", t.ocrProgressTitleText);
+    updateHTML("ocr-entities-title-text", t.ocrEntitiesTitleText);
+    updateHTML("ocr-checklist-title-text", t.ocrChecklistTitleText);
+    updateText("ocr-next-step-title", t.ocrNextStepTitle);
+    updateText("ocr-next-step-sub", t.ocrNextStepSub);
+    updateText("ocr-next-step-btn-text", t.ocrNextStepBtnText);
+
+    // 11. Update EMI Calculator Section
+    updateText("emi-header-title", t.emiHeaderTitle);
+    updateText("emi-header-desc", t.emiHeaderDesc);
+    updateText("emi-label-principal", t.emiLabelPrincipal);
+    updatePlaceholder("emi-principal", t.emiPlaceholderPrincipal);
+    updateText("emi-label-rate", t.emiLabelRate);
+    updatePlaceholder("emi-rate", t.emiPlaceholderRate);
+    updateText("emi-label-tenure", t.emiLabelTenure);
+    updatePlaceholder("emi-tenure", t.emiPlaceholderTenure);
+    updateText("emi-label-moratorium", t.emiLabelMoratorium);
+    updatePlaceholder("emi-moratorium", t.emiPlaceholderMoratorium);
+    updateText("emi-submit-btn-text", t.emiSubmitBtnText);
+    updateText("emi-res-monthly-label", t.emiResMonthlyLabel);
+    updateText("emi-res-interest-label", t.emiResInterestLabel);
+    updateText("emi-res-payable-label", t.emiResPayableLabel);
+
+    // 12. Update Channel Partner Locator
+    updateText("partner-header-title", t.partnerHeaderTitle);
+    updateText("partner-header-desc", t.partnerHeaderDesc);
+    updateText("loc-perm-title", t.locPermTitle);
+    updateText("loc-perm-desc", t.locPermDesc);
+    updateText("find-location-btn-text", t.findLocationBtnText);
+    updatePlaceholder("partner-query-input", t.partnerQueryPlaceholder);
+    updateText("partner-rag-btn-text", t.partnerRagBtnText);
+    updateHTML("partner-state-label", t.partnerStateLabel);
+    updateHTML("partner-scheme-label", t.partnerSchemeLabel);
+    updateHTML("city-select-label", t.citySelectLabel);
+    updateText("partner-type-pills-label", t.partnerTypePillsLabel);
+    updateText("pill-all", t.pillAll);
+    updateText("pill-sca", t.pillSca);
+    updateText("pill-psb", t.pillPsb);
+    updateText("pill-rrb", t.pillRrb);
     updateHTML("partner-sort-indicator", t.partnerSort);
+    updateHTML("partner-map-title", t.partnerMapTitle);
+    updateText("partner-map-note", t.partnerMapNote);
+
+    // 13. Update Help & Support Modal
+    updateText("help-modal-title", t.helpModalTitle);
+    updateText("help-modal-sub", t.helpModalSub);
+    updateHTML("help-helpline-title", t.helpHelplineTitle);
+    updateText("helpline-badge-1", t.helplineBadge1);
+    updateText("helpline-card-1-title", t.helplineCard1Title);
+    updateText("helpline-card-1-time", t.helplineCard1Time);
+    updateHTML("helpline-card-1-call", t.helplineCard1Call);
+    updateText("helpline-badge-2", t.helplineBadge2);
+    updateText("helpline-card-2-title", t.helplineCard2Title);
+    updateText("helpline-card-2-time", t.helplineCard2Time);
+    updateText("helpline-badge-3", t.helplineBadge3);
+    updateText("helpline-card-3-title", t.helplineCard3Title);
+    updateText("helpline-card-3-time", t.helplineCard3Time);
+    updateText("helpline-badge-4", t.helplineBadge4);
+    updateText("helpline-card-4-title", t.helplineCard4Title);
+    updateText("helpline-card-4-time", t.helplineCard4Time);
+    updateHTML("help-ai-title", t.helpAiTitle);
+    updateText("help-ai-sub", t.helpAiSub);
+    updateText("help-pill-1", t.helpPill1);
+    updateText("help-pill-2", t.helpPill2);
+    updateText("help-pill-3", t.helpPill3);
+    updateText("help-pill-4", t.helpPill4);
+    updateText("help-pill-5", t.helpPill5);
+    updateHTML("help-faq-title", t.helpFaqTitle);
+    updateText("faq-q-1", t.faqQ1);
+    updateText("faq-a-1", t.faqA1);
+    updateText("faq-q-2", t.faqQ2);
+    updateText("faq-a-2", t.faqA2);
+    updateText("faq-q-3", t.faqQ3);
+    updateText("faq-a-3", t.faqA3);
+    updateText("faq-q-4", t.faqQ4);
+    updateText("faq-a-4", t.faqA4);
+    updateHTML("help-email-label", t.helpEmailLabel);
+    updateHTML("help-hq-label", t.helpHqLabel);
+    updateText("help-hq-val", t.helpHqVal);
+    updateText("help-close-btn", t.helpCloseBtn);
+    updateText("help-partners-btn-text", t.helpPartnersBtnText);
+
+    // 14. Update Auth Modal & Profile Dropdown
+    updateText("auth-modal-title", t.authModalTitle);
+    updateText("auth-modal-sub", t.authModalSub);
+    updateText("auth-step-1-intro", t.authStep1Intro);
+    updateHTML("auth-label-name", t.authLabelName);
+    updatePlaceholder("auth-name-input", t.authPlaceholderName);
+    updateHTML("auth-label-phone", t.authLabelPhone);
+    updateHTML("auth-label-email", t.authLabelEmail);
+    updateText("auth-send-btn-text", t.authSendBtnText);
+    updateText("auth-step-2-intro", t.authStep2Intro);
+    updateText("auth-edit-phone-btn", t.authEditPhoneBtn);
+    updateText("otp-demo-label", t.otpDemoLabel);
+    updateText("otp-autofill-btn", t.otpAutofillBtn);
+    updateText("otp-time-left-label", t.otpTimeLeftLabel);
+    updateText("auth-resend-btn", t.authResendBtn);
+    updateText("auth-verify-btn-text", t.authVerifyBtnText);
+    updateText("auth-modal-security-note", t.authSecurityNote);
+    updateText("user-logout-text", t.userLogoutText);
+
+    // 15. Update Recommendation Card labels if present
+    updateText("rec-card-badge-text", t.recCardBadgeText);
+    updateText("rec-match-badge-sub", t.recMatchBadgeSub);
+    updateText("rec-label-max-loan", t.recLabelMaxLoan);
+    updateText("rec-label-interest", t.recLabelInterest);
+    updateText("rec-label-moratorium", t.recLabelMoratorium);
+    updateText("rec-label-monthly-emi", t.recLabelMonthlyEmi);
+    updateText("rec-label-total-payable", t.recLabelTotalPayable);
+    updateText("rec-subsidy-text", t.recSubsidyText);
+    updateHTML("rec-reasons-title", t.recReasonsTitle);
+    updateHTML("rec-docs-title", t.recDocsTitle);
+    updateHTML("rec-readiness-title", t.recReadinessTitle);
+    updateHTML("rec-tips-title", t.recTipsTitle);
+    updateHTML("rec-checklist-title", t.recChecklistTitle);
+
+    // 16. Dynamic Re-renders for Active Components
+    renderSidebarSchemes();
+
     if (lastFetchedPartners && lastFetchedPartners.length > 0) {
         renderPartnersList(lastFetchedPartners);
     }
 
-    // 10. Update Speech Recognition Language
+    if (lastOcrDocuments && lastOcrReport) {
+        renderOcrResults(lastOcrDocuments, lastOcrReport);
+    }
+
+    if (lastReadinessData) {
+        populateReadinessUI(lastReadinessPrefix, lastReadinessData);
+    }
+
+    // 17. Update User Auth UI state
+    updateUserAuthUI();
+
+    // 18. Update Speech Recognition Language
     if (recognition) {
         recognition.lang = effectiveLang;
     }
 
-    // 11. Speak greeting if user manually switched language
+    // 19. Speak greeting if user manually switched language
     if (speakGreeting) {
         speakText(t.speechP1 + " " + t.speechP2);
     }
@@ -474,21 +1511,34 @@ function setupEventListeners() {
     // Hero Language Buttons
     const heroLangButtons = document.querySelectorAll(".languages .lang");
     heroLangButtons.forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", (e) => {
             const dataLang = btn.getAttribute("data-lang");
-            const text = btn.textContent.trim().toLowerCase();
-            let chosenLang = "hi-IN";
+            if (btn.id === "hero-lang-more" || (!dataLang && btn.textContent.includes("भाषा"))) {
+                e.stopPropagation();
+                const headerLangBtn = document.getElementById("header-lang-btn");
+                const headerLangMenu = document.getElementById("header-lang-menu");
+                if (headerLangMenu) {
+                    const isOpen = headerLangMenu.style.display === "flex";
+                    toggleHeaderLangDropdown(!isOpen);
+                    if (!isOpen && headerLangBtn) {
+                        headerLangBtn.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }
+                }
+                return;
+            }
 
-            if (dataLang) {
-                chosenLang = dataLang;
-            } else if (text.includes("english")) {
-                chosenLang = "en-IN";
-            } else if (text.includes("বাংলা") || text.includes("bangla")) {
-                chosenLang = "bn-IN";
-            } else if (text.includes("தமிழ்") || text.includes("tamil")) {
-                chosenLang = "ta-IN";
-            } else if (text.includes("తెలుగు") || text.includes("telugu")) {
-                chosenLang = "te-IN";
+            const text = btn.textContent.trim().toLowerCase();
+            let chosenLang = dataLang;
+            if (!chosenLang) {
+                if (text.includes("english")) chosenLang = "en-IN";
+                else if (text.includes("বাংলা") || text.includes("bangla")) chosenLang = "bn-IN";
+                else if (text.includes("தமிழ்") || text.includes("tamil")) chosenLang = "ta-IN";
+                else if (text.includes("తెలుగు") || text.includes("telugu")) chosenLang = "te-IN";
+                else if (text.includes("मराठी") || text.includes("marathi")) chosenLang = "mr-IN";
+                else if (text.includes("ગુજરાતી") || text.includes("gujarati")) chosenLang = "gu-IN";
+                else if (text.includes("ਪੰਜਾਬੀ") || text.includes("punjabi")) chosenLang = "pa-IN";
+                else if (text.includes("ಕನ್ನಡ") || text.includes("kannada")) chosenLang = "kn-IN";
+                else chosenLang = "hi-IN";
             }
 
             setAppLanguage(chosenLang, true);
@@ -796,6 +1846,12 @@ async function performDocumentOcrAndVerification() {
 }
 
 function renderOcrResults(documents, report) {
+    lastOcrDocuments = documents;
+    lastOcrReport = report;
+
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+    const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS["hi-IN"];
+
     // 1. Overall badge & summary
     const overallBadge = document.getElementById("ocr-overall-badge");
     const summaryElem = document.getElementById("ocr-report-summary");
@@ -803,16 +1859,36 @@ function renderOcrResults(documents, report) {
     const progressBar = document.getElementById("ocr-progress-bar");
 
     if (overallBadge) {
-        overallBadge.textContent = report.badge;
-        overallBadge.style.background = report.color || "#10b981";
+        let badgeText = report.badge;
+        if (isEn) {
+            if (report.has_mismatch) {
+                badgeText = "Action Required: Replace Mismatched Documents";
+            } else if (report.readiness_percentage >= 80) {
+                badgeText = "Fully Ready for Application";
+            } else if (report.readiness_percentage >= 50) {
+                badgeText = "Partially Ready";
+            } else {
+                badgeText = "Documents Incomplete";
+            }
+        }
+        overallBadge.textContent = badgeText;
+        overallBadge.style.background = report.color || (report.has_mismatch ? "#ef4444" : "#10b981");
     }
 
     if (summaryElem) {
-        summaryElem.textContent = report.summary;
+        if (isEn) {
+            summaryElem.textContent = report.has_mismatch
+                ? "Mismatched or invalid document detected. Please review the checklist below and upload the correct mandatory certificates."
+                : `Document verification status according to NSFDC SC loan eligibility: ${report.satisfied_count} of ${report.total_required} required criteria satisfied.`;
+        } else {
+            summaryElem.textContent = report.summary;
+        }
     }
 
     if (progressLabel) {
-        progressLabel.textContent = `${report.satisfied_count} / ${report.total_required} दस्तावेज सत्यापित (${report.readiness_percentage}%)`;
+        progressLabel.textContent = isEn
+            ? `${report.satisfied_count} / ${report.total_required} documents verified (${report.readiness_percentage}%)`
+            : `${report.satisfied_count} / ${report.total_required} दस्तावेज सत्यापित (${report.readiness_percentage}%)`;
     }
 
     if (progressBar) {
@@ -824,28 +1900,61 @@ function renderOcrResults(documents, report) {
         }
     }
 
-    // 2. Verified Document Cards Grid
+    // 2. Document Cards Grid (with Mismatched / Verified status)
     const docsGrid = document.getElementById("verified-docs-grid");
     if (docsGrid && documents) {
-        docsGrid.innerHTML = documents.map(doc => {
-            const fieldsHtml = Object.keys(doc.extracted_fields || {}).map(k => `
+        let warningBannerHtml = "";
+        if (report.has_mismatch) {
+            warningBannerHtml = isEn ? `
+                <div class="mismatched-alert-banner" style="grid-column: 1 / -1;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                        <strong>Mismatched or Invalid Document Identified (Action Required):</strong>
+                        <div>You have uploaded a document that does not match NSFDC SC loan eligibility criteria. Please replace it with the required mandatory document (e.g. Scheduled Caste Certificate) listed in the checklist below.</div>
+                    </div>
+                </div>
+            ` : `
+                <div class="mismatched-alert-banner" style="grid-column: 1 / -1;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <div>
+                        <strong>असंगत या अमान्य दस्तावेज पहचाना गया (Action Required):</strong>
+                        <div>आपने ऐसा दस्तावेज अपलोड किया है जो NSFDC ऋण पात्रता से मेल नहीं खाता। कृपया इसे बदलकर नीचे दी गई चेकलिस्ट के अनुसार सही अनिवार्य दस्तावेज (जैसे: अनुसूचित जाति प्रमाण पत्र) अपलोड करें।</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        docsGrid.innerHTML = warningBannerHtml + documents.map(doc => {
+            const isMismatched = doc.is_mismatched || !doc.verified;
+            const docTitle = formatDocTitle(doc, isEn);
+            const rawFields = isEn ? (doc.extracted_fields_en || doc.extracted_fields || {}) : (doc.extracted_fields_hi || doc.extracted_fields || {});
+            const rawNotes = isEn ? (doc.notes_en || doc.notes || []) : (doc.notes_hi || doc.notes || []);
+            const formattedNotes = formatDocNotes(rawNotes, isEn);
+
+            const fieldsHtml = Object.keys(rawFields).map(k => `
                 <div class="extracted-field-row">
                     <span class="field-key">${formatFieldKey(k)}:</span>
-                    <span class="field-val">${escapeHtml(doc.extracted_fields[k])}</span>
+                    <span class="field-val" style="${isMismatched ? 'color: #b91c1c;' : ''}">${escapeHtml(formatFieldValue(rawFields[k], isEn))}</span>
                 </div>
             `).join("");
 
-            const notesHtml = (doc.notes || []).map(n => `<li>${escapeHtml(n)}</li>`).join("");
+            const notesHtml = formattedNotes.map(n => `
+                <li style="${isMismatched ? 'color: #b91c1c; font-weight: 500;' : ''}">${escapeHtml(n)}</li>
+            `).join("");
+
+            const badgeHtml = isMismatched
+                ? `<span class="doc-badge-mismatched"><i class="fa-solid fa-triangle-exclamation"></i> ${isEn ? 'Mismatched / Invalid' : 'बेमेल / अमान्य'}</span>`
+                : `<span class="doc-badge-verified"><i class="fa-solid fa-circle-check"></i> ${isEn ? 'Verified' : 'सत्यापित'}</span>`;
 
             return `
-                <div class="verified-doc-card">
+                <div class="verified-doc-card ${isMismatched ? 'mismatched' : ''}">
                     <div class="doc-card-header">
-                        <div class="doc-card-icon"><i class="fa-solid ${doc.icon}"></i></div>
+                        <div class="doc-card-icon"><i class="fa-solid ${doc.icon || (isMismatched ? 'fa-triangle-exclamation' : 'fa-file-lines')}"></i></div>
                         <div class="doc-card-title">
-                            <h4>${escapeHtml(doc.title)}</h4>
-                            <span>फ़ाइल: ${escapeHtml(doc.filename)}</span>
+                            <h4 style="${isMismatched ? 'color: #b91c1c;' : ''}">${escapeHtml(docTitle)}</h4>
+                            <span>${isEn ? 'File: ' : 'फ़ाइल: '}${escapeHtml(doc.filename)}</span>
                         </div>
-                        <span class="doc-badge-verified"><i class="fa-solid fa-circle-check"></i> सत्यापित</span>
+                        ${badgeHtml}
                     </div>
                     ${fieldsHtml ? `<div class="extracted-fields-list">${fieldsHtml}</div>` : ''}
                     <ul class="doc-notes-list">${notesHtml}</ul>
@@ -859,24 +1968,81 @@ function renderOcrResults(documents, report) {
     if (checklistContainer && report.checklist) {
         checklistContainer.innerHTML = report.checklist.map(item => {
             const isVerified = item.status === "VERIFIED";
+            const itemName = isEn ? (item.name_en || item.name) : (item.name_hi || item.name);
+            const itemDesc = isEn ? (item.description_en || item.description) : (item.description_hi || item.description);
+            const statusText = isEn
+                ? (item.status_text_en || (isVerified ? "Verified & Satisfied" : "Pending Upload"))
+                : (item.status_text_hi || item.status_text || (isVerified ? "सत्यापित एवं संतुष्ट" : "अपलोड शेष"));
+
             return `
                 <div class="checklist-card ${isVerified ? 'verified' : 'missing'}">
                     <div class="checklist-card-info">
                         <i class="fa-solid ${isVerified ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
                         <div>
-                            <strong>${escapeHtml(item.name)}</strong>
-                            <div style="font-size: 11px; color: #64748b;">${escapeHtml(item.description)}</div>
+                            <strong>${escapeHtml(itemName)}</strong>
+                            <div style="font-size: 11px; color: #64748b;">${escapeHtml(itemDesc)}</div>
                         </div>
                     </div>
-                    <span class="checklist-status-tag">${escapeHtml(item.status_text)}</span>
+                    <span class="checklist-status-tag">${escapeHtml(statusText)}</span>
                 </div>
             `;
         }).join("");
     }
 }
 
+function formatDocTitle(doc, isEn) {
+    if (isEn) {
+        if (doc.title_en) return doc.title_en;
+        const title = doc.title || "";
+        if (title.includes("EWS") || title.includes("ईडब्ल्यूएस")) return "⚠️ EWS Certificate (Non-SC Category)";
+        if (title.includes("OBC") || title.includes("पिछड़ा")) return "⚠️ OBC Certificate (Non-SC Category)";
+        if (title.includes("जाति") || title.includes("Caste")) return "SC Caste Certificate";
+        if (title.includes("आय") || title.includes("Income")) return "Income Certificate";
+        if (title.includes("पहचान") || title.includes("Aadhaar")) return "Identity Proof (Aadhaar / ID Card)";
+        if (title.includes("बैंक") || title.includes("Bank")) return "Bank Account Passbook / Cheque";
+        if (title.includes("परियोजना") || title.includes("Project")) return "Project Report / Cost Quotation";
+        if (title.includes("कॉलेज") || title.includes("Admission")) return "College Admission Letter & Fee Structure";
+        if (doc.is_mismatched) return `⚠️ Unrecognized Document (${doc.filename})`;
+        return doc.title;
+    }
+    return doc.title_hi || doc.title;
+}
+
 function formatFieldKey(key) {
-    const map = {
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+    if (isEn) {
+        const mapEn = {
+            "पहचाना_गया_दस्तावेज": "Identified Document",
+            "योजना_पात्रता_स्थिति": "Scheme Eligibility Status",
+            "आवश्यक_दस्तावेज": "Required Document",
+            "कार्रवाई": "Action Required",
+            "स्थिति": "Status",
+            "सुझाव": "Recommendation",
+            "category": "Category",
+            "certificate_no": "Certificate No",
+            "issuing_authority": "Issuing Authority",
+            "validity": "Validity",
+            "annual_income": "Annual Family Income",
+            "id_type": "ID Type",
+            "account_status": "Account Status",
+            "ifsc_code": "IFSC Code",
+            "proposal_type": "Proposal Type",
+            "feasibility": "Feasibility",
+            "admission_status": "Admission Status",
+            "fee_structure": "Fee Structure",
+            "status": "Status",
+            "address_verified": "Address Verified",
+            "direct_benefit_transfer": "DBT Transfer Status"
+        };
+        return mapEn[key] || key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    }
+    const mapHi = {
+        "पहचाना_गया_दस्तावेज": "पहचाना गया दस्तावेज",
+        "योजना_पात्रता_स्थिति": "योजना पात्रता स्थिति",
+        "आवश्यक_दस्तावेज": "आवश्यक दस्तावेज",
+        "कार्रवाई": "कार्रवाई",
+        "स्थिति": "स्थिति",
+        "सुझाव": "सुझाव",
         "category": "श्रेणी (Category)",
         "certificate_no": "प्रमाण पत्र संख्या (Cert No)",
         "issuing_authority": "जारीकर्ता प्राधिकारी (Authority)",
@@ -890,7 +2056,73 @@ function formatFieldKey(key) {
         "admission_status": "प्रवेश स्थिति (Admission)",
         "fee_structure": "शुल्क संरचना (Fee Structure)"
     };
-    return map[key] || key.replace(/_/g, " ");
+    return mapHi[key] || key.replace(/_/g, " ");
+}
+
+function formatFieldValue(val, isEn) {
+    if (!val) return "";
+    const str = String(val);
+    if (!isEn) return str;
+
+    const translationMap = {
+        "ईडब्ल्यूएस प्रमाण पत्र (General EWS Certificate)": "General EWS Certificate",
+        "❌ अमान्य वर्ग (EWS सामान्य वर्ग हेतु है, SC हेतु नहीं)": "❌ Invalid Category (EWS is for General category, not SC)",
+        "👉 अनुसूचित जाति प्रमाण पत्र (SC Caste Certificate)": "👉 Scheduled Caste (SC) Certificate",
+        "कृपया सक्षम प्राधिकारी द्वारा जारी 'SC जाति प्रमाण पत्र' अपलोड करें": "Please upload an official SC Caste Certificate issued by competent authority",
+        "OBC पिछड़ा वर्ग प्रमाण पत्र": "OBC Category Certificate",
+        "❌ अमान्य वर्ग (NSFDC केवल SC वर्ग के लिए है)": "❌ Invalid Category (NSFDC is exclusively for SC category)",
+        "Scheduled Caste (SC / अनुसूचित जाति)": "Scheduled Caste (SC)",
+        "स्थायी / Permanent Valid": "Permanent Valid",
+        "Revenue Department (राजस्व विभाग)": "Revenue Department",
+        "सत्यापित पहचान (KYC Verified)": "KYC Verified",
+        "हाँ (Yes)": "Yes",
+        "सक्रिय बचत खाता (Active Savings A/C)": "Active Savings Account",
+        "DBT / Direct Disbursement Ready": "DBT Ready",
+        "Micro Enterprise / Project Setup": "Micro Enterprise / Project Setup",
+        "आर्थिक रूप से व्यवहार्य (Techno-Economically Viable)": "Techno-Economically Viable",
+        "मान्यता प्राप्त संस्थान में प्रवेश पुष्ट": "Confirmed Admission in Recognized Institution",
+        "शुल्क विवरण संलग्न": "Fee Breakdown Attached",
+        "❌ असंगत दस्तावेज (Not Matching Loan Requirements)": "❌ Mismatched document (Not matching loan requirements)",
+        "कृपया चेकलिस्ट में दिए गए 5 अनिवार्य दस्तावेजों में से अपलोड करें": "Please upload one of the 5 mandatory documents from the checklist"
+    };
+
+    if (translationMap[str]) return translationMap[str];
+    return str;
+}
+
+function formatDocNotes(notes, isEn) {
+    if (!notes || !Array.isArray(notes)) return [];
+    if (!isEn) return notes;
+
+    const noteTranslations = {
+        "❌ ईडब्ल्यूएस (EWS) प्रमाण पत्र NSFDC अनुसूचित जाति योजनाओं के लिए मान्य नहीं है।": "❌ EWS Certificate is not valid for NSFDC Scheduled Caste loan schemes.",
+        "👉 NSFDC ऋण केवल अनुसूचित जाति (SC) वर्ग के लिए है। कृपया अपना 'अनुसूचित जाति प्रमाण पत्र (SC Caste Certificate)' अपलोड करें।": "👉 NSFDC concessional loans are strictly for Scheduled Caste (SC) category. Please upload your SC Caste Certificate.",
+        "❌ यह प्रमाण पत्र अन्य पिछड़ा वर्ग (OBC) का है, जो NSFDC योजना में मान्य नहीं है।": "❌ This certificate belongs to Other Backward Classes (OBC), which is not eligible under NSFDC schemes.",
+        "👉 कृपया अपना आधिकारिक 'अनुसूचित जाति (SC) प्रमाण पत्र' अपलोड करें।": "👉 Please upload your official Scheduled Caste (SC) Certificate.",
+        "✅ अनुसूचित जाति (SC) श्रेणी की पुष्टि हुई। NSFDC पात्रता पूरी है।": "✅ Scheduled Caste (SC) category verified. NSFDC eligibility criteria satisfied.",
+        "⚠️ प्रमाण पत्र में SC श्रेणी स्पष्ट रूप से दर्ज नहीं है।": "⚠️ Scheduled Caste (SC) category is not clearly marked on this document.",
+        "उत्कृष्ट: आय NSFDC BPL/कम आय सीमा के पूरी तरह अनुकूल है।": "Excellent: Income fully complies with NSFDC concessional loan criteria.",
+        "स्वीकार्य: आय सीमा NSFDC सामान्य पात्रता वर्ग में आती है।": "Acceptable: Income falls within NSFDC standard eligibility ceiling.",
+        "✅ भारत सरकार द्वारा मान्यता प्राप्त पहचान पत्र सत्यापित हुआ।": "✅ Government of India recognized identity proof verified.",
+        "नाम व पता सत्यापन पूर्ण।": "Full name and address authentication completed.",
+        "✅ बैंक खाता विवरण एवं IFSC कोड प्रमाणित।": "✅ Active bank account details and IFSC code validated.",
+        "ऋण राशि प्रत्यक्ष अंतरण (DBT) के लिए तैयार।": "Account is ready for Direct Benefit Transfer (DBT) disbursement.",
+        "✅ व्यवसाय प्रस्ताव एवं कोटेशन विवरण स्वीकृत।": "✅ Business project proposal and cost quotation approved.",
+        "✅ उच्च शिक्षा प्रवेश पत्र एवं शुल्क विवरण सत्यापित।": "✅ Higher education admission letter and fee schedule verified.",
+        "❌ यह फ़ाइल ऋण आवेदन के अनिवार्य दस्तावेजों से मेल नहीं खाती।": "❌ This file does not match the mandatory NSFDC loan eligibility documents.",
+        "👉 कृपया इस फ़ाइल को हटाकर संबंधित अनिवार्य दस्तावेज अपलोड करें।": "👉 Please replace this file with the required mandatory document from the checklist."
+    };
+
+    return notes.map(n => {
+        if (noteTranslations[n]) return noteTranslations[n];
+        if (n.startsWith("प्रमाण पत्र सं:") && isEn) {
+            return n.replace("प्रमाण पत्र सं:", "Certificate No:").replace("जारीकर्ता:", "Issuing Authority:");
+        }
+        if (n.includes("पारिवारिक आय") && n.includes("प्रमाणित पाई गई") && isEn) {
+            return n.replace("पारिवारिक आय", "Annual Family Income").replace("प्रमाणित पाई गई।", "verified.");
+        }
+        return n;
+    });
 }
 
 /* =====================================================
@@ -946,7 +2178,8 @@ async function handleUserChatMessage(userText) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 session_id: sessionId,
-                message: userText
+                message: userText,
+                language: currentLanguage
             })
         });
 
@@ -1001,10 +2234,10 @@ async function handleUserChatMessage(userText) {
                 );
             }
             renderRecommendationCard(data.recommendation, recommendationEmi, data.readiness, data.user_data);
-            
+
             // Auto-fill all interactive widgets (Channel Partner, EMI Calculator, Readiness Simulator)
             autoFillAllWidgetsFromRecommendation(data.user_data, data.recommendation.recommended_scheme, recommendationEmi, data.readiness);
-            
+
             // Continue the user journey to nearby channel partners after presentation
             setTimeout(() => scrollToSection("partner-section"), 1400);
         }
@@ -1289,21 +2522,43 @@ function autoFillAllWidgetsFromRecommendation(userData, scheme, emiData, readine
 function populateReadinessUI(prefix, readiness) {
     if (!readiness) return;
 
+    lastReadinessData = readiness;
+    lastReadinessPrefix = prefix;
+
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+
     const scoreNum = document.getElementById(`${prefix}-readiness-score-num`);
     if (scoreNum) scoreNum.textContent = readiness.score;
 
+    // English badge mapping
+    let displayBadge = readiness.badge;
+    if (isEn) {
+        if (readiness.score >= 85) displayBadge = "Excellent Approval Probability";
+        else if (readiness.score >= 70) displayBadge = "High Approval Probability";
+        else if (readiness.score >= 50) displayBadge = "Moderate Approval Probability";
+        else displayBadge = "Actionable Improvement Needed";
+    }
+
     const summaryElem = document.getElementById(`${prefix}-readiness-summary`);
-    if (summaryElem) summaryElem.textContent = readiness.summary;
+    if (summaryElem) {
+        if (isEn) {
+            summaryElem.textContent = readiness.score >= 70
+                ? `Your evaluated loan profile achieves an impressive score of ${readiness.score}/100. Most eligibility and documentation criteria are well fulfilled.`
+                : `Your evaluated loan profile has a score of ${readiness.score}/100. Please check the recommendations below to improve your approval readiness.`;
+        } else {
+            summaryElem.textContent = readiness.summary;
+        }
+    }
 
     const badgeElem = document.getElementById(`${prefix}-readiness-badge`);
     if (badgeElem) {
-        badgeElem.textContent = `${readiness.score} / 100 — ${readiness.badge}`;
+        badgeElem.textContent = `${readiness.score} / 100 — ${displayBadge}`;
         badgeElem.style.background = readiness.color || "#10b981";
     }
 
     const bandLabel = document.getElementById(`${prefix}-readiness-band-label`);
     if (bandLabel) {
-        bandLabel.textContent = readiness.badge;
+        bandLabel.textContent = displayBadge;
         bandLabel.style.color = readiness.color || "#10b981";
     }
 
@@ -1317,22 +2572,35 @@ function populateReadinessUI(prefix, readiness) {
         gaugeCircle.style.stroke = readiness.color || "#10b981";
     }
 
+    // Pillar name & details mapping for English
+    const pillarTranslationMap = {
+        "पात्रता व जाति प्रमाण": { name: "Category & Caste Eligibility", details: "SC category verification & certificate readiness" },
+        "आर्थिक क्षमता व आय": { name: "Financial Capacity & Income", details: "Annual family income & repayment capacity" },
+        "परियोजना / शिक्षा व्यवहार्यता": { name: "Project / Education Feasibility", details: "Business viability or course admission confirmation" },
+        "दस्तावेज तत्परता": { name: "Document Readiness", details: "Mandatory KYC, income & project documents" },
+        "क्रेडिट व पुनर्भुगतान ट्रैक": { name: "Credit & Repayment Track", details: "Clean past track record & EMI-to-income ratio" }
+    };
+
     // Populate Pillars Breakdown
     const pillarsContainer = document.getElementById(`${prefix}-readiness-pillars`);
     if (pillarsContainer && readiness.pillars) {
         pillarsContainer.innerHTML = Object.keys(readiness.pillars).map(key => {
             const pillar = readiness.pillars[key];
             const pct = Math.min(100, Math.round((pillar.score / pillar.max) * 100));
+            const translatedPillar = isEn && pillarTranslationMap[pillar.name]
+                ? pillarTranslationMap[pillar.name]
+                : { name: pillar.name, details: pillar.details };
+
             return `
                 <div class="pillar-item">
                     <div class="pillar-top-row">
-                        <span>${pillar.name}</span>
+                        <span>${escapeHtml(translatedPillar.name)}</span>
                         <span><strong>${pillar.score}</strong> / ${pillar.max} pts</span>
                     </div>
                     <div class="pillar-bar-bg">
                         <div class="pillar-bar-fill" style="width: ${pct}%;"></div>
                     </div>
-                    <div class="pillar-details-text">${pillar.details}</div>
+                    <div class="pillar-details-text">${escapeHtml(translatedPillar.details)}</div>
                 </div>
             `;
         }).join("");
@@ -1342,7 +2610,7 @@ function populateReadinessUI(prefix, readiness) {
     const tipsContainer = document.getElementById(`${prefix}-readiness-tips`);
     if (tipsContainer && readiness.tips) {
         tipsContainer.innerHTML = readiness.tips.map(tip => `
-            <li><i class="fa-solid fa-circle-check" style="color: #facc15; margin-right: 6px;"></i>${tip}</li>
+            <li><i class="fa-solid fa-circle-check" style="color: #facc15; margin-right: 6px;"></i>${escapeHtml(tip)}</li>
         `).join("");
     }
 
@@ -1352,8 +2620,8 @@ function populateReadinessUI(prefix, readiness) {
         docsContainer.innerHTML = readiness.documents.map(doc => `
             <div class="doc-item ${doc.required ? 'mandatory' : ''}">
                 <i class="fa-solid ${doc.icon || 'fa-file-lines'}"></i>
-                <span>${doc.name}</span>
-                <span class="doc-tag">${doc.required ? 'अनिवार्य (Required)' : 'वैकल्पिक (Optional)'}</span>
+                <span>${escapeHtml(doc.name)}</span>
+                <span class="doc-tag">${doc.required ? (isEn ? 'Mandatory (Required)' : 'अनिवार्य (Required)') : (isEn ? 'Optional' : 'वैकल्पिक (Optional)')}</span>
             </div>
         `).join("");
     }
@@ -1496,6 +2764,44 @@ async function calculateEmiFromBackend() {
 ===================================================== */
 
 /**
+ * Smoothly hides the location permission banner once location is received and saved
+ */
+function hideLocationPermissionBox(delayMs = 1200) {
+    const box = document.getElementById("location-permission-box");
+    if (!box) return;
+
+    setTimeout(() => {
+        box.classList.add("hiding");
+        setTimeout(() => {
+            box.style.display = "none";
+        }, 500);
+    }, delayMs);
+}
+
+/**
+ * Initializes location from localStorage if already saved previously
+ */
+function initSavedUserLocation() {
+    try {
+        const saved = localStorage.getItem("yojnasetu_user_location");
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed.lat === "number" && typeof parsed.lng === "number") {
+                userCoordinates = { lat: parsed.lat, lng: parsed.lng };
+                isLocationPermissionGranted = true;
+                const box = document.getElementById("location-permission-box");
+                if (box) {
+                    box.style.display = "none";
+                }
+                console.log("Restored saved user location:", userCoordinates);
+            }
+        }
+    } catch (e) {
+        console.warn("Could not parse saved location:", e);
+    }
+}
+
+/**
  * Handles explicit or automatic browser location permission request
  */
 function handleLocationPermissionRequest(isExplicitClick = false) {
@@ -1518,15 +2824,24 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
                 const lng = position.coords.longitude;
                 const accuracy = Math.round(position.coords.accuracy || 0);
 
+                // Save location state & persist in localStorage
                 userCoordinates = { lat, lng };
                 isLocationPermissionGranted = true;
+                try {
+                    localStorage.setItem("yojnasetu_user_location", JSON.stringify({ lat, lng, timestamp: Date.now() }));
+                } catch (e) {
+                    console.warn("Storage error:", e);
+                }
 
-                console.log(`Geolocation granted: ${lat}, ${lng} (accuracy: ${accuracy}m)`);
+                console.log(`Geolocation granted & saved: ${lat}, ${lng} (accuracy: ${accuracy}m)`);
 
                 if (statusBadge) {
                     statusBadge.className = "geo-status-badge granted";
-                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> स्थान प्राप्त (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`;
+                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> स्थान प्राप्त (${lat.toFixed(3)}°, ${lng.toFixed(3)}°) - सहेजा गया`;
                 }
+
+                // Smoothly disappear the permission box after showing saved confirmation
+                hideLocationPermissionBox(1200);
 
                 // Auto select nearest state if in North India
                 const stateSelect = document.getElementById("partner-state-select");
@@ -1651,7 +2966,7 @@ function updateCityDropdownForState(stateKey) {
     if (!citySelect) return;
 
     const cities = STATE_CITY_MAPPING[stateKey] || STATE_CITY_MAPPING["ALL"];
-    
+
     citySelect.innerHTML = cities.map((c, index) => `
         <option value="${c.lat},${c.lng}" ${index === 0 ? 'selected' : ''}>${escapeHtml(c.name)}</option>
     `).join("");
@@ -1793,11 +3108,11 @@ function renderPartnersList(partners) {
 
     listContainer.innerHTML = partners.map(p => {
         const typeClass = (p.type || "SCA").toLowerCase();
-        const typeBadgeName = p.type === "SCA" 
+        const typeBadgeName = p.type === "SCA"
             ? (isEn ? "🏛️ State Agency (SCA)" : "🏛️ राज्य एजेंसी (SCA)")
-            : p.type === "PSB" 
-            ? (isEn ? "🏦 Lead Bank (PSB)" : "🏦 सरकारी बैंक (PSB)")
-            : (isEn ? "🌾 Gramin Bank (RRB)" : "🌾 ग्रामीण बैंक (RRB)");
+            : p.type === "PSB"
+                ? (isEn ? "🏦 Lead Bank (PSB)" : "🏦 सरकारी बैंक (PSB)")
+                : (isEn ? "🌾 Gramin Bank (RRB)" : "🌾 ग्रामीण बैंक (RRB)");
 
         const distanceDisplay = p.distance_km !== null && p.distance_km !== undefined
             ? `📍 ${p.distance_km} ${t.partnerDistanceAway || (isEn ? 'km away' : 'km दूर')}`
@@ -1988,6 +3303,28 @@ function escapeHtml(value) {
 /* =====================================================
    FETCH ALL SCHEMES FOR SIDEBAR
 ===================================================== */
+function renderSidebarSchemes() {
+    const container = document.getElementById("quick-schemes-list");
+    if (!container) return;
+
+    if (!lastFetchedSchemes || lastFetchedSchemes.length === 0) {
+        return;
+    }
+
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+    const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS["hi-IN"];
+
+    container.innerHTML = lastFetchedSchemes.map(s => {
+        const displayName = (isEn && s.name) ? s.name : (s.name_hi ? `${s.name} (${s.name_hi})` : s.name);
+        return `
+            <div style="padding: 8px 0; border-bottom: 1px dashed #e2e8f0; text-align: center;">
+                <strong style="color: #003366; display: block; text-align: center;">${displayName}</strong>
+                <span style="color: #64748b; font-size: 12px; display: block; text-align: center;">${t.maxLoanPrefix || (isEn ? 'Max Loan' : 'अधिकतम ऋण')}: ₹${Number(s.max_loan).toLocaleString("en-IN")} | ${t.interestPrefix || (isEn ? 'Interest' : 'ब्याज')}: ${s.interest_rate}%</span>
+            </div>
+        `;
+    }).join("");
+}
+
 async function fetchAvailableSchemes() {
     const container = document.getElementById("quick-schemes-list");
     if (!container) return;
@@ -1998,16 +3335,13 @@ async function fetchAvailableSchemes() {
 
         const data = await response.json();
         if (data.success && data.schemes) {
-            container.innerHTML = data.schemes.map(s => `
-                <div style="padding: 8px 0; border-bottom: 1px dashed #e2e8f0; text-align: center;">
-                    <strong style="color: #003366; display: block; text-align: center;">${s.name}</strong>
-                    <span style="color: #64748b; font-size: 12px; display: block; text-align: center;">अधिकतम ऋण: ₹${Number(s.max_loan).toLocaleString("en-IN")} | ब्याज: ${s.interest_rate}%</span>
-                </div>
-            `).join("");
+            lastFetchedSchemes = data.schemes;
+            renderSidebarSchemes();
         }
     } catch (error) {
         console.error("Schemes load error:", error);
-        container.innerHTML = `<div style="color: #ef4444; text-align: center;">योजनाएं लोडिंग में समस्या आई।</div>`;
+        const isEn = currentLanguage && currentLanguage.startsWith("en");
+        container.innerHTML = `<div style="color: #ef4444; text-align: center;">${isEn ? 'Error loading schemes.' : 'योजनाएं लोडिंग में समस्या आई।'}</div>`;
     }
 }
 
@@ -2134,58 +3468,56 @@ function initSpeechSynthesis() {
 
 function getBestVoice(targetLang, text) {
     if (!availableVoices || availableVoices.length === 0) {
-        availableVoices = window.speechSynthesis.getVoices() || [];
+        availableVoices = window.speechSynthesis ? (window.speechSynthesis.getVoices() || []) : [];
     }
 
-    const hasHindiChar = /[\u0900-\u097F]/.test(text);
-    const effectiveLang = hasHindiChar ? "hi-IN" : (targetLang || "hi-IN");
+    const effectiveLang = targetLang || currentLanguage || "hi-IN";
+    const prefix = effectiveLang.split("-")[0].toLowerCase();
 
     // 1. Look for exact language match
-    let matchedVoice = availableVoices.find(v => v.lang.toLowerCase() === effectiveLang.toLowerCase());
+    let matchedVoice = availableVoices.find(v => v.lang && v.lang.toLowerCase() === effectiveLang.toLowerCase());
 
-    // 2. If Hindi or text has Devanagari, search by Hindi names
-    if (!matchedVoice && (effectiveLang.startsWith("hi") || hasHindiChar)) {
-        matchedVoice = availableVoices.find(v => 
-            v.lang.toLowerCase().startsWith("hi") ||
-            v.name.toLowerCase().includes("hindi") ||
-            v.name.toLowerCase().includes("हिन्दी") ||
-            v.name.toLowerCase().includes("kalpana") ||
-            v.name.toLowerCase().includes("hemant") ||
-            v.name.toLowerCase().includes("swara") ||
-            v.name.toLowerCase().includes("madhur")
-        );
-    }
-
-    // 3. Match by language prefix (e.g. "hi", "bn", "ta", "te")
+    // 2. Match by language prefix (e.g. "hi", "bn", "ta", "te", "mr", "gu", "pa", "kn", "en")
     if (!matchedVoice) {
-        const prefix = effectiveLang.split("-")[0].toLowerCase();
-        matchedVoice = availableVoices.find(v => v.lang.toLowerCase().startsWith(prefix));
+        matchedVoice = availableVoices.find(v => v.lang && v.lang.toLowerCase().startsWith(prefix));
     }
 
-    // NOTE: If no native Hindi voice object is installed locally, do NOT force
-    // an English voice. When utterance.voice is null with lang="hi-IN", Chrome
-    // automatically uses its high-quality online Hindi voice synthesizer!
+    // 3. Match by language name in voice label
+    if (!matchedVoice) {
+        const langNames = {
+            "hi": ["hindi", "हिन्दी", "kalpana", "hemant", "swara", "madhur"],
+            "bn": ["bengali", "bangla", "বাংলা", "tanishaa", "bashkar"],
+            "ta": ["tamil", "தமிழ்", "valluvar", "iniya"],
+            "te": ["telugu", "తెలుగు", "mohan", "shruti"],
+            "mr": ["marathi", "मराठी", "aarohi"],
+            "gu": ["gujarati", "ગુજરાતી", "dhwani"],
+            "pa": ["punjabi", "ਪੰਜਾਬੀ", "gurmukhi"],
+            "kn": ["kannada", "ಕನ್ನಡ", "gagan", "sapna"],
+            "en": ["india", "indian", "en-in", "ravi", "heera"]
+        };
+        const keywords = langNames[prefix] || [];
+        matchedVoice = availableVoices.find(v => {
+            const vName = (v.name || "").toLowerCase();
+            return keywords.some(k => vName.includes(k));
+        });
+    }
+
     return {
         voice: matchedVoice || null,
-        lang: hasHindiChar ? "hi-IN" : effectiveLang
+        lang: effectiveLang
     };
 }
 
 function speakText(text) {
     if (!text || !String(text).trim()) return;
 
-    // Clean emojis, markdown, symbols, and technical formatting for clean spoken Hindi
+    // Clean emojis, markdown, symbols, and technical formatting for clean spoken audio
     let speechText = String(text)
         .replace(/[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, "") // strip emojis
         .replace(/[*#_`~>\[\]]/g, "") // remove markdown syntax
         .replace(/\n+/g, ". ")
-        .replace(/\//g, " या ")
+        .replace(/\//g, " / ")
         .replace(/\([^)]*\)/g, "")
-        .replace(/EMI/gi, "मासिक किस्त")
-        .replace(/p\.a\./gi, "प्रतिवर्ष")
-        .replace(/₹/g, "रुपये ")
-        .replace(/%/g, " प्रतिशत ")
-        .replace(/Readiness Score/gi, "ऋण तैयारी स्कोर")
         .replace(/\s+/g, " ")
         .trim();
 
@@ -2201,19 +3533,18 @@ function speakText(text) {
     try {
         audio.pause();
         audio.currentTime = 0;
-    } catch (e) {}
+    } catch (e) { }
 
-    // Disable browser speech synthesis so Windows English voices never interfere
     if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
     }
 
-    const langParam = currentLanguage.split("-")[0] || "hi";
+    const langParam = (currentLanguage || "hi-IN").split("-")[0] || "hi";
     const audioUrl = `${API_BASE_URL}/api/ai/tts?text=${encodeURIComponent(speechText)}&lang=${langParam}&_t=${Date.now()}`;
 
-    console.log("Streaming authentic native Hindi TTS audio for full message...");
+    console.log(`Streaming authentic ${currentLanguage} TTS audio for message...`);
     setSoundWave(true);
-    updateSpeakerBubble("🔊 योजनासेतु बोल रहा है: " + speechText.substring(0, 80) + "...");
+    updateSpeakerBubble("🔊 " + speechText.substring(0, 85) + "...");
 
     audio.src = audioUrl;
     audio.onplay = () => setSoundWave(true);
@@ -2221,8 +3552,19 @@ function speakText(text) {
         setSoundWave(false);
     };
     audio.onerror = (e) => {
-        console.warn("Hindi TTS streaming error:", e);
+        console.warn(`TTS streaming error for ${currentLanguage}, falling back to Web Speech Synthesis:`, e);
         setSoundWave(false);
+        // Fallback to browser Web Speech API synthesis
+        if ("speechSynthesis" in window) {
+            const utterance = new SpeechSynthesisUtterance(speechText);
+            const voiceObj = getBestVoice(currentLanguage, speechText);
+            if (voiceObj.voice) utterance.voice = voiceObj.voice;
+            utterance.lang = voiceObj.lang;
+            utterance.onstart = () => setSoundWave(true);
+            utterance.onend = () => setSoundWave(false);
+            utterance.onerror = () => setSoundWave(false);
+            window.speechSynthesis.speak(utterance);
+        }
     };
 
     const playPromise = audio.play();
@@ -2246,6 +3588,7 @@ function openHelpModal() {
     const modal = document.getElementById("help-modal");
     if (!modal) return;
 
+    setAppLanguage(currentLanguage, false);
     modal.style.display = "flex";
     document.body.style.overflow = "hidden";
 
@@ -2277,7 +3620,7 @@ document.addEventListener("keydown", (e) => {
  */
 function askAiFromHelp(promptText) {
     closeHelpModal();
-    
+
     // Scroll to AI chat container
     const chatContainer = document.querySelector(".chat-container");
     if (chatContainer) {
@@ -2354,6 +3697,7 @@ function openAuthModal() {
     const modal = document.getElementById("auth-modal");
     if (!modal) return;
 
+    setAppLanguage(currentLanguage, false);
     goToAuthStep1();
     modal.style.display = "flex";
     document.body.style.overflow = "hidden";
@@ -2547,7 +3891,7 @@ async function handleSendOtpSubmit(event) {
         console.log("OTP Send Result:", data);
 
         if (data.success) {
-            goToAuthStep2(phone, email, data.demo_otp || "123456");
+            goToAuthStep2(phone, email, data.demo_otp || data.otp_preview || "123456");
             showToast(isEn ? `OTP sent successfully to +91 ${phone}` : `सत्यापन OTP +91 ${phone} पर सफलतापूर्वक भेजा गया`, "success");
         } else {
             throw new Error(data.message || "Failed to generate OTP");
@@ -2712,9 +4056,9 @@ async function handleVerifyOtpSubmit() {
             closeAuthModal();
 
             showToast(
-                isEn 
-                    ? `Welcome back, ${currentUser.name}! Logged in successfully.` 
-                    : `स्वागत है, ${currentUser.name}! सफलतापूर्वक लॉगिन हो गए।`, 
+                isEn
+                    ? `Welcome back, ${currentUser.name}! Logged in successfully.`
+                    : `स्वागत है, ${currentUser.name}! सफलतापूर्वक लॉगिन हो गए।`,
                 "success"
             );
 
@@ -2880,9 +4224,9 @@ async function autoSaveCurrentAssessment(recommendation, readiness, userData) {
 
         const isEn = currentLanguage && currentLanguage.startsWith("en");
         showToast(
-            isEn 
-                ? `Saved "${payload.scheme_name}" to your profile database` 
-                : `"${payload.scheme_name}" आपके प्रोफ़ाइल डेटाबेस में सुरक्षित किया गया`, 
+            isEn
+                ? `Saved "${payload.scheme_name}" to your profile database`
+                : `"${payload.scheme_name}" आपके प्रोफ़ाइल डेटाबेस में सुरक्षित किया गया`,
             "info"
         );
     } catch (e) {
@@ -2902,11 +4246,11 @@ function showToast(message, type = "info") {
         document.body.appendChild(toast);
     }
 
-    const icon = type === "success" 
-        ? '<i class="fa-solid fa-circle-check"></i>' 
-        : type === "error" 
-        ? '<i class="fa-solid fa-triangle-exclamation"></i>' 
-        : '<i class="fa-solid fa-circle-info"></i>';
+    const icon = type === "success"
+        ? '<i class="fa-solid fa-circle-check"></i>'
+        : type === "error"
+            ? '<i class="fa-solid fa-triangle-exclamation"></i>'
+            : '<i class="fa-solid fa-circle-info"></i>';
 
     toast.className = `toast-notification ${type} show`;
     toast.innerHTML = `${icon} <span>${escapeHtml(message)}</span>`;

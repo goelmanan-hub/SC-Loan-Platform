@@ -187,7 +187,7 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
     return extracted
 
 
-def chat_with_loan_agent(session_id: str, user_message: str, current_session: dict) -> dict:
+def chat_with_loan_agent(session_id: str, user_message: str, current_session: dict, language: Optional[str] = "hi-IN") -> dict:
     """
     Interacts with AI LLM (Gemini with multi-model fallback) or adaptive fallback to provide
     natural, empathetic multi-turn conversation, entity extraction, and grounded RAG knowledge.
@@ -231,6 +231,20 @@ def chat_with_loan_agent(session_id: str, user_message: str, current_session: di
     rag_partners = retrieve_channel_partners(query=partner_search_query, top_k=2)
     rag_partner_context = build_rag_partner_context(rag_partners)
 
+    lang_code = language or "hi-IN"
+    lang_name_map = {
+        "hi-IN": "Hindi (हिंदी)",
+        "en-IN": "English",
+        "bn-IN": "Bengali (বাংলা)",
+        "ta-IN": "Tamil (தமிழ்)",
+        "te-IN": "Telugu (తెలుగు)",
+        "mr-IN": "Marathi (मराठी)",
+        "gu-IN": "Gujarati (ગુજરાતી)",
+        "pa-IN": "Punjabi (ਪੰਜਾਬੀ)",
+        "kn-IN": "Kannada (ಕನ್ನಡ)"
+    }
+    target_lang_name = lang_name_map.get(lang_code, "Hindi or English")
+
     try:
         instruction = f"""
 Current Session State: {json.dumps(collected_summary, ensure_ascii=False)}
@@ -242,13 +256,14 @@ Official NSFDC Channel Partners Knowledge Base (RAG Context):
 {rag_partner_context}
 
 User's Input: "{user_message}"
+User's Selected Interface Language: {target_lang_name} ({lang_code})
 
 CRITICAL INSTRUCTIONS:
 1. Generate an empathetic, human-like response:
    - Acknowledge what the user shared (e.g. location, income, caste certificate, business type).
    - If the user asks a question about schemes, interest, subsidy, eligibility, documents, or WHERE to apply / WHICH bank / partner office address, answer factually and warmly using the RAG Contexts above.
    - If the user asks for nearest office/bank/SCA, provide the exact office name, address, nodal officer, and phone number from the Channel Partner RAG context.
-   - Mirror the user's language (Hindi, English, or Hinglish).
+   - Respond in the user's selected language: {target_lang_name}. If the user typed in another Indian language or English, match their natural phrasing while keeping it polite and clear.
    - If key application info is still missing, smoothly ask for the next relevant detail.
 2. Accurately extract all newly mentioned facts/parameters from the user's message.
 

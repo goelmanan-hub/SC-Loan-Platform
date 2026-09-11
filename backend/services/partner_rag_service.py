@@ -8,6 +8,7 @@ import math
 import re
 from typing import List, Dict, Any, Optional
 from data.nsfdc_partners_kb import get_all_channel_partners_kb, get_channel_partner_by_id_kb
+from database.db import get_all_stored_partners
 
 
 # =====================================================
@@ -63,8 +64,16 @@ class PartnerVectorStore:
         tokens = [t for t in cleaned.split() if len(t) > 1]
         return tokens
 
-    def _build_index(self):
-        partners = get_all_channel_partners_kb()
+    def _build_index(self, custom_partners: Optional[List[Dict[str, Any]]] = None):
+        if custom_partners:
+            partners = custom_partners
+        else:
+            try:
+                db_partners = get_all_stored_partners()
+                partners = db_partners if db_partners else get_all_channel_partners_kb()
+            except Exception:
+                partners = get_all_channel_partners_kb()
+
         self.partners = partners
         num_docs = len(partners)
 
@@ -164,6 +173,11 @@ class PartnerVectorStore:
 
         return scores
 
+    def reload_partners_index(self, custom_partners: Optional[List[Dict[str, Any]]] = None):
+        """Hot-reloads vector index with newly crawled partners without restarting server."""
+        self._build_index(custom_partners)
+        print(f"[RAG] Partners Vector Store re-indexed with {len(self.partners)} partners.")
+
 
 # Global vector store instance
 PARTNER_VECTOR_STORE = PartnerVectorStore()
@@ -192,7 +206,7 @@ def retrieve_channel_partners(
     3. Computes semantic TF-IDF vector similarity for natural language queries.
     4. Applies domain boosting for primary SCAs and lead district banks.
     """
-    partners = get_all_channel_partners_kb()
+    partners = PARTNER_VECTOR_STORE.partners or get_all_channel_partners_kb()
     has_coords = (latitude is not None and longitude is not None)
     clean_query = (query or "").strip()
 

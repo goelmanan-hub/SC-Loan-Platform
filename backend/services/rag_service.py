@@ -8,6 +8,7 @@ import math
 import re
 from typing import List, Dict, Any, Optional
 from data.schemes_kb import get_all_schemes_kb, get_scheme_by_id_kb
+from database.db import get_all_stored_schemes
 
 # Optional OpenAI / OpenRouter client
 from dotenv import load_dotenv
@@ -51,8 +52,16 @@ class SchemeVectorStore:
         tokens = [t for t in cleaned.split() if len(t) > 1]
         return tokens
 
-    def _build_index(self):
-        schemes = get_all_schemes_kb()
+    def _build_index(self, custom_schemes: Optional[List[Dict[str, Any]]] = None):
+        if custom_schemes:
+            schemes = custom_schemes
+        else:
+            try:
+                db_schemes = get_all_stored_schemes()
+                schemes = db_schemes if db_schemes else get_all_schemes_kb()
+            except Exception:
+                schemes = get_all_schemes_kb()
+
         self.documents = schemes
         num_docs = len(schemes)
 
@@ -157,6 +166,11 @@ class SchemeVectorStore:
 
         return scores
 
+    def reload_schemes_index(self, custom_schemes: Optional[List[Dict[str, Any]]] = None):
+        """Hot-reloads vector index with newly crawled schemes without restarting server."""
+        self._build_index(custom_schemes)
+        print(f"[RAG] Schemes Vector Store re-indexed with {len(self.documents)} schemes.")
+
 
 # Global vector store instance
 VECTOR_STORE = SchemeVectorStore()
@@ -174,7 +188,7 @@ def retrieve_candidate_schemes(user_data: Dict[str, Any], top_k: int = 4) -> Lis
     3. Runs semantic vector scoring against user queries, business types, and education goals.
     4. Applies domain-specific rule bonuses (e.g. women entrepreneur benefits, green energy).
     """
-    schemes = get_all_schemes_kb()
+    schemes = VECTOR_STORE.documents or get_all_schemes_kb()
     loan_type = str(user_data.get("loan_type") or "").strip().lower()
     if any(w in loan_type for w in ["edu", "study", "college", "शिक्षा"]):
         loan_type = "education"

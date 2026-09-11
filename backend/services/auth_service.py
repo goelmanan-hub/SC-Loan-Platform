@@ -56,6 +56,7 @@ def send_otp_to_user(phone: str, email: Optional[str] = None, name: Optional[str
         "message": f"सत्यापन कोड (OTP) {phone_clean} पर सफलतापूर्वक भेजा गया है।",
         "phone": phone_clean,
         "email": email,
+        "demo_otp": otp_code,
         "otp_preview": otp_code,  # Provided for easy testing & hackathon demonstration
         "expires_in_seconds": 600
     }

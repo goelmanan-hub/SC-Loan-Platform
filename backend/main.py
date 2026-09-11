@@ -38,7 +38,15 @@ from database.db import (
     save_loan_assessment,
     get_user_loan_assessments,
     get_user_by_id,
-    get_user_by_phone
+    get_user_by_phone,
+    get_crawler_logs,
+    get_all_stored_schemes,
+    get_all_stored_partners
+)
+
+from services.crawler_service import (
+    CRAWLER_SCHEDULER,
+    CrawlerOrchestrator
 )
 
 from services.conversation import (
@@ -370,9 +378,9 @@ def new_ai_session():
 # =====================================================
 
 class LoanChatRequest(BaseModel):
-
     session_id: str
     message: str
+    language: Optional[str] = "hi-IN"
 
 
 # =====================================================
@@ -479,11 +487,12 @@ def loan_chat(
 
     current_field = session.get("current_question")
 
-    # 1. Engage AI Agent to generate natural reply & extract parameters
+    # 1. Engage AI Agent to generate natural reply & extract parameters in user's selected language
     agent_result = chat_with_loan_agent(
         session_id=request.session_id,
         user_message=request.message,
-        current_session=session
+        current_session=session,
+        language=request.language
     )
 
     extracted = agent_result.get("extracted", {})
@@ -625,7 +634,7 @@ def get_scheme(
 
 
 # =====================================================
-# HINDI NATIVE TEXT TO SPEECH (TTS) ENDPOINT
+# MULTILINGUAL NATIVE TEXT TO SPEECH (TTS) ENDPOINT
 # =====================================================
 
 @app.get("/api/ai/tts")
@@ -634,35 +643,64 @@ def text_to_speech_api(
     lang: Optional[str] = "hi"
 ):
     """
-    Generates authentic, crystal-clear spoken Hindi MP3 audio stream for accessibility.
+    Generates authentic, crystal-clear spoken multilingual audio stream (Hindi, English, Bengali, Tamil, Telugu, Marathi, Gujarati, Punjabi, Kannada, etc.).
     """
     if not text or not text.strip():
         raise HTTPException(status_code=400, detail="Text is required")
 
-    # Clean emojis, markdown, and technical tokens for natural Hindi speech
+    target_lang = (lang or "hi").split("-")[0].lower()
+
+    # Clean emojis, markdown, and symbols
     cleaned = (
         re.sub(r"[\U00010000-\U0010ffff]", "", text)
         .replace("*", "")
         .replace("#", "")
         .replace("_", "")
         .replace("`", "")
-        .replace("EMI", "मासिक किस्त")
-        .replace("p.a.", "प्रतिवर्ष")
-        .replace("₹", "रुपये ")
-        .replace("%", " प्रतिशत ")
-        .replace("Readiness Score", "ऋण तैयारी स्कोर")
-        .strip()
     )
 
+    if target_lang == "hi":
+        cleaned = (
+            cleaned
+            .replace("EMI", "मासिक किस्त")
+            .replace("p.a.", "प्रतिवर्ष")
+            .replace("₹", "रुपये ")
+            .replace("%", " प्रतिशत ")
+            .replace("Readiness Score", "ऋण तैयारी स्कोर")
+        )
+    elif target_lang == "en":
+        cleaned = (
+            cleaned
+            .replace("p.a.", "per annum")
+            .replace("₹", "Rupees ")
+            .replace("%", " percent ")
+        )
+    else:
+        cleaned = cleaned.replace("₹", " Rs ").replace("%", " percent ")
+
+    cleaned = cleaned.strip()
+
+    # Map supported gTTS languages
+    supported_langs = {"hi", "en", "bn", "ta", "te", "mr", "gu", "pa", "kn", "ml", "ur"}
+    gtts_lang = target_lang if target_lang in supported_langs else "hi"
+
     try:
-        tts = gTTS(text=cleaned, lang=lang or "hi", slow=False)
+        tts = gTTS(text=cleaned, lang=gtts_lang, slow=False)
         fp = io.BytesIO()
         tts.write_to_fp(fp)
         fp.seek(0)
         return Response(content=fp.read(), media_type="audio/mpeg")
     except Exception as err:
-        print("TTS Generation Error:", err)
-        raise HTTPException(status_code=500, detail=str(err))
+        print(f"TTS Generation Error for language {gtts_lang}:", err)
+        try:
+            fallback_lang = "en" if target_lang == "en" else "hi"
+            tts = gTTS(text=cleaned, lang=fallback_lang, slow=False)
+            fp = io.BytesIO()
+            tts.write_to_fp(fp)
+            fp.seek(0)
+            return Response(content=fp.read(), media_type="audio/mpeg")
+        except Exception as fallback_err:
+            raise HTTPException(status_code=500, detail=str(fallback_err))
 
 
 # =====================================================
@@ -785,4 +823,116 @@ def get_user_assessments_endpoint(user_id: str):
         "assessments": assessments,
         "count": len(assessments)
     }
+
+
+# =====================================================
+# AUTOMATED CRAWLER & RAG SYNC ENDPOINTS
+# =====================================================
+
+class CrawlerConfigRequest(BaseModel):
+    interval_seconds: Optional[int] = None
+    is_running: Optional[bool] = None
+
+
+class CrawlerTriggerRequest(BaseModel):
+    trigger_source: Optional[str] = "api_manual"
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Starts the background automated periodic crawler on application launch."""
+    try:
+        CRAWLER_SCHEDULER.start()
+    except Exception as e:
+        print(f"[Main] Notice starting crawler scheduler: {e}")
+
+
+@app.post("/api/crawler/trigger")
+async def trigger_crawler_endpoint(req: Optional[CrawlerTriggerRequest] = None):
+    """
+    Triggers an immediate live crawl for official schemes and channel partners,
+    updates SQLite records, computes diffs, and hot-reloads RAG vector stores.
+    """
+    trigger_src = req.trigger_source if req and req.trigger_source else "api_manual"
+    result = await CRAWLER_SCHEDULER.trigger_now(trigger_source=trigger_src)
+    return {
+        "success": result.get("status") == "SUCCESS",
+        "result": result
+    }
+
+
+@app.get("/api/crawler/status")
+def get_crawler_status_endpoint():
+    """
+    Returns the real-time operational status of the periodic crawler,
+    including intervals, timestamps, database entity counts, and official target sources.
+    """
+    status = CRAWLER_SCHEDULER.get_status()
+    return {
+        "success": True,
+        "status": status
+    }
+
+
+@app.get("/api/crawler/logs")
+def get_crawler_logs_endpoint(limit: int = 20):
+    """
+    Returns historical audit logs of crawler execution runs.
+    """
+    logs = get_crawler_logs(limit=min(limit, 100))
+    return {
+        "success": True,
+        "count": len(logs),
+        "logs": logs
+    }
+
+
+@app.post("/api/crawler/configure")
+def configure_crawler_endpoint(config: CrawlerConfigRequest):
+    """
+    Configures periodic crawling frequency (in seconds) or enables/disables the background scheduler.
+    """
+    if config.interval_seconds is not None:
+        if config.interval_seconds < 10:
+            raise HTTPException(status_code=400, detail="Interval must be at least 10 seconds.")
+        CRAWLER_SCHEDULER.set_interval(config.interval_seconds)
+
+    if config.is_running is not None:
+        if config.is_running and not CRAWLER_SCHEDULER.is_running:
+            CRAWLER_SCHEDULER.start()
+        elif not config.is_running and CRAWLER_SCHEDULER.is_running:
+            CRAWLER_SCHEDULER.stop()
+
+    return {
+        "success": True,
+        "message": "Crawler configuration updated successfully.",
+        "status": CRAWLER_SCHEDULER.get_status()
+    }
+
+
+@app.get("/api/crawler/schemes")
+def get_crawled_schemes_endpoint():
+    """
+    Returns all live crawled schemes currently synchronized in the database.
+    """
+    schemes = get_all_stored_schemes()
+    return {
+        "success": True,
+        "count": len(schemes),
+        "schemes": schemes
+    }
+
+
+@app.get("/api/crawler/partners")
+def get_crawled_partners_endpoint():
+    """
+    Returns all live crawled channel partners currently synchronized in the database.
+    """
+    partners = get_all_stored_partners()
+    return {
+        "success": True,
+        "count": len(partners),
+        "partners": partners
+    }
+
 
