@@ -53,14 +53,17 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
 - **Live Knowledge Synchronization (`crawler_service.py` & `crawler_runner.py`)**: Periodically crawls official NSFDC and government portal updates, policy amendments, and channel partner updates into the local RAG knowledge store.
 - **Resilient Pipeline**: Parses structured scheme parameters, interest rate notifications, and nodal officer contacts.
 
-### 🎯 5. 100-Point Multi-Pillar Loan Readiness Score
-- **Multi-Factor Assessment Engine**:
+### 🎯 5. 100-Point Multi-Pillar Loan Readiness Engine (Zero Self-Assumed Flow)
+- **User-Controlled Two-Phase Opt-In**:
+  - **Phase 1 (Scheme Recommendation)**: Delivers pure scheme analysis, interest rates, capital subsidies, and requirements without assuming user's personal credit or location parameters.
+  - **Phase 2 (Loan Readiness Opt-In)**: The conversational AI asks if the user wants to calculate their readiness score. Only upon affirmative opt-in and receiving actual credit status and location, the engine calculates the score and renders it directly underneath the recommendation card.
+- **5 Evaluation Pillars**:
   - **EMI Affordability (35 pts)**: Compares estimated monthly EMI against household income.
   - **Scheme Fit & Limits (25 pts)**: Validates ceiling and income criteria compliance.
   - **Project Viability & Purpose (20 pts)**: Evaluates trade legitimacy and business potential.
-  - **Tenure Feasibility (10 pts)**: Ensures realistic repayment schedules.
-  - **Documentation Baseline (10 pts)**: Evaluates uploaded proofs and certificates.
-- Interactive visual SVG gauge with actionable recommendations to maximize loan approval odds.
+  - **Credit History & Banking Discipline (10 pts)**: Verifies clean repayment records vs. defaults (0 points if unprovided; no self-assumptions).
+  - **Proximity & Accessibility (10 pts)**: Calculates real-time Haversine distance to nearest verified channel partner office (<10 km = full 10 pts; 0 points if location unprovided).
+- Interactive visual SVG gauge with personalized feedback to maximize loan sanction probability.
 
 ### 📄 6. Document OCR & Verification Pipeline
 - **Native PDF & Vision OCR Pipeline**: Extracts text from PDFs natively via `pypdf` and images via Vision AI models.
@@ -73,10 +76,11 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
   - ⚠️ **Automated Mismatch & Ineligible Doc Detection**: Detects and flags Exam Question Papers, EWS certificates, and OBC certificates with explicit corrective guidance.
 - Computes real-time **Document Readiness Percentage** against scheme-specific checklists.
 
-### 📍 7. Nationwide Partner RAG & Geolocation Router
+### 📍 7. Nationwide Partner RAG & Precision Navigation
 - **Comprehensive Partner Knowledge Base (`nsfdc_partners_kb.py`)**: Covers State Channelising Agencies (SCAs), Lead District Banks, Regional Rural Banks (RRBs), and Public Sector Banks (PSBs) across 36+ Indian states/UTs.
-- **Hybrid Geo + Semantic Search**: Calculates nearest partner distances using the **Haversine formula** with interactive Leaflet map integration and direct driving directions.
-- **Browser Geolocation Integration**: Requests high-accuracy live GPS coordinates on reload and automatically sorts offices by physical distance.
+- **Hybrid Geo + Semantic Search**: Calculates nearest partner distances using the **Haversine formula** with interactive Leaflet map integration and custom categorical map pins (🏛️ SCA, 🏦 PSB, 🌾 RRB).
+- **Building-Level Google Maps Routing**: Generates query-encoded official building navigation links (`https://www.google.com/maps/dir/?api=1&destination=...`) ensuring navigation lands precisely on official government offices and banks rather than ambiguous nearby landmarks.
+- **Dynamic State & District Switcher**: Supports live GPS geolocation alongside instant state-wise and city-wise dropdown filtering.
 
 ---
 
@@ -251,6 +255,7 @@ Interactive API Documentation (Swagger):
 ```
 SC-Loan-Platform/
 ├── README.md                           # Comprehensive documentation
+├── requirements.txt                    # Root Python dependencies file
 ├── .gitignore                          # Git ignore rules (DBs, envs, caches)
 ├── backend/
 │   ├── main.py                         # FastAPI master application & endpoints
@@ -258,6 +263,7 @@ SC-Loan-Platform/
 │   ├── .env                            # Environment variables (OpenRouter key)
 │   ├── crawler_runner.py               # Web crawler execution runner
 │   ├── test_full_system.py             # E2E system integration verification script
+│   ├── test_readiness_optin_flow.py    # Zero-assumption two-phase readiness opt-in test suite
 │   ├── test_auth_and_db.py             # OTP auth & SQLite persistence test suite
 │   ├── test_partner_rag.py             # Channel Partner RAG search test suite
 │   ├── test_crawler.py                 # Web crawler test suite
