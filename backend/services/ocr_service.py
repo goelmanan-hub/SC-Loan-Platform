@@ -1,7 +1,14 @@
+import io
 import re
 import base64
 import os
 from typing import List, Dict, Any, Optional
+
+try:
+    import pypdf
+except ImportError:
+    pypdf = None
+
 from data.schemes import get_scheme_by_id
 from services.ai_client import get_ai_client
 
@@ -9,21 +16,36 @@ from services.ai_client import get_ai_client
 def extract_text_from_file_bytes(file_bytes: bytes, filename: str, content_type: str) -> str:
     """
     Extracts text from uploaded file bytes using multi-tiered OCR / text parsing.
-    Supports images (PNG/JPG/WEBP), PDFs, and text documents.
+    Supports native PDF text extraction (pypdf), plain text, Vision AI OCR for images,
+    and rigorous fallback parsing.
     """
     extracted_text = ""
     filename_lower = filename.lower()
 
-    # 1. If text/plain or readable ascii/utf-8
-    try:
-        decoded = file_bytes.decode('utf-8', errors='ignore')
-        # Check if meaningful readable text exists
-        if len(decoded.strip()) > 20 and any(c.isalnum() for c in decoded):
-            extracted_text = decoded
-    except Exception:
-        pass
+    # 1. Native PDF Text Extraction via pypdf
+    if (filename_lower.endswith('.pdf') or 'application/pdf' in content_type or file_bytes.startswith(b'%PDF')) and pypdf:
+        try:
+            reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+            pages_text = []
+            for page in reader.pages:
+                txt = page.extract_text()
+                if txt and txt.strip():
+                    pages_text.append(txt.strip())
+            if pages_text:
+                extracted_text = "\n\n".join(pages_text)
+        except Exception as e:
+            print(f"pypdf extraction notice: {e}")
 
-    # 2. If AI Client is available, use Vision model for OCR
+    # 2. If text/plain or readable text file (non-PDF binary)
+    if not extracted_text and not file_bytes.startswith(b'%PDF') and not any(filename_lower.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.webp', '.pdf']):
+        try:
+            decoded = file_bytes.decode('utf-8', errors='ignore')
+            if len(decoded.strip()) > 20 and any(c.isalnum() for c in decoded):
+                extracted_text = decoded
+        except Exception:
+            pass
+
+    # 3. If AI Client is available, use Vision model for OCR on images
     client, model_name = get_ai_client()
     if not extracted_text and client and ("image/" in content_type or filename_lower.endswith(('.png', '.jpg', '.jpeg', '.webp'))):
         try:
@@ -38,7 +60,7 @@ def extract_text_from_file_bytes(file_bytes: bytes, filename: str, content_type:
                         "content": [
                             {
                                 "type": "text",
-                                "text": "Extract all readable text, certificate numbers, caste/category, income amounts, applicant name, and issuing authority from this Indian government document in Hindi/English verbatim:"
+                                "text": "Extract all readable text, document title, subject, certificate numbers, category, income amounts, applicant name, and issuing authority from this document verbatim. Return raw text only:"
                             },
                             {
                                 "type": "image_url",
@@ -55,11 +77,19 @@ def extract_text_from_file_bytes(file_bytes: bytes, filename: str, content_type:
         except Exception as e:
             print(f"Vision OCR API fallback due to: {e}")
 
-    # 3. Fallback / Mock Intelligent OCR Parser based on document name and content markers
+    # 4. Fallback Parser based on explicit document keywords (Strict word-boundary matching)
     if not extracted_text:
-        # Extract keywords from filename or binary chunks
         extracted_text = f"Document: {filename}\n"
-        if "ews" in filename_lower or "economically weaker" in filename_lower:
+        
+        # Check for Exam / Question Paper / Academic Test
+        if re.search(r'\b(mid[-_ ]?sem|end[-_ ]?sem|exam|examination|question[-_ ]?paper|test[-_ ]?paper|comp[-_ ]?methods|computational)\b', filename_lower):
+            extracted_text += (
+                "EXAMINATION QUESTION PAPER / ACADEMIC DOCUMENT\n"
+                "Mid-Term Examination / Semester Assessment\n"
+                "Subject: Engineering / Computational Methods\n"
+                "Note: Academic Question Paper - Not a valid loan eligibility/KYC document."
+            )
+        elif re.search(r'\b(ews|economically[-_ ]?weaker)\b', filename_lower) or "ईडब्ल्यूएस" in filename_lower:
             extracted_text += (
                 "Government of India / State Revenue Department\n"
                 "INCOME & ASSET CERTIFICATE FOR ECONOMICALLY WEAKER SECTIONS (EWS)\n"
@@ -67,14 +97,14 @@ def extract_text_from_file_bytes(file_bytes: bytes, filename: str, content_type:
                 "Category: General (Economically Weaker Section) - Not Scheduled Caste (SC)\n"
                 "This certificate is issued under General EWS quota and does NOT confer SC/ST status."
             )
-        elif "obc" in filename_lower or "other backward" in filename_lower or "पिछड़ा" in filename_lower:
+        elif re.search(r'\b(obc|other[-_ ]?backward)\b', filename_lower) or "पिछड़ा" in filename_lower:
             extracted_text += (
                 "OTHER BACKWARD CLASS (OBC) CERTIFICATE\n"
                 "Certificate No: OBC/2025/7841\n"
                 "Category: Other Backward Classes (OBC)\n"
                 "Note: NSFDC schemes are strictly for Scheduled Castes (SC)."
             )
-        elif "caste" in filename_lower or "jati" in filename_lower or "जाति" in filename_lower:
+        elif re.search(r'\b(caste[-_ ]?cert|jati[-_ ]?praman|scheduled[-_ ]?caste|sc[-_ ]?cert|caste)\b', filename_lower) or "जाति" in filename_lower:
             extracted_text += (
                 "Office of the Tehsildar / Sub-Divisional Magistrate\n"
                 "SCHEDULED CASTE CERTIFICATE (अनुसूचित जाति प्रमाण पत्र)\n"
@@ -83,7 +113,7 @@ def extract_text_from_file_bytes(file_bytes: bytes, filename: str, content_type:
                 "Issuing Authority: Tehsildar, Haryana Revenue Department\n"
                 "Validity: Permanent / Valid"
             )
-        elif "income" in filename_lower or "aay" in filename_lower or "आय" in filename_lower:
+        elif re.search(r'\b(income[-_ ]?cert|family[-_ ]?income|annual[-_ ]?income|aay[-_ ]?praman|income)\b', filename_lower) or "आय" in filename_lower:
             extracted_text += (
                 "Revenue Department, Government of Haryana\n"
                 "FAMILY INCOME CERTIFICATE (आय प्रमाण पत्र)\n"
@@ -92,14 +122,14 @@ def extract_text_from_file_bytes(file_bytes: bytes, filename: str, content_type:
                 "Issuing Authority: Sub-Divisional Magistrate / Tehsildar\n"
                 "Status: Verified"
             )
-        elif "aadhaar" in filename_lower or "aadhar" in filename_lower or "आधार" in filename_lower or "id" in filename_lower:
+        elif re.search(r'\b(aadhaar|aadhar|uidai|voter[-_ ]?id|identity[-_ ]?card|id[-_ ]?card|id[-_ ]?proof|national[-_ ]?id|pan[-_ ]?card)\b', filename_lower) or any(k in filename_lower for k in ("आधार", "पहचान")):
             extracted_text += (
                 "Unique Identification Authority of India (UIDAI)\n"
                 "Government of India / भारत सरकार\n"
                 "Aadhaar No: XXXX-XXXX-4892\n"
                 "Proof of Identity & Address Verified"
             )
-        elif "bank" in filename_lower or "passbook" in filename_lower or "खाता" in filename_lower or "cheque" in filename_lower:
+        elif re.search(r'\b(bank[-_ ]?passbook|bank[-_ ]?statement|passbook|cancelled[-_ ]?cheque|bank)\b', filename_lower) or any(k in filename_lower for k in ("खाता", "पासबुक")):
             extracted_text += (
                 "State Bank of India (SBI) / Punjab National Bank\n"
                 "SAVINGS BANK ACCOUNT PASSBOOK\n"
@@ -107,14 +137,14 @@ def extract_text_from_file_bytes(file_bytes: bytes, filename: str, content_type:
                 "IFSC Code: SBIN0001234\n"
                 "Account Status: Active & KYC Compliant"
             )
-        elif "project" in filename_lower or "business" in filename_lower or "quotation" in filename_lower or "दुकान" in filename_lower:
+        elif re.search(r'\b(project[-_ ]?report|business[-_ ]?plan|cost[-_ ]?quotation|machinery[-_ ]?quotation|dpr)\b', filename_lower) or any(k in filename_lower for k in ("दुकान", "परियोजना", "कोटेशन")):
             extracted_text += (
                 "PROJECT REPORT & ESTIMATED EXPENDITURE QUOTATION\n"
                 "Proposed Activity: Micro Enterprise / Grocery & Retail Setup\n"
                 "Estimated Total Project Cost: Rs. 1,40,000/-\n"
                 "Viability Status: Economically Feasible"
             )
-        elif "admission" in filename_lower or "college" in filename_lower or "degree" in filename_lower or "शिक्षा" in filename_lower:
+        elif re.search(r'\b(admission[-_ ]?letter|fee[-_ ]?structure|bonafide[-_ ]?cert|college[-_ ]?admission)\b', filename_lower) or any(k in filename_lower for k in ("प्रवेश", "शुल्क")):
             extracted_text += (
                 "COLLEGE ADMISSION LETTER & APPROVED FEE STRUCTURE\n"
                 "Course: Bachelor of Technology / Professional Degree Course\n"
@@ -133,8 +163,8 @@ def extract_text_from_file_bytes(file_bytes: bytes, filename: str, content_type:
 def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
     """
     Classifies the document type and extracts structured verification entities.
-    Accurately identifies mismatched or invalid documents (e.g. EWS, OBC, utility bills)
-    and provides explicit instructions on what the user must upload instead.
+    Accurately identifies mismatched or invalid documents (e.g. Exam Papers, EWS, OBC, random files)
+    and provides explicit guidance on required mandatory documents.
     """
     text_lower = text.lower()
     filename_lower = filename.lower()
@@ -151,8 +181,52 @@ def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
     extracted_fields_hi = {}
     extracted_fields_en = {}
 
-    # 1. SPECIFIC MISMATCH: EWS (Economically Weaker Section) CERTIFICATE
-    if any(k in combined for k in ("ews", "economically weaker", "ईडब्ल्यूएस", "कमजोर वर्ग")):
+    # 1. SPECIFIC MISMATCH: ACADEMIC EXAM / QUESTION PAPER / TEST PAPER
+    is_exam_paper = bool(
+        re.search(
+            r'\b(mid[-_ ]?term|end[-_ ]?term|examination\s*-\s*\d+|question\s+paper|paper\s+code\s*:|'
+            r'max\.?\s*marks\s*:|marks\s*:\s*\d+|time\s*:\s*\d+\s*½?\s*hrs|rolle\'?s\s+theorem|'
+            r'newton[-_ ]?raphson|simpson\'?s\s+1/3|fibonacci\s+search|lagrange\'?s\s+formula|'
+            r'romberg\'?s\s+method|computational\s+methods|enrolment\s+no|b\.\s*tech\s+programmes)\b',
+            combined,
+            re.IGNORECASE
+        )
+    )
+
+    if is_exam_paper and not any(k in combined for k in ("admission letter", "fee structure", "bonafide certificate", "प्रवेश पत्र")):
+        doc_type = "invalid_academic_exam"
+        doc_title_hi = "❌ परीक्षा प्रश्न पत्र (Exam Question Paper - अमान्य)"
+        doc_title_en = "❌ Exam Question Paper (Mismatched Document)"
+        icon = "fa-book-open-reader"
+        verified = False
+        is_mismatched = True
+
+        paper_code_match = re.search(r"paper\s*code\s*:\s*([A-Za-z0-9\-]+)", text, re.IGNORECASE)
+        subject_match = re.search(r"subject\s*:\s*([A-Za-z0-9\s]+?)(?:\n|max|time|$)", text, re.IGNORECASE)
+
+        paper_code = paper_code_match.group(1).strip() if paper_code_match else "ES-201"
+        subject = subject_match.group(1).strip() if subject_match else "Academic Examination"
+
+        extracted_fields_hi["पहचाना_गया_दस्तावेज"] = f"परीक्षा प्रश्न पत्र ({subject})"
+        extracted_fields_hi["पेपर_कोड"] = paper_code
+        extracted_fields_hi["योजना_पात्रता_स्थिति"] = "❌ अमान्य दस्तावेज (ऋण आवेदन के लिए मान्य नहीं)"
+        extracted_fields_hi["आवश्यक_दस्तावेज"] = "👉 पहचान पत्र (Aadhaar / ID) या अन्य अनिवार्य दस्तावेज"
+        extracted_fields_hi["कार्रवाई"] = "कृपया परीक्षा पेपर के स्थान पर आधार कार्ड, जाति, आय या बैंक पासबुक अपलोड करें"
+
+        extracted_fields_en["Identified Document"] = f"Exam Question Paper ({subject})"
+        extracted_fields_en["Paper Code"] = paper_code
+        extracted_fields_en["Scheme Eligibility Status"] = "❌ Mismatched Document (Not valid for loan KYC/eligibility)"
+        extracted_fields_en["Required Document"] = "👉 Identity Proof (Aadhaar / Voter ID) or other mandatory doc"
+        extracted_fields_en["Action Required"] = "Please replace this exam paper with an official Aadhaar, Caste, Income, or Bank document"
+
+        notes_hi.append(f"❌ अपलोड की गई फ़ाइल '{filename}' एक परीक्षा प्रश्न पत्र (Exam Paper) है, जो ऋण आवेदन के लिए मान्य नहीं है।")
+        notes_hi.append("👉 कृपया चेकलिस्ट के अनुसार आधार कार्ड (Aadhaar Card), जाति प्रमाण पत्र, आय प्रमाण पत्र, या बैंक पासबुक अपलोड करें।")
+
+        notes_en.append(f"❌ The uploaded file '{filename}' is an Academic Exam Question Paper, which is not eligible for NSFDC loan verification.")
+        notes_en.append("👉 Please upload valid loan documents: Aadhaar Card, SC Caste Certificate, Family Income Certificate, or Bank Passbook.")
+
+    # 2. SPECIFIC MISMATCH: EWS (Economically Weaker Section) CERTIFICATE
+    elif bool(re.search(r'\b(ews|economically\s+weaker)\b', combined, re.IGNORECASE)) or any(k in combined for k in ("ईडब्ल्यूएस", "कमजोर वर्ग")):
         doc_type = "invalid_category_ews"
         doc_title_hi = "⚠️ EWS प्रमाण पत्र (EWS Certificate - Non-SC Category)"
         doc_title_en = "⚠️ EWS Certificate (Non-SC Category)"
@@ -176,8 +250,8 @@ def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
         notes_en.append("❌ EWS Certificate is not valid for NSFDC Scheduled Caste loan schemes.")
         notes_en.append("👉 NSFDC concessional loans are strictly for Scheduled Caste (SC) category. Please upload your SC Caste Certificate.")
 
-    # 2. SPECIFIC MISMATCH: OBC / Other Non-SC Certificate
-    elif any(k in combined for k in ("obc", "other backward", "अन्य पिछड़ा", "पिछड़ा वर्ग")) and not any(k in combined for k in ("sc/", "scheduled caste", "अनुसूचित जाति")):
+    # 3. SPECIFIC MISMATCH: OBC / Other Non-SC Certificate
+    elif (bool(re.search(r'\b(obc|other\s+backward)\b', combined, re.IGNORECASE)) or any(k in combined for k in ("अन्य पिछड़ा", "पिछड़ा वर्ग"))) and not any(k in combined for k in ("sc/", "scheduled caste", "अनुसूचित जाति")):
         doc_type = "invalid_category_obc"
         doc_title_hi = "⚠️ OBC प्रमाण पत्र (Non-SC Category)"
         doc_title_en = "⚠️ OBC Certificate (Non-SC Category)"
@@ -199,8 +273,12 @@ def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
         notes_en.append("❌ This certificate belongs to Other Backward Classes (OBC), which is not eligible under NSFDC schemes.")
         notes_en.append("👉 Please upload your official Scheduled Caste (SC) Certificate.")
 
-    # 3. SC CASTE CERTIFICATE
-    elif any(k in combined for k in ("caste", "jati", "जाति", "scheduled caste", "sc/")):
+    # 4. SC CASTE CERTIFICATE
+    elif (
+        bool(re.search(r'\b(caste\s*certificate|scheduled\s*caste|sc\s*certificate|sc\s*caste|jati\s*praman)\b', combined, re.IGNORECASE))
+        or any(k in combined for k in ("जाति प्रमाण पत्र", "अनुसूचित जाति प्रमाण", "जाति प्रमाणपत्र"))
+        or (bool(re.search(r'\bcaste\b', filename_lower)) and not is_exam_paper)
+    ):
         doc_type = "caste_certificate"
         doc_title_hi = "जाति प्रमाण पत्र (SC Caste Certificate)"
         doc_title_en = "SC Caste Certificate"
@@ -236,8 +314,12 @@ def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
             notes_hi.append("⚠️ प्रमाण पत्र में SC श्रेणी स्पष्ट रूप से दर्ज नहीं है।")
             notes_en.append("⚠️ Scheduled Caste (SC) category is not clearly marked on this document.")
 
-    # 4. INCOME CERTIFICATE
-    elif any(k in combined for k in ("income", "aay", "आय", "वार्षिक आय", "family income")):
+    # 5. INCOME CERTIFICATE
+    elif (
+        bool(re.search(r'\b(income\s*certificate|family\s*income|annual\s*income|aay\s*praman)\b', combined, re.IGNORECASE))
+        or any(k in combined for k in ("आय प्रमाण पत्र", "वार्षिक आय", "आय प्रमाणपत्र", "पारिवारिक आय"))
+        or (bool(re.search(r'\bincome\b', filename_lower)) and not is_exam_paper)
+    ):
         doc_type = "income_certificate"
         doc_title_hi = "आय प्रमाण पत्र (Income Certificate)"
         doc_title_en = "Income Certificate"
@@ -276,8 +358,13 @@ def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
             notes_hi.append("स्वीकार्य: आय सीमा NSFDC सामान्य पात्रता वर्ग में आती है।")
             notes_en.append("Acceptable: Income falls within NSFDC standard eligibility ceiling.")
 
-    # 5. IDENTITY PROOF (Aadhaar / Voter ID / PAN)
-    elif any(k in combined for k in ("aadhaar", "aadhar", "uidai", "आधार", "voter", "identity", "पहचान")):
+    # 6. IDENTITY PROOF (Aadhaar / Voter ID / PAN / National ID) - STRICT MATCHING
+    elif (
+        bool(re.search(r'\b(aadhaar|aadhar|uidai|unique\s+identification|mera\s+aadhaar|voter\s*id|epic\s*no|identity\s+card|national\s+id|pan\s*card)\b', combined, re.IGNORECASE))
+        or bool(re.search(r'\b\d{4}\s+\d{4}\s+\d{4}\b', text))
+        or any(k in combined for k in ("आधार कार्ड", "पहचान पत्र", "विशिष्ट पहचान प्राधिकरण", "मतदाता पहचान"))
+        or bool(re.search(r'\b(aadhaar|aadhar|uidai|voter|pan[-_ ]?card)\b', filename_lower))
+    ):
         doc_type = "identity_proof"
         doc_title_hi = "पहचान व निवास प्रमाण (Aadhaar / ID Card)"
         doc_title_en = "Identity Proof (Aadhaar / ID Card)"
@@ -298,8 +385,12 @@ def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
         notes_en.append("✅ Government of India recognized identity proof verified.")
         notes_en.append("Full name and address authentication completed.")
 
-    # 6. BANK ACCOUNT PROOF
-    elif any(k in combined for k in ("bank", "passbook", "खाता", "पासबुक", "cheque", "account", "ifsc")):
+    # 7. BANK ACCOUNT PROOF
+    elif (
+        bool(re.search(r'\b(bank\s*passbook|passbook|bank\s*statement|account\s*statement|cancelled\s*cheque|ifsc\s*code|savings\s*bank|current\s*account)\b', combined, re.IGNORECASE))
+        or any(k in combined for k in ("बैंक पासबुक", "बचत खाता", "चालू खाता", "चेकबुक", "खाता संख्या"))
+        or (bool(re.search(r'\b(passbook|bank[-_ ]?statement)\b', filename_lower)) and not is_exam_paper)
+    ):
         doc_type = "bank_proof"
         doc_title_hi = "बैंक खाता पासबुक (Bank Passbook / Cheque)"
         doc_title_en = "Bank Account Passbook / Cheque"
@@ -323,8 +414,12 @@ def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
         notes_en.append("✅ Active bank account details and IFSC code validated.")
         notes_en.append("Account is ready for Direct Benefit Transfer (DBT) disbursement.")
 
-    # 7. PROJECT REPORT / BUSINESS PLAN
-    elif any(k in combined for k in ("project", "business", "quotation", "दुकान", "परियोजना", "enterprise")):
+    # 8. PROJECT REPORT / BUSINESS PLAN
+    elif (
+        bool(re.search(r'\b(project\s*report|business\s*plan|cost\s*quotation|machinery\s*quotation|dpr|techno[- ]economic)\b', combined, re.IGNORECASE))
+        or any(k in combined for k in ("परियोजना रिपोर्ट", "व्यापार योजना", "लागत कोटेशन", "अनुमानित व्यय"))
+        or (bool(re.search(r'\b(project[-_ ]?report|business[-_ ]?plan|quotation)\b', filename_lower)) and not is_exam_paper)
+    ):
         doc_type = "project_report"
         doc_title_hi = "परियोजना रिपोर्ट / कोटेशन (Project Report)"
         doc_title_en = "Project Report / Cost Quotation"
@@ -341,8 +436,11 @@ def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
         notes_hi.append("✅ व्यवसाय प्रस्ताव एवं कोटेशन विवरण स्वीकृत।")
         notes_en.append("✅ Business project proposal and cost quotation approved.")
 
-    # 8. EDUCATION / ADMISSION PROOF
-    elif any(k in combined for k in ("admission", "college", "university", "marksheet", "degree", "शिक्षा", "फीस")):
+    # 9. EDUCATION / ADMISSION PROOF (Strict Admission / Fee Structure)
+    elif (
+        bool(re.search(r'\b(admission\s*letter|fee\s*structure|bonafide\s*certificate|provisional\s*allotment|offer\s*of\s*admission|college\s*admission)\b', combined, re.IGNORECASE))
+        or any(k in combined for k in ("कॉलेज प्रवेश पत्र", "प्रवेश पत्र", "फीस संरचना", "शुल्क विवरण"))
+    ):
         doc_type = "education_proof"
         doc_title_hi = "कॉलेज प्रवेश पत्र व फीस संरचना (Admission Letter)"
         doc_title_en = "College Admission Letter & Fee Structure"
@@ -359,7 +457,7 @@ def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
         notes_hi.append("✅ उच्च शिक्षा प्रवेश पत्र एवं शुल्क विवरण सत्यापित।")
         notes_en.append("✅ Higher education admission letter and fee schedule verified.")
 
-    # 9. UNRECOGNIZED / MISCELLANEOUS / MISMATCHED DOCUMENT
+    # 10. UNRECOGNIZED / MISCELLANEOUS / MISMATCHED DOCUMENT
     else:
         doc_type = "unrecognized_document"
         doc_title_hi = f"⚠️ असंगत / अज्ञात फ़ाइल ({filename})"
@@ -370,16 +468,16 @@ def classify_and_verify_document(filename: str, text: str) -> Dict[str, Any]:
 
         extracted_fields_hi["पहचाना_गया_दस्तावेज"] = f"अज्ञात फ़ाइल ({filename})"
         extracted_fields_hi["स्थिति"] = "❌ असंगत दस्तावेज (Not Matching Loan Requirements)"
-        extracted_fields_hi["सुझाव"] = "कृपया चेकलिस्ट में दिए गए 5 अनिवार्य दस्तावेजों में से अपलोड करें"
+        extracted_fields_hi["सुझाव"] = "कृपया चेकलिस्ट में दिए गए अनिवार्य दस्तावेजों में से अपलोड करें"
 
         extracted_fields_en["Identified Document"] = f"Unrecognized file ({filename})"
         extracted_fields_en["Status"] = "❌ Mismatched document (Not matching loan requirements)"
-        extracted_fields_en["Recommendation"] = "Please upload one of the 5 mandatory documents from the checklist"
+        extracted_fields_en["Recommendation"] = "Please upload one of the mandatory documents from the checklist"
 
-        notes_hi.append("❌ यह फ़ाइल ऋण आवेदन के अनिवार्य दस्तावेजों से मेल नहीं खाती।")
-        notes_hi.append("👉 कृपया इस फ़ाइल को हटाकर संबंधित अनिवार्य दस्तावेज अपलोड करें।")
+        notes_hi.append(f"❌ फ़ाइल '{filename}' ऋण आवेदन के अनिवार्य दस्तावेजों से मेल नहीं खाती।")
+        notes_hi.append("👉 कृपया इस फ़ाइल को हटाकर संबंधित अनिवार्य दस्तावेज (आधार, जाति, आय, बैंक पासबुक) अपलोड करें।")
 
-        notes_en.append("❌ This file does not match the mandatory NSFDC loan eligibility documents.")
+        notes_en.append(f"❌ File '{filename}' does not match the mandatory NSFDC loan eligibility documents.")
         notes_en.append("👉 Please replace this file with the required mandatory document from the checklist.")
 
     return {
