@@ -156,14 +156,16 @@ def health():
 def recommend_scheme_api(
     request: SchemeRequest
 ):
-
     user_data = request.model_dump()
+    result = recommend_scheme(user_data)
 
-    result = recommend_scheme(
-        user_data
-    )
-
-    if result.get("success") and result.get("recommended_scheme"):
+    # Only attach readiness if user explicitly provided both credit history and location (no self-assumed data)
+    if (
+        result.get("success")
+        and result.get("recommended_scheme")
+        and user_data.get("credit_history")
+        and user_data.get("location")
+    ):
         readiness = calculate_loan_readiness(
             user_data,
             scheme=result["recommended_scheme"]
@@ -186,9 +188,30 @@ def calculate_readiness_api(
     if request.scheme_id:
         scheme = get_scheme_by_id(request.scheme_id)
 
+    loc = user_data.get("location")
+    lat = user_data.get("latitude")
+    lng = user_data.get("longitude")
+    resolved_dist = user_data.get("nearest_partner_distance_km")
+
+    if resolved_dist is None and (loc or (lat and lng)):
+        try:
+            from services.partner_rag_service import retrieve_channel_partners
+            partners = retrieve_channel_partners(
+                query=loc or "",
+                latitude=lat,
+                longitude=lng,
+                scheme_id=request.scheme_id,
+                top_k=1
+            )
+            if partners and partners[0].get("distance_km") is not None:
+                resolved_dist = partners[0]["distance_km"]
+        except Exception:
+            pass
+
     readiness = calculate_loan_readiness(
         user_data,
-        scheme=scheme
+        scheme=scheme,
+        nearest_partner_distance_km=resolved_dist
     )
 
     return {
@@ -550,7 +573,7 @@ def loan_chat(
 
     next_field = get_next_question(request.session_id)
 
-    # Core parameters needed to evaluate scheme recommendation and loan readiness score:
+    # Core parameters needed to evaluate scheme recommendation:
     # 1. loan_type
     # 2. loan_required
     # 3. income
@@ -558,84 +581,114 @@ def loan_chat(
         loan_type and loan_required and income
     )
 
+    # Readiness parameters (strictly user provided, no assumptions)
+    wants_readiness = session.get("wants_readiness_score")
+    credit_history = session.get("credit_history")
+    user_location = session.get("location")
+
+    # Check if readiness can be verified
+    can_evaluate_readiness = bool(
+        is_fully_collected and wants_readiness is True and credit_history and user_location
+    )
+
     # Check if this is the initial transition to completion
     already_completed = session.get("is_completed_shown", False)
 
+    recommendation = None
+    emi_result = None
+    scheme = None
+    if is_fully_collected:
+        recommendation = recommend_scheme(session)
+        if recommendation.get("success") and recommendation.get("recommended_scheme"):
+            scheme = recommendation["recommended_scheme"]
+            emi_result = calculate_emi(
+                principal=session["loan_required"],
+                annual_interest_rate=scheme["interest_rate"],
+                tenure_months=int(session.get("tenure_months") or 36),
+                moratorium_months=scheme.get("moratorium_months", 3)
+            )
+
+    # Calculate verified nearest partner distance if location and coordinates exist
+    nearest_partner = None
+    resolved_dist = None
+    if user_location or (session.get("latitude") and session.get("longitude")):
+        try:
+            rag_query = f"{user_location or ''} {scheme.get('name', '') if scheme else ''}"
+            nearest_partners = retrieve_channel_partners(
+                query=rag_query,
+                scheme_id=scheme.get("id") if scheme else None,
+                latitude=session.get("latitude"),
+                longitude=session.get("longitude"),
+                top_k=1
+            )
+            if nearest_partners:
+                nearest_partner = nearest_partners[0]
+                resolved_dist = nearest_partner.get("distance_km")
+        except Exception:
+            nearest_partner = None
+            resolved_dist = None
+
+    readiness_result = None
+    if can_evaluate_readiness:
+        readiness_result = calculate_loan_readiness(
+            session,
+            scheme=scheme,
+            emi_data=emi_result,
+            nearest_partner_distance_km=resolved_dist
+        )
+        session["readiness_calculated"] = True
+
+    is_en = bool(request.language and request.language.startswith("en"))
+
     # =================================================
-    # INITIAL CONVERSATION COMPLETION (Triggered once)
+    # INITIAL SCHEME RECOMMENDATION COMPLETION
     # =================================================
     if (next_field is None or is_fully_collected) and not already_completed:
         session["is_completed_shown"] = True
         session["complete"] = True
-        if not session.get("location"):
-            session["location"] = "Delhi NCR"
-            save_answer(request.session_id, "location", session["location"])
         if not session.get("tenure_months"):
             session["tenure_months"] = 36
             save_answer(request.session_id, "tenure_months", 36)
 
         session = mark_complete(request.session_id)
 
-        recommendation = recommend_scheme(session)
-
-        emi_result = None
-        if recommendation.get("success") and recommendation.get("recommended_scheme"):
-            scheme = recommendation["recommended_scheme"]
-            emi_result = calculate_emi(
-                principal=session["loan_required"],
-                annual_interest_rate=scheme["interest_rate"],
-                tenure_months=session.get("tenure_months", 36),
-                moratorium_months=scheme["moratorium_months"]
-            )
-
-        scheme = recommendation.get("recommended_scheme") if recommendation.get("success") else None
-        readiness_result = calculate_loan_readiness(
-            session,
-            scheme=scheme,
-            emi_data=emi_result
-        )
-
-        is_en = bool(request.language and request.language.startswith("en"))
         default_reply = (
-            "Thank you! All required details have been gathered. Your personalized loan recommendation and readiness score are ready below."
+            "Thank you! Your personalized NSFDC loan recommendation is ready below."
             if is_en
-            else "धन्यवाद! आवश्यक जानकारी मिल गई है। आपकी व्यक्तिगत ऋण योजना की सलाह तैयार है।"
+            else "धन्यवाद! आपके विवरण के आधार पर व्यक्तिगत NSFDC ऋण योजना की सलाह तैयार है।"
         )
         completion_message = agent_result.get("reply") or default_reply
 
-        # Retrieve nearest channel partner for user location and scheme
-        user_loc = session.get("location") or ""
-        rag_query = f"{user_loc} {scheme.get('name', '') if scheme else ''}"
-        nearest_partners = retrieve_channel_partners(
-            query=rag_query,
-            scheme_id=scheme.get("id") if scheme else None,
-            latitude=session.get("latitude"),
-            longitude=session.get("longitude"),
-            top_k=1
-        )
-        nearest_partner = nearest_partners[0] if nearest_partners else None
-
         dist_str = f" ({nearest_partner['distance_km']} km)" if nearest_partner and nearest_partner.get("distance_km") is not None else ""
 
+        # Formatting response with EMI and Partner info
         if is_en:
             if emi_result and "EMI" not in completion_message:
                 completion_message += f"\n\n📊 **Estimated Monthly EMI**: ₹{emi_result['monthly_emi']:,.2f}/month"
-            if readiness_result and "Readiness" not in completion_message:
-                badge_text = readiness_result.get("badge_en") or (
-                    "Excellent" if readiness_result['score'] >= 80 else "High" if readiness_result['score'] >= 65 else "Moderate"
-                )
-                completion_message += f"\n🎯 **Loan Readiness Score**: {readiness_result['score']}/100 ({badge_text})"
             if nearest_partner and "Partner" not in completion_message and "Bank" not in completion_message:
                 p_phone = f" (📞 {nearest_partner['phone']})" if nearest_partner.get("phone") else ""
                 completion_message += f"\n🏛️ **Nearest Official Channel Partner**{dist_str}: {nearest_partner['name']} — {nearest_partner.get('address') or nearest_partner.get('city')}{p_phone}"
+
+            if readiness_result:
+                badge_text = readiness_result.get("badge_en") or (
+                    "High Readiness" if readiness_result['score'] >= 80 else "Good Readiness" if readiness_result['score'] >= 60 else "Moderate Readiness"
+                )
+                if "Readiness" not in completion_message and "Score" not in completion_message:
+                    completion_message += f"\n\n🎯 **Verified Loan Readiness Score**: {readiness_result['score']}/100 ({badge_text})"
+            elif wants_readiness is None and "Readiness" not in completion_message and "Score" not in completion_message:
+                completion_message += "\n\n💡 **Would you like to calculate your Loan Readiness Score?**\nTo evaluate your score accurately without self-assumptions, I will need your credit history (clean / existing loans / past defaults) and exact location."
         else:
             if emi_result and "EMI" not in completion_message:
                 completion_message += f"\n\n📊 **अनुमानित EMI**: ₹{emi_result['monthly_emi']:,.2f}/माह"
-            if readiness_result and "Readiness" not in completion_message:
-                completion_message += f"\n🎯 **ऋण तैयारी स्कोर**: {readiness_result['score']}/100 ({readiness_result['badge']})"
             if nearest_partner and "पार्टनर" not in completion_message and "कार्यालय" not in completion_message:
                 p_phone = f" (📞 {nearest_partner['phone']})" if nearest_partner.get("phone") else ""
                 completion_message += f"\n🏛️ **निकटतम आधिकारिक चैनल पार्टनर**{dist_str}: {nearest_partner['name']} — {nearest_partner.get('address') or nearest_partner.get('city')}{p_phone}"
+
+            if readiness_result:
+                if "तैयारी स्कोर" not in completion_message and "Readiness" not in completion_message:
+                    completion_message += f"\n\n🎯 **सत्यापित ऋण तैयारी स्कोर**: {readiness_result['score']}/100 ({readiness_result['badge']})"
+            elif wants_readiness is None and "तैयारी स्कोर" not in completion_message and "Readiness" not in completion_message:
+                completion_message += "\n\n💡 **क्या आप अपना 'ऋण तैयारी स्कोर' (Loan Readiness Score) भी जानना चाहते हैं?**\nसटीक मूल्यांकन हेतु हमें आपके क्रेडिट इतिहास व स्थान की आवश्यकता होगी ताकि हम निकटतम चैनल पार्टनर की दूरी माप सकें।"
 
         return {
             "success": True,
@@ -656,25 +709,39 @@ def loan_chat(
         }
 
     # =================================================
-    # CONTINUOUS CHAT / FOLLOW-UP QUESTIONS / Q&A
+    # CONTINUOUS CHAT / FOLLOW-UP QUESTIONS / Q&A / READINESS EVALUATION
     # =================================================
     session["current_question"] = next_field
 
-    interim_readiness = None
-    if session.get("loan_type") and session.get("loan_required") and session.get("income"):
-        interim_readiness = calculate_loan_readiness(
-            session,
-            scheme=None
-        )
+    # If the user is answering readiness opt-in or providing credit history/location in follow-up turns
+    chat_message = agent_result.get("reply") or ""
+    if can_evaluate_readiness and readiness_result and not session.get("readiness_message_sent"):
+        session["readiness_message_sent"] = True
+        dist_str = f" ({resolved_dist:.1f} km)" if resolved_dist is not None else ""
+        if is_en:
+            if "Readiness" not in chat_message and "Score" not in chat_message:
+                chat_message += f"\n\n🎯 **Verified Loan Readiness Score**: {readiness_result['score']}/100 ({readiness_result['badge']})\n📍 **Nearest Partner Distance**: {dist_str}"
+        else:
+            if "तैयारी स्कोर" not in chat_message and "Readiness" not in chat_message:
+                chat_message += f"\n\n🎯 **सत्यापित ऋण तैयारी स्कोर**: {readiness_result['score']}/100 ({readiness_result['badge']})\n📍 **निकटतम चैनल पार्टनर दूरी**: {dist_str}"
 
     return {
         "success": True,
-        "complete": False,
+        "complete": bool(is_fully_collected),
         "session_id": request.session_id,
-        "message": agent_result.get("reply"),
+        "message": chat_message,
         "next_field": next_field,
         "user_data": session,
-        "readiness": interim_readiness
+        "recommendation": recommendation,
+        "emi": emi_result,
+        "readiness": readiness_result,
+        "nearest_partner": nearest_partner,
+        "user_coordinates": {
+            "lat": session.get("latitude"),
+            "lng": session.get("longitude"),
+            "location": session.get("location"),
+            "state": session.get("state")
+        } if session.get("latitude") and session.get("longitude") else None
     }
 
 

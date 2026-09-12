@@ -7,11 +7,14 @@ from data.schemes import get_all_schemes
 def calculate_loan_readiness(
     user_data: Dict[str, Any],
     scheme: Optional[Dict[str, Any]] = None,
-    emi_data: Optional[Dict[str, Any]] = None
+    emi_data: Optional[Dict[str, Any]] = None,
+    nearest_partner_distance_km: Optional[float] = None
 ) -> Dict[str, Any]:
     """
     Calculates a multi-factor Loan Readiness Score (0 - 100)
     for SC beneficiaries based on 5 Underwriting Criteria Pillars.
+    NO SELF-ASSUMED OR GUESS VALUES: Credit History and Accessibility
+    are scored strictly on verified user data and real physical distance.
 
     Underwriting Criteria Pillars (100 pts total):
     1. EMI Affordability & Debt Service Burden (FOIR): 30 points
@@ -144,36 +147,77 @@ def calculate_loan_readiness(
 
     # ==========================================
     # PILLAR 4: Credit Track Record & Debt Profile (Max: 10 pts)
+    # NO SELF-ASSUMPTION: Evaluated strictly from user-provided credit history
     # ==========================================
     credit_score = 0
     credit_details = ""
-    if credit_history in ["clean", "no_loans", "good"]:
+    if credit_history in ["clean", "no_loans", "no_loans_no_defaults", "good", "clean_record", "no_default", "fresh"]:
         credit_score = 10
         credit_details = "उत्कृष्ट क्रेडिट स्थिति (10/10): कोई पिछला डिफ़ॉल्ट नहीं, स्वच्छ पुनर्भुगतान रिकॉर्ड।"
-    elif credit_history in ["active_loan", "running"]:
+    elif credit_history in ["active_loan", "running", "running_loan", "regular_repayment"]:
         credit_score = 7
-        credit_details = "सक्रिय ऋण चालू (7/10): वर्तमान ऋणों की नियमित किस्तों के साथ संतुलित रिकॉर्ड।"
-    elif credit_history in ["defaulter", "delayed", "bad"]:
-        credit_score = 1
-        credit_details = "उच्च जोखिम (1/10): पूर्व ऋण में विलंब/अस्थिरता—क्रेडिट सुधार की आवश्यकता।"
+        credit_details = "सक्रिय ऋण चालू (7/10): वर्तमान ऋण की नियमित किस्तों के साथ संतुलित ट्रैक रिकॉर्ड।"
+    elif credit_history in ["defaulter", "delayed", "bad", "overdue", "late_payment"]:
+        credit_score = 2
+        credit_details = "ऋण जोखिम (2/10): पूर्व ऋण में विलंब या बकाया—क्रेडिट सुधार की आवश्यकता।"
+    elif credit_history:
+        credit_score = 5
+        credit_details = f"क्रेडिट स्थिति दर्ज ({credit_history}) (5/10): बैंक सत्यापन उपरांत अंतिम अंक।"
     else:
-        credit_score = 7
-        credit_details = "मानक स्थिति (7/10): पहला ऋण आवेदन—बैंक सत्यापन उपरांत अंतिम क्रेडिट अंक।"
+        # Zero self-assumption: unprovided credit history gives 0 pts
+        credit_score = 0
+        credit_details = "क्रेडिट इतिहास असत्यापित (0/10): आवेदक द्वारा क्रेडिट विवरण प्रदान नहीं किया गया।"
 
     # ==========================================
     # PILLAR 5: Location & Channel Partner Accessibility (Max: 10 pts)
+    # NO SELF-ASSUMPTION: Calculated from verified physical distance to nearest partner
     # ==========================================
     accessibility_score = 0
     accessibility_details = ""
-    if location and len(location.strip()) >= 3:
-        accessibility_score = 10
-        accessibility_details = f"स्थान सत्यापित ({location}) (10/10): निकटतम राज्य एजेंसी (SCA)/पार्टनर बैंक नेटवर्क सक्रिय।"
+
+    # If physical distance is provided directly or can be resolved
+    resolved_dist = nearest_partner_distance_km
+    if resolved_dist is None and location:
+        try:
+            from services.partner_rag_service import retrieve_channel_partners
+            lat = user_data.get("latitude")
+            lng = user_data.get("longitude")
+            matched_partners = retrieve_channel_partners(
+                query=location,
+                latitude=lat,
+                longitude=lng,
+                scheme_id=scheme.get("id") if scheme else None,
+                top_k=1
+            )
+            if matched_partners and matched_partners[0].get("distance_km") is not None:
+                resolved_dist = matched_partners[0]["distance_km"]
+                p_name = matched_partners[0].get("name", "आधिकारिक चैनल पार्टनर")
+        except Exception:
+            resolved_dist = None
+
+    if resolved_dist is not None:
+        if resolved_dist <= 10.0:
+            accessibility_score = 10
+            accessibility_details = f"उत्कृष्ट निकटता (10/10): निकटतम चैनल पार्टनर मात्र {resolved_dist:.1f} किमी दूरी पर उपलब्ध।"
+        elif resolved_dist <= 25.0:
+            accessibility_score = 8
+            accessibility_details = f"सुगम पहुंच (8/10): निकटतम चैनल पार्टनर {resolved_dist:.1f} किमी दूरी पर स्थित।"
+        elif resolved_dist <= 50.0:
+            accessibility_score = 6
+            accessibility_details = f"मध्यम दूरी (6/10): निकटतम चैनल पार्टनर {resolved_dist:.1f} किमी दूरी पर उपलब्ध।"
+        elif resolved_dist <= 100.0:
+            accessibility_score = 4
+            accessibility_details = f"क्षेत्रीय केंद्र (4/10): निकटतम जिला/राज्य चैनल पार्टनर {resolved_dist:.1f} किमी पर स्थित।"
+        else:
+            accessibility_score = 2
+            accessibility_details = f"अधिक दूरी (2/10): निकटतम चैनल पार्टनर {resolved_dist:.1f} किमी दूरी पर स्थित।"
     elif location and len(location.strip()) >= 2:
-        accessibility_score = 7
-        accessibility_details = f"स्थान दर्ज है ({location}) (7/10): सत्यापन संभव।"
+        accessibility_score = 4
+        accessibility_details = f"स्थान दर्ज है ({location}) (4/10): निकटतम पार्टनर दूरी का सटीक सत्यापन शेष।"
     else:
-        accessibility_score = 3
-        accessibility_details = "स्थान विवरण दर्ज नहीं है (3/10)। नजदीकी सहायता केंद्र खोजने हेतु शहर/ज़िला बताएं।"
+        # Zero self-assumption: unprovided location gives 0 pts
+        accessibility_score = 0
+        accessibility_details = "स्थान विवरण अनुपलब्ध (0/10): निकटतम चैनल पार्टनर दूरी का मूल्यांकन नहीं हुआ है।"
 
     # ==========================================
     # TOTAL SCORE & CATEGORIZATION
@@ -229,9 +273,9 @@ def calculate_loan_readiness(
     if docs_score < 22:
         tips.append("सभी मुख्य दस्तावेज (जाति, आय, आधार, पासबुक, प्रोजेक्ट/एडमिशन) OCR पर जांचकर पूरे 25 अंक प्राप्त करें।")
     if credit_score < 8:
-        tips.append("मौजूदा बैंक ऋणों की किस्तें समय पर चुकाकर अपना क्रेडिट रिकॉर्ड स्वच्छ रखें।")
+        tips.append("स्वच्छ क्रेडिट रिकॉर्ड (कोई डिफ़ॉल्ट न होना) बनाए रखकर पूरे 10 अंक प्राप्त करें।")
     if accessibility_score < 8:
-        tips.append("अपने निकटतम स्टेट चैनलाइजिंग एजेंसी (SCA) या बैंक शाखा की सटीक लोकेशन दर्ज करें।")
+        tips.append("अपने निकटतम स्टेट चैनलाइजिंग एजेंसी (SCA) या बैंक शाखा की सटीक लोकेशन दर्ज कर निकटता अंक बढ़ाएं।")
 
     if not tips:
         tips.append("आपकी ऋण तत्परता उत्कृष्ट है! सभी मूल प्रमाण पत्र सत्यापन हेतु तैयार रखें।")
@@ -259,6 +303,7 @@ def calculate_loan_readiness(
         "badge": badge_hi,
         "color": status_color,
         "summary": summary,
+        "nearest_partner_distance_km": resolved_dist,
         "pillars": {
             "affordability": {
                 "score": affordability_score,

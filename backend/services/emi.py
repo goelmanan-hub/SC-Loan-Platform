@@ -5,13 +5,13 @@ def calculate_emi(
     moratorium_months=0
 ):
 
-    principal = float(principal)
+    principal = float(principal or 0)
     annual_interest_rate = float(
-        annual_interest_rate
+        annual_interest_rate or 0
     )
-    tenure_months = int(tenure_months)
+    tenure_months = int(tenure_months or 36)
     moratorium_months = int(
-        moratorium_months
+        moratorium_months or 0
     )
 
     monthly_rate = (

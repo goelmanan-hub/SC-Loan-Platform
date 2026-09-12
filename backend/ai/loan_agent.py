@@ -31,14 +31,21 @@ ADAPTABILITY & COMMUNICATION RULES:
    - Then, seamlessly invite them to share any remaining application details if they want to proceed.
    - If the user provides multiple details in one message (e.g., "I need a 2 lakh loan for my tailor shop in Kurukshetra"), extract all of them at once.
 
-3. 📑 REQUIRED DOCUMENTS KNOWLEDGE (NSFDC / SCA):
+3. 🎯 TWO-PHASE SCHEME RECOMMENDATION & READINESS SCORE WORKFLOW:
+   - Phase 1 (Scheme Recommendation): When the user provides core loan details (loan type, loan amount, purpose, and income), recommend the best matching NSFDC concessional scheme and explain its benefits, interest rate, and subsidy.
+   - Then, ASK the user if they want to calculate their Loan Readiness Score:
+     * Hindi: "क्या आप अपना 'ऋण तैयारी स्कोर' (Loan Readiness Score) भी जानना चाहते हैं? इसके लिए हमें आपके क्रेडिट रिकॉर्ड (कोई पिछला बकाया या साफ़ रिकॉर्ड) और वर्तमान स्थान की आवश्यकता होगी।"
+     * English: "Would you like to calculate your Loan Readiness Score? We will need your credit history details and exact location to calculate the real distance to your nearest channel partner."
+   - Phase 2 (Readiness Evaluation on Real Data): If the user says Yes or asks for their readiness score, collect their Credit History and Location (if not already provided). When verified, evaluate their score with real physical distance to the nearest channel partner without any self-assumptions.
+
+4. 📑 REQUIRED DOCUMENTS KNOWLEDGE (NSFDC / SCA):
    - 🆔 SC Caste Certificate (जाति प्रमाण पत्र)
    - 📄 Family Income Certificate (आय प्रमाण पत्र)
    - 🪪 Aadhaar Card / Voter ID (पहचान व निवास प्रमाण)
    - 🏦 Bank Passbook with IFSC (बैंक पासबुक)
    - 📋 Project Report & Estimate (for Business) OR 🎓 Admission Letter & Fee Structure (for Education)
 
-4. 🎯 LOAN PARAMETERS TO EXTRACT:
+5. 🎯 LOAN PARAMETERS TO EXTRACT:
    - loan_type ("education" or "business")
    - loan_required (numeric amount in rupees)
    - business_type (string, e.g. "Tailoring Shop", "Dairy", "Kirana Store")
@@ -50,6 +57,7 @@ ADAPTABILITY & COMMUNICATION RULES:
    - docs_status ("all_ready", "partial_ready", or "basic")
    - experience ("experienced", "moderate", or "fresher")
    - credit_history ("clean", "active_loan", or "defaulter")
+   - wants_readiness_score (boolean true/false)
 """
 
 def normalize_text(text: str) -> str:
@@ -67,6 +75,22 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
     normalized_raw = normalize_text(text)
     lower = normalized_raw.lower()
     cleaned_text = normalized_raw.strip()
+
+    # 0. Opt-in for Readiness Score
+    if any(w in lower for w in [
+        "calculate score", "readiness score", "check score", "score janna", "score batao",
+        "score calculate", "score chahiye", "ha score", "yes score", "readiness janni",
+        "score bhi", "score dekhna"
+    ]) or any(w in normalized_raw for w in ["तैयारी स्कोर", "स्कोर जानना", "स्कोर बताओ", "स्कोर चेक", "स्कोर की गणना", "हाँ स्कोर"]):
+        extracted["wants_readiness_score"] = True
+    elif (
+        any(w in lower for w in ["yes", "haan", "ha", "sure", "ok", "okay", "batao", "jaroor", "chahiye"])
+        or any(w in normalized_raw for w in ["हाँ", "हां", "ज़रूर", "बिल्कुल", "बताइए", "चाहिए"])
+    ) and current_data.get("loan_required") and current_data.get("income"):
+        # User answering yes to readiness question after core fields collected
+        extracted["wants_readiness_score"] = True
+    elif any(w in lower for w in ["no score", "nahi chahiye", "only scheme", "sirf scheme"]) or any(w in normalized_raw for w in ["स्कोर नहीं", "केवल योजना"]):
+        extracted["wants_readiness_score"] = False
 
     # 1. Loan type extraction
     if not current_data.get("loan_type"):
@@ -94,10 +118,14 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
     elif any(w in lower for w in ["fresher", "new", "nayi", "shuru"]) or any(w in normalized_raw for w in ["नया व्यवसाय", "नया काम", "पहली बार", "शुरू करना"]):
         extracted["experience"] = "fresher"
 
-    # 5. Criteria: Credit history / Existing loans
-    if any(w in lower for w in ["no loan", "no emi", "clean"]) or any(w in normalized_raw for w in ["कोई लोन नहीं", "कोई कर्ज नहीं", "कोई ईएमआई नहीं"]):
+    # 5. Criteria: Credit history / Existing loans (NO ASSUMPTION: strictly evaluated)
+    if any(w in lower for w in ["no loan", "no emi", "clean", "no default", "good record", "saf record", "saaf record", "pehla loan", "koi karz nahi", "koi loan nahi"]) or any(w in normalized_raw for w in ["कोई लोन नहीं", "कोई कर्ज नहीं", "कोई ईएमआई नहीं", "साफ़ रिकॉर्ड", "कोई डिफ़ॉल्ट नहीं", "पहला लोन", "स्वच्छ रिकॉर्ड"]):
         extracted["credit_history"] = "clean"
         extracted["existing_emi"] = 0.0
+    elif any(w in lower for w in ["active loan", "running loan", "chal raha loan", "chalu loan", "time pe kist", "regular repayment"]) or any(w in normalized_raw for w in ["लोन चल रहा", "सक्रिय लोन", "समय पर किस्त"]):
+        extracted["credit_history"] = "active_loan"
+    elif any(w in lower for w in ["defaulter", "default", "overdue", "late payment", "delayed", "npa"]) or any(w in normalized_raw for w in ["डिफ़ॉल्ट", "बकाया", "देरी हुई"]):
+        extracted["credit_history"] = "defaulter"
 
     # 6. Numbers / Amounts parsing
     def parse_amount(val):
@@ -253,7 +281,8 @@ def chat_with_loan_agent(session_id: str, user_message: str, current_session: di
         "caste_status": current_session.get("caste_status") or extracted.get("caste_status"),
         "docs_status": current_session.get("docs_status") or extracted.get("docs_status"),
         "experience": current_session.get("experience") or extracted.get("experience"),
-        "credit_history": current_session.get("credit_history") or extracted.get("credit_history")
+        "credit_history": current_session.get("credit_history") or extracted.get("credit_history"),
+        "wants_readiness_score": current_session.get("wants_readiness_score") or extracted.get("wants_readiness_score")
     }
 
     ai_reply = None
@@ -299,10 +328,12 @@ User's Selected Interface Language: {target_lang_name} ({lang_code})
 CRITICAL INSTRUCTIONS:
 1. Generate an empathetic, human-like response:
    - Acknowledge what the user shared (e.g. location, income, caste certificate, business type).
-   - If the user asks a question about schemes, interest, subsidy, eligibility, documents, or WHERE to apply / WHICH bank / partner office address, answer factually and warmly using the RAG Contexts above.
+   - If basic loan requirements (loan type, loan amount, purpose, income) are given, recommend the best matching NSFDC scheme with its interest rate and benefits.
+   - If the scheme has just been recommended and the user has not yet decided on Loan Readiness Score, politely ASK if they would like to calculate their Loan Readiness Score:
+     * e.g., "क्या आप अपना ऋण तैयारी स्कोर (Loan Readiness Score) भी जानना चाहते हैं? इसके लिए मैं आपसे आपके क्रेडिट इतिहास व स्थान के बारे में पूछूँगा।"
    - If the user asks for nearest office/bank/SCA, provide the exact office name, address, nodal officer, and phone number from the Channel Partner RAG context.
-   - Respond in the user's selected language: {target_lang_name}. If the user typed in another Indian language or English, match their natural phrasing while keeping it polite and clear.
-   - If key application info is still missing, smoothly ask for the next relevant detail.
+   - If the user provides their credit history (clean, active loan, default) or location, acknowledge and evaluate.
+   - Respond in the user's selected language: {target_lang_name}.
 2. Accurately extract all newly mentioned facts/parameters from the user's message.
 
 Output strictly valid JSON with this structure:
@@ -319,7 +350,8 @@ Output strictly valid JSON with this structure:
     "caste_status": null,
     "docs_status": null,
     "experience": null,
-    "credit_history": null
+    "credit_history": null,
+    "wants_readiness_score": null
   }}
 }}
 """

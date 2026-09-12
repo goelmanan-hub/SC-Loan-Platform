@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, Optional, Any
 
 
 SESSIONS: Dict[str, dict] = {}
@@ -15,8 +15,7 @@ QUESTIONS = {
 }
 
 
-def create_session(session_id: str):
-
+def create_session(session_id: str) -> dict:
     SESSIONS[session_id] = {
         "loan_type": None,
         "income": None,
@@ -27,70 +26,63 @@ def create_session(session_id: str):
         "latitude": None,
         "longitude": None,
         "tenure_months": None,
+        "caste_status": None,
+        "docs_status": None,
+        "credit_history": None,
+        "wants_readiness_score": None,
+        "readiness_calculated": False,
         "current_question": "loan_type",
         "complete": False
     }
-
     return SESSIONS[session_id]
 
 
-def get_session(session_id: str):
-
+def get_session(session_id: str) -> Optional[dict]:
     return SESSIONS.get(session_id)
 
 
-def save_answer(session_id: str, field: str, value):
-
+def save_answer(session_id: str, field: str, value: Any) -> Optional[dict]:
     if session_id not in SESSIONS:
         return None
-
     SESSIONS[session_id][field] = value
-
     return SESSIONS[session_id]
 
 
-def get_next_question(session_id: str):
-
+def get_next_question(session_id: str) -> Optional[str]:
     session = SESSIONS.get(session_id)
-
     if not session:
         return None
 
-    loan_type = session["loan_type"]
-
+    loan_type = session.get("loan_type")
     if not loan_type:
         return "loan_type"
 
-    if not session["loan_required"]:
+    if not session.get("loan_required"):
         return "loan_required"
 
-    if loan_type == "business" and not session["business_type"]:
+    if loan_type == "business" and not session.get("business_type"):
         return "business_type"
 
-    if loan_type == "education" and not session["education_course"]:
+    if loan_type == "education" and not session.get("education_course"):
         return "education_course"
 
-    if not session["income"]:
+    if not session.get("income"):
         return "income"
 
-    if not session["location"]:
+    if not session.get("location"):
         return "location"
 
-    # `.get` keeps conversations started before this field was added working.
     if not session.get("tenure_months"):
         return "tenure_months"
 
     return None
 
 
-def get_question_text(field: str):
-
+def get_question_text(field: str) -> Optional[str]:
     return QUESTIONS.get(field)
 
 
-def mark_complete(session_id: str):
-
+def mark_complete(session_id: str) -> Optional[dict]:
     if session_id in SESSIONS:
         SESSIONS[session_id]["complete"] = True
-
     return SESSIONS.get(session_id)

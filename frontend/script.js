@@ -2382,6 +2382,69 @@ function appendChatMessage(sender, text) {
         `;
     }
 
+    // Add interactive quick CTA chips if bot is asking for Readiness Score Opt-In or Credit History
+    if (sender === "bot" && typeof text === "string") {
+        const textLower = text.toLowerCase();
+        const isReadinessOptInPrompt = (
+            text.includes("ऋण तैयारी स्कोर") ||
+            text.includes("Loan Readiness Score") ||
+            textLower.includes("readiness score")
+        ) && (
+            text.includes("जानना चाहते") ||
+            text.includes("चाहते हैं") ||
+            textLower.includes("would you like") ||
+            textLower.includes("want to calculate")
+        );
+
+        const isCreditHistoryPrompt = (
+            text.includes("क्रेडिट इतिहास") ||
+            text.includes("क्रेडिट रिकॉर्ड") ||
+            text.includes("क्रेडिट विवरण") ||
+            textLower.includes("credit history") ||
+            textLower.includes("past default")
+        );
+
+        if (isReadinessOptInPrompt) {
+            const yesText = isEn ? "📊 Yes, Calculate Readiness Score" : "📊 हाँ, ऋण तैयारी स्कोर जानना है";
+            const noText = isEn ? "⏭️ Scheme Details Only" : "⏭️ केवल योजना विवरण चाहिए";
+            const yesVal = isEn ? "Yes, calculate my loan readiness score" : "हाँ, मुझे ऋण तैयारी स्कोर जानना है";
+            const noVal = isEn ? "No, scheme details are enough" : "नहीं, मुझे केवल योजना विवरण चाहिए";
+
+            formattedText += `
+                <div class="chat-quick-actions" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;" onclick="submitChatOption('${yesVal}')">
+                        ${yesText}
+                    </button>
+                    <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; background: #e2e8f0; color: #1e293b; border: 1px solid #cbd5e1;" onclick="submitChatOption('${noVal}')">
+                        ${noText}
+                    </button>
+                </div>
+            `;
+        } else if (isCreditHistoryPrompt) {
+            const cleanText = isEn ? "✅ Clean Record (No Defaults)" : "✅ स्वच्छ रिकॉर्ड (कोई डिफ़ॉल्ट नहीं)";
+            const activeText = isEn ? "💳 Active Loan (Regular Repayment)" : "💳 चालू ऋण (समय पर किस्त)";
+            const overdueText = isEn ? "⚠️ Past Delay / Overdue" : "⚠️ पिछला विलंब / बकाया";
+
+            const cleanVal = isEn ? "I have a clean credit record with no loans and no defaults" : "मेरा क्रेडिट रिकॉर्ड बिल्कुल स्वच्छ है, कोई पिछला डिफ़ॉल्ट या ऋण नहीं";
+            const activeVal = isEn ? "I have an active loan and I pay all EMIs on time" : "मेरा एक बैंक ऋण चालू है और किस्तें समय पर जा रही हैं";
+            const overdueVal = isEn ? "I have past delayed payments or overdue loan" : "मेरे पिछले ऋण में कुछ विलंब या बकाया हुआ था";
+
+            formattedText += `
+                <div class="chat-quick-actions" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button type="button" class="btn-primary" style="padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer;" onclick="submitChatOption('${cleanVal}')">
+                        ${cleanText}
+                    </button>
+                    <button type="button" class="btn-secondary" style="padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;" onclick="submitChatOption('${activeVal}')">
+                        ${activeText}
+                    </button>
+                    <button type="button" class="btn-secondary" style="padding: 5px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;" onclick="submitChatOption('${overdueVal}')">
+                        ${overdueText}
+                    </button>
+                </div>
+            `;
+        }
+    }
+
     msgDiv.innerHTML = `
         <div class="msg-avatar"><i class="fa-solid ${avatarIcon}"></i></div>
         <div class="msg-content-wrapper">
@@ -2394,6 +2457,14 @@ function appendChatMessage(sender, text) {
     container.scrollTop = container.scrollHeight;
     return msgId;
 }
+
+window.submitChatOption = function(msg) {
+    const chatInput = document.getElementById("chat-input");
+    if (chatInput) {
+        chatInput.value = msg;
+        sendMessage();
+    }
+};
 
 function speakChatMessage(msgId) {
     const elem = document.getElementById(msgId);
@@ -2470,11 +2541,13 @@ function renderRecommendationCard(rec, emi, readiness, userData) {
             }
         }
 
-        // Render Loan Readiness Score Section
+        // Render Loan Readiness Score Section (ONLY if readiness was evaluated with verified data)
+        const readinessBox = document.getElementById("rec-readiness-box");
         if (readiness) {
             populateReadinessUI("rec", readiness);
-            const readinessBox = document.getElementById("rec-readiness-box");
             if (readinessBox) readinessBox.style.display = "block";
+        } else if (readinessBox) {
+            readinessBox.style.display = "none";
         }
 
         // Auto-fill all widgets across the app with this recommended scheme's data

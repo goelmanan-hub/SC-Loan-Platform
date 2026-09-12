@@ -71,6 +71,9 @@ class ReadinessRequest(BaseModel):
     education_course: Optional[str] = None
     gender: Optional[str] = None
     location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    nearest_partner_distance_km: Optional[float] = None
     scheme_id: Optional[str] = None
     caste_status: Optional[str] = None
     docs_status: Optional[str] = None
