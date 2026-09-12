@@ -39,8 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchAvailableSchemes();
     checkBackendHealth();
     initSavedUserLocation();
-    // Show top-floating location banner & request browser GPS permission on reload
-    showGlobalLocationBanner();
+    // Automatically trigger browser location access prompt on page load/reload
     handleLocationPermissionRequest(false);
 });
 
@@ -1595,16 +1594,6 @@ function setupEventListeners() {
     }
 
     // Partner Search & Location Controls
-    const globalLocAllowBtn = document.getElementById("global-loc-allow-btn");
-    if (globalLocAllowBtn) {
-        globalLocAllowBtn.addEventListener("click", () => handleLocationPermissionRequest(true));
-    }
-
-    const globalLocDismissBtn = document.getElementById("global-loc-dismiss-btn");
-    if (globalLocDismissBtn) {
-        globalLocDismissBtn.addEventListener("click", () => hideGlobalLocationBanner(0));
-    }
-
     const findLocationBtn = document.getElementById("find-location-btn");
     if (findLocationBtn) {
         findLocationBtn.addEventListener("click", () => handleLocationPermissionRequest(true));
@@ -2774,28 +2763,6 @@ async function calculateEmiFromBackend() {
 /* =====================================================
    NSFDC CHANNEL PARTNER FINDER & RAG GEOLOCATION ENGINE
 ===================================================== */
-
-/**
- * Shows the prominent floating global location banner across the app
- */
-function showGlobalLocationBanner() {
-    const banner = document.getElementById("global-location-banner");
-    if (banner && !isLocationPermissionGranted) {
-        banner.classList.add("visible");
-    }
-}
-
-/**
- * Smoothly hides the floating global location banner
- */
-function hideGlobalLocationBanner(delayMs = 400) {
-    const banner = document.getElementById("global-location-banner");
-    if (!banner) return;
-
-    setTimeout(() => {
-        banner.classList.remove("visible");
-    }, delayMs);
-}
 
 /**
  * Smoothly hides the location permission banner once location is received and saved
