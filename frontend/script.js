@@ -39,7 +39,8 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchAvailableSchemes();
     checkBackendHealth();
     initSavedUserLocation();
-    // Automatically trigger browser location access prompt on page load/reload
+    // Show top-floating location banner & request browser GPS permission on reload
+    showGlobalLocationBanner();
     handleLocationPermissionRequest(false);
 });
 
@@ -1594,6 +1595,16 @@ function setupEventListeners() {
     }
 
     // Partner Search & Location Controls
+    const globalLocAllowBtn = document.getElementById("global-loc-allow-btn");
+    if (globalLocAllowBtn) {
+        globalLocAllowBtn.addEventListener("click", () => handleLocationPermissionRequest(true));
+    }
+
+    const globalLocDismissBtn = document.getElementById("global-loc-dismiss-btn");
+    if (globalLocDismissBtn) {
+        globalLocDismissBtn.addEventListener("click", () => hideGlobalLocationBanner(0));
+    }
+
     const findLocationBtn = document.getElementById("find-location-btn");
     if (findLocationBtn) {
         findLocationBtn.addEventListener("click", () => handleLocationPermissionRequest(true));
@@ -2765,6 +2776,28 @@ async function calculateEmiFromBackend() {
 ===================================================== */
 
 /**
+ * Shows the prominent floating global location banner across the app
+ */
+function showGlobalLocationBanner() {
+    const banner = document.getElementById("global-location-banner");
+    if (banner && !isLocationPermissionGranted) {
+        banner.classList.add("visible");
+    }
+}
+
+/**
+ * Smoothly hides the floating global location banner
+ */
+function hideGlobalLocationBanner(delayMs = 400) {
+    const banner = document.getElementById("global-location-banner");
+    if (!banner) return;
+
+    setTimeout(() => {
+        banner.classList.remove("visible");
+    }, delayMs);
+}
+
+/**
  * Smoothly hides the location permission banner once location is received and saved
  */
 function hideLocationPermissionBox(delayMs = 1200) {
@@ -2836,8 +2869,12 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
                     statusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> स्थान प्राप्त (${lat.toFixed(3)}°, ${lng.toFixed(3)}°) - सहेजा गया`;
                 }
 
-                // Smoothly disappear the permission box after showing saved confirmation
-                hideLocationPermissionBox(1200);
+                // Hide both permission prompts
+                hideGlobalLocationBanner(500);
+                hideLocationPermissionBox(1000);
+
+                // Notify user via green toast
+                showToast(`📍 आपका लाइव स्थान प्राप्त हुआ (${lat.toFixed(3)}°, ${lng.toFixed(3)}°) — निकटतम चैनल पार्टनर लोड हो रहे हैं`, "success");
 
                 // Auto select nearest state if in North India
                 const stateSelect = document.getElementById("partner-state-select");
@@ -2856,13 +2893,17 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
                     statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> स्थान अनुमति अस्वीकृत (डिफ़ॉल्ट सक्रिय)`;
                 }
 
+                if (isExplicitClick) {
+                    showToast("⚠️ ब्राउज़र स्थान अनुमति उपलब्ध नहीं है। डिफ़ॉल्ट कुरुक्षेत्र शहर लोड किया गया।", "info");
+                }
+
                 // Use current dropdown value
                 handleCitySelectChange();
             },
             {
                 enableHighAccuracy: true,
                 timeout: 8000,
-                maximumAge: 60000
+                maximumAge: 0
             }
         );
     } else {
