@@ -80,6 +80,11 @@ from services.ocr_service import (
     evaluate_scheme_document_readiness
 )
 
+from services.partner_rag_service import (
+    retrieve_channel_partners,
+    geocode_location
+)
+
 
 
 # =====================================================
