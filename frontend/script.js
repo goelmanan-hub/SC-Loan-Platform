@@ -1345,7 +1345,6 @@ function setAppLanguage(langCode, speakGreeting = false) {
 
     // 15. Update Recommendation Card labels if present
     updateText("rec-card-badge-text", t.recCardBadgeText);
-    updateText("rec-match-badge-sub", t.recMatchBadgeSub);
     updateText("rec-label-max-loan", t.recLabelMaxLoan);
     updateText("rec-label-interest", t.recLabelInterest);
     updateText("rec-label-moratorium", t.recLabelMoratorium);
@@ -2433,15 +2432,6 @@ function renderRecommendationCard(rec, emi, readiness, userData) {
         document.getElementById("rec-total-payable").textContent = emi
             ? "₹" + Number(emi.total_payment).toLocaleString("en-IN", { minimumFractionDigits: 2 })
             : "—";
-
-        // RAG Match Score Badge
-        const matchBadge = document.getElementById("rec-match-badge");
-        const matchScoreSpan = document.getElementById("rec-match-score");
-        if (matchBadge && matchScoreSpan) {
-            const score = rec.match_score || 92;
-            matchScoreSpan.textContent = `${score}% मैच`;
-            matchBadge.style.display = "inline-flex";
-        }
 
         // RAG Subsidy Details
         const subsidyBanner = document.getElementById("rec-subsidy-banner");
