@@ -3345,6 +3345,9 @@ function renderPartnersList(partners) {
         const pLat = Number(p.latitude) || 29.9695;
         const pLng = Number(p.longitude) || 76.8783;
 
+        const destQuery = encodeURIComponent(`${p.name || ''}, ${p.address || p.city || ''}`);
+        const directionsHref = p.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${destQuery}&travelmode=driving`;
+
         return `
             <div class="partner-card" id="card-${p.id || 'partner'}">
                 <div class="partner-card-header">
@@ -3374,7 +3377,7 @@ function renderPartnersList(partners) {
                 </div>
 
                 <div class="partner-card-actions">
-                    <a href="${p.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${pLat},${pLng}`}" target="_blank" rel="noopener noreferrer" class="partner-action-btn directions" title="${isEn ? 'Get directions on Google Maps' : 'Google Maps पर रास्ता देखें'}">
+                    <a href="${directionsHref}" target="_blank" rel="noopener noreferrer" class="partner-action-btn directions" title="${isEn ? 'Get directions on Google Maps' : 'Google Maps पर रास्ता देखें'}">
                         <i class="fa-solid fa-diamond-turn-right"></i> ${t.partnerDirections || (isEn ? 'Directions' : 'दिशा-निर्देश')}
                     </a>
                     ${p.phone ? `
@@ -3506,13 +3509,16 @@ function renderPartnerMap(latitude, longitude, partners) {
                     iconAnchor: [30, 12]
                 });
 
+                const popupDestQuery = encodeURIComponent(`${partner.name || ''}, ${partner.address || partner.city || ''}`);
+                const popupDirectionsUrl = partner.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${popupDestQuery}&travelmode=driving`;
+
                 const popupContent = `
                     <div style="min-width: 200px; font-family: sans-serif;">
                         <strong style="color: #003366; font-size: 13px; display: block; margin-bottom: 4px;">${escapeHtml(partner.name || '')}</strong>
                         <div style="font-size: 11px; color: #475569; margin-bottom: 6px;">📍 ${escapeHtml(partner.address || partner.city || '')}</div>
                         ${partner.distance_km !== null && partner.distance_km !== undefined ? `<div style="font-size: 12px; font-weight: bold; color: #16a34a; margin-bottom: 8px;">${isEn ? 'Distance:' : 'दूरी:'} ${partner.distance_km} km</div>` : ''}
                         <div style="display: flex; gap: 6px;">
-                            <a href="${partner.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${pLat},${pLng}`}" target="_blank" rel="noopener noreferrer" style="background: #003366; color: #ffffff; text-decoration: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block;">
+                            <a href="${popupDirectionsUrl}" target="_blank" rel="noopener noreferrer" style="background: #003366; color: #ffffff; text-decoration: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block;">
                                 🗺️ ${isEn ? 'Directions' : 'नेविगेट करें'}
                             </a>
                             ${partner.phone ? `<a href="tel:${String(partner.phone).replace(/[^\d+]/g, '')}" style="background: #e2e8f0; color: #0f172a; text-decoration: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block;">📞 ${isEn ? 'Call' : 'कॉल'}</a>` : ''}

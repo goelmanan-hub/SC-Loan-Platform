@@ -6,6 +6,7 @@ scheme eligibility constraints, and multi-lingual query understanding.
 
 import math
 import re
+import urllib.parse
 from typing import List, Dict, Any, Optional
 from data.nsfdc_partners_kb import get_all_channel_partners_kb, get_channel_partner_by_id_kb
 from database.db import get_all_stored_partners
@@ -424,9 +425,12 @@ def retrieve_channel_partners(
         entry["rag_score"] = round(score, 2)
         entry["vector_similarity"] = round(sim_score, 4)
 
-        # Generate Google Maps directions URL
+        # Generate Google Maps directions URL with official institution name and full address
+        dest_query_parts = [partner.get('name', ''), partner.get('address', '')]
+        dest_query_str = ', '.join([p for p in dest_query_parts if p])
+        dest_query = urllib.parse.quote_plus(dest_query_str) if dest_query_str else f"{partner.get('latitude')},{partner.get('longitude')}"
         entry["directions_url"] = (
-            f"https://www.google.com/maps/dir/?api=1&destination={partner['latitude']},{partner['longitude']}"
+            f"https://www.google.com/maps/dir/?api=1&destination={dest_query}&travelmode=driving"
         )
 
         results.append(entry)
