@@ -2218,20 +2218,22 @@ async function handleUserChatMessage(userText) {
             updateSpeakerBubble(data.message);
             speakText(data.message);
 
-            // Auto-redirect to Document OCR section if message explains or inquires about documents
-            const isDocQueryOrResponse = (data.message && (
-                data.message.includes("दस्तावेज OCR") ||
-                data.message.includes("जाति प्रमाण पत्र") ||
-                data.message.includes("Caste Certificate") ||
-                data.message.includes("दस्तावेजों (Documents)")
-            )) || (userText && (
-                userText.toLowerCase().includes("डॉक्यूमेंट") ||
-                userText.toLowerCase().includes("दस्तावेज") ||
-                userText.toLowerCase().includes("कागजात") ||
-                userText.toLowerCase().includes("document")
-            ));
+            // Auto-redirect to Document OCR section ONLY if the USER specifically and explicitly asks to verify/upload/OCR documents
+            const userLower = (userText || "").toLowerCase().trim();
+            const isUserDocActionQuery = userLower && (
+                userLower.includes("verify doc") ||
+                userLower.includes("upload doc") ||
+                userLower.includes("check doc") ||
+                userLower.includes("ocr check") ||
+                userLower.includes("ocr test") ||
+                userLower.includes("दस्तावेज सत्यापन") ||
+                userLower.includes("दस्तावेज जांच") ||
+                userLower.includes("डॉक्यूमेंट चेक") ||
+                userLower.includes("कागजात चेक") ||
+                userLower.includes("सत्यापित करना")
+            );
 
-            if (isDocQueryOrResponse) {
+            if (isUserDocActionQuery) {
                 setTimeout(() => {
                     scrollToSection("doc-ocr-section");
                     const ocrSec = document.getElementById("doc-ocr-section");
@@ -2239,41 +2241,29 @@ async function handleUserChatMessage(userText) {
                         ocrSec.classList.add("chat-highlight-pulse");
                         setTimeout(() => ocrSec.classList.remove("chat-highlight-pulse"), 2500);
                     }
-                }, 1400);
+                }, 800);
             }
 
-            // Auto-redirect to Channel Partner section ONLY if user specifically inquires about channel partners/banks/where to apply
-            const isPartnerQuery = (userText && (
-                userText.toLowerCase().includes("partner") ||
-                userText.toLowerCase().includes("पार्टनर") ||
-                userText.toLowerCase().includes("चैनल") ||
-                userText.toLowerCase().includes("channel") ||
-                userText.toLowerCase().includes("बैंक") ||
-                userText.toLowerCase().includes("bank") ||
-                userText.toLowerCase().includes("एजेंसी") ||
-                userText.toLowerCase().includes("agency") ||
-                userText.toLowerCase().includes("sca") ||
-                userText.toLowerCase().includes("शाखा") ||
-                userText.toLowerCase().includes("branch") ||
-                userText.toLowerCase().includes("कहाँ आवेदन") ||
-                userText.toLowerCase().includes("कहाँ जाना") ||
-                userText.toLowerCase().includes("कहा जाना") ||
-                userText.toLowerCase().includes("कहाँ जमा") ||
-                userText.toLowerCase().includes("where to apply") ||
-                userText.toLowerCase().includes("where to submit") ||
-                userText.toLowerCase().includes("nearest office") ||
-                userText.toLowerCase().includes("निकटतम केंद्र") ||
-                userText.toLowerCase().includes("ऑफिस") ||
-                userText.toLowerCase().includes("office") ||
-                userText.toLowerCase().includes("locator")
-            )) || (!data.complete && data.message && (
-                data.message.includes("चैनल पार्टनर") ||
-                data.message.includes("Channel Partner") ||
-                data.message.includes("State Channelising Agency") ||
-                data.message.includes("स्टेट चैनेलाइजिंग एजेंसी")
-            ));
+            // Auto-redirect to Channel Partner section ONLY if the USER specifically and explicitly asks to locate/find partners/banks/branches
+            const isUserPartnerActionQuery = userLower && (
+                userLower.includes("nearest partner") ||
+                userLower.includes("find partner") ||
+                userLower.includes("locate partner") ||
+                userLower.includes("partner locator") ||
+                userLower.includes("nearest branch") ||
+                userLower.includes("nearest office") ||
+                userLower.includes("where to visit") ||
+                userLower.includes("where to apply") ||
+                userLower.includes("where to submit") ||
+                userLower.includes("नजदीकी पार्टनर") ||
+                userLower.includes("नजदीकी बैंक") ||
+                userLower.includes("शाखा कहाँ है") ||
+                userLower.includes("कहाँ जाना होगा") ||
+                userLower.includes("कहाँ जमा करना") ||
+                userLower.includes("ऑफिस कहाँ है")
+            );
 
-            if (isPartnerQuery) {
+            if (isUserPartnerActionQuery) {
                 setTimeout(() => {
                     scrollToSection("partner-section");
                     const partnerSec = document.getElementById("partner-section");
@@ -2281,7 +2271,7 @@ async function handleUserChatMessage(userText) {
                         partnerSec.classList.add("chat-highlight-pulse");
                         setTimeout(() => partnerSec.classList.remove("chat-highlight-pulse"), 2500);
                     }
-                }, 1400);
+                }, 800);
             }
         }
 
@@ -2503,8 +2493,8 @@ function renderRecommendationCard(rec, emi, readiness, userData) {
         // Auto-save recommended scheme & readiness score to SQLite database
         autoSaveCurrentAssessment(rec, readiness, userData);
 
+        // Display recommendation card in place without disruptive jump
         card.style.display = "block";
-        card.scrollIntoView({ behavior: "smooth" });
     }
 }
 
