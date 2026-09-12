@@ -2970,8 +2970,11 @@ function initSavedUserLocation() {
         if (saved) {
             const parsed = JSON.parse(saved);
             if (parsed && typeof parsed.lat === "number" && typeof parsed.lng === "number") {
-                userCoordinates = { lat: parsed.lat, lng: parsed.lng };
-                console.log("Restored fallback user location:", userCoordinates);
+                // Only restore if saved within the last 1 hour
+                if (!parsed.timestamp || Date.now() - parsed.timestamp < 3600000) {
+                    userCoordinates = { lat: parsed.lat, lng: parsed.lng };
+                    console.log("Restored active user location:", userCoordinates);
+                }
             }
         }
     } catch (e) {
@@ -2987,7 +2990,7 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
 
     if (statusBadge && isExplicitClick) {
         statusBadge.className = "geo-status-badge waiting";
-        statusBadge.innerHTML = `<span class="pulse-dot"></span> स्थान प्राप्त किया जा रहा है...`;
+        statusBadge.innerHTML = `<span class="pulse-dot"></span> लाइव स्थान प्राप्त किया जा रहा है...`;
     }
 
     if ("geolocation" in navigator) {
@@ -2997,7 +3000,7 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
                 const lng = position.coords.longitude;
                 const accuracy = Math.round(position.coords.accuracy || 0);
 
-                // Save location state & persist in localStorage
+                // Save location state
                 userCoordinates = { lat, lng };
                 isLocationPermissionGranted = true;
                 try {
@@ -3006,14 +3009,14 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
                     console.warn("Storage error:", e);
                 }
 
-                console.log(`Geolocation granted & saved: ${lat}, ${lng} (accuracy: ${accuracy}m)`);
+                console.log(`Live GPS Location granted: ${lat}, ${lng} (accuracy: ${accuracy}m)`);
 
                 if (statusBadge) {
                     statusBadge.className = "geo-status-badge granted";
-                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> स्थान प्राप्त (${lat.toFixed(3)}°, ${lng.toFixed(3)}°) - सहेजा गया`;
+                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> लाइव स्थान (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`;
                 }
 
-                // Hide both permission prompts
+                // Hide permission prompts
                 hideGlobalLocationBanner(500);
                 hideLocationPermissionBox(1000);
 
@@ -3022,20 +3025,25 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
                     showToast(`📍 आपका लाइव स्थान प्राप्त हुआ (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`, "success");
                 }
 
+                // If map is initialized, pan to new coordinates
+                if (partnerMap && typeof partnerMap.setView === "function") {
+                    partnerMap.setView([lat, lng], 11);
+                }
+
                 await fetchPartnersWithFilters();
             },
             async (error) => {
-                console.warn("Geolocation background status:", error);
+                console.warn("Geolocation status:", error);
                 if (statusBadge && isExplicitClick) {
                     statusBadge.className = "geo-status-badge denied";
-                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> स्थान अनुमति अनुपलब्ध`;
-                    showToast("⚠️ ब्राउज़र स्थान अनुमति उपलब्ध नहीं है। डिफ़ॉल्ट शहर सक्रिय।", "info");
+                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> स्थान अनुमति अनुपलब्ध (ड्रॉपडाउन से चुनें)`;
+                    showToast("⚠️ ब्राउज़र स्थान अनुमति उपलब्ध नहीं है। कृपया नीचे दिए गए राज्य/शहर ड्रॉपडाउन से चुनें।", "info");
                 }
             },
             {
-                enableHighAccuracy: false,
-                timeout: 5000,
-                maximumAge: 600000
+                enableHighAccuracy: true,
+                timeout: 8000,
+                maximumAge: 0
             }
         );
     }
@@ -3046,36 +3054,22 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
 // =====================================================
 const STATE_CITY_MAPPING = {
     "ALL": [
+        { name: "कुरुक्षेत्र (Kurukshetra - HSCFDC Office)", lat: 29.9695, lng: 76.8783 },
         { name: "बेगमपुर / रोहिणी (Begumpur & Rohini - North-West Delhi)", lat: 28.7240, lng: 77.0645 },
         { name: "रोहिणी (North-West Delhi - DSFDC Branch & PNB)", lat: 28.7235, lng: 77.1142 },
         { name: "दिल्ली केंद्रीय / ITO (Central Delhi - DSFDC HQ)", lat: 28.6294, lng: 77.2435 },
-        { name: "भीकाजी कामा प्लेस (South Delhi - NSFDC Apex HQ)", lat: 28.5684, lng: 77.1895 },
-        { name: "पीतमपुरा / रानी बाग (Pitampura, North-West Delhi)", lat: 28.6990, lng: 77.1384 },
-        { name: "द्वारका / पश्चिम दिल्ली (Dwarka / West Delhi)", lat: 28.5921, lng: 77.0460 },
-        { name: "कुरुक्षेत्र (Kurukshetra, Haryana)", lat: 29.9695, lng: 76.8783 },
         { name: "करनाल (Karnal, Haryana)", lat: 29.6857, lng: 76.9905 },
         { name: "अंबाला (Ambala, Haryana)", lat: 30.3782, lng: 76.7767 },
         { name: "पानीपत (Panipat, Haryana)", lat: 29.3909, lng: 76.9635 },
         { name: "पंचकूला (Panchkula, Haryana)", lat: 30.6942, lng: 76.8606 },
         { name: "नोएडा / ग्रेटर नोएडा (Noida, UP)", lat: 28.5355, lng: 77.3910 },
         { name: "लखनऊ (Lucknow, UP)", lat: 26.8833, lng: 80.9462 },
-        { name: "आगरा (Agra, UP)", lat: 27.1985, lng: 78.0064 },
         { name: "चंडीगढ़ (Chandigarh, Punjab)", lat: 30.7410, lng: 76.7850 },
         { name: "लुधियाना (Ludhiana, Punjab)", lat: 30.9010, lng: 75.8573 },
         { name: "जयपुर (Jaipur, Rajasthan)", lat: 26.8920, lng: 75.8055 },
         { name: "मुंबई (Mumbai, Maharashtra)", lat: 19.1125, lng: 72.8340 },
-        { name: "पुणे (Pune, Maharashtra)", lat: 18.5284, lng: 73.8743 },
         { name: "बेंगलुरु (Bengaluru, Karnataka)", lat: 12.9784, lng: 77.5913 },
         { name: "चेन्नई (Chennai, Tamil Nadu)", lat: 13.0336, lng: 80.2447 }
-    ],
-    "Delhi": [
-        { name: "बेगमपुर / रोहिणी (Begumpur & Rohini - North-West Delhi)", lat: 28.7240, lng: 77.0645 },
-        { name: "रोहिणी (North-West Delhi - DSFDC Branch & PNB)", lat: 28.7235, lng: 77.1142 },
-        { name: "पीतमपुरा / रानी बाग (Pitampura, North-West Delhi)", lat: 28.6990, lng: 77.1384 },
-        { name: "दिल्ली केंद्रीय / ITO (Central Delhi - DSFDC HQ)", lat: 28.6294, lng: 77.2435 },
-        { name: "भीकाजी कामा प्लेस (South Delhi - NSFDC Apex HQ)", lat: 28.5684, lng: 77.1895 },
-        { name: "पूर्वी दिल्ली / लक्ष्मी नगर (East Delhi)", lat: 28.6304, lng: 77.2773 },
-        { name: "द्वारका / पश्चिम दिल्ली (Dwarka / West Delhi)", lat: 28.5921, lng: 77.0460 }
     ],
     "Haryana": [
         { name: "कुरुक्षेत्र (Kurukshetra - HSCFDC Office)", lat: 29.9695, lng: 76.8783 },
@@ -3086,6 +3080,15 @@ const STATE_CITY_MAPPING = {
         { name: "रोहतक (Rohtak - SHGB Gramin Bank HQ)", lat: 28.8955, lng: 76.6066 },
         { name: "गुरुग्राम / फरीदाबाद (Gurugram / Faridabad)", lat: 28.4595, lng: 77.0266 },
         { name: "हिसार (Hisar)", lat: 29.1492, lng: 75.7217 }
+    ],
+    "Delhi": [
+        { name: "बेगमपुर / रोहिणी (Begumpur & Rohini - North-West Delhi)", lat: 28.7240, lng: 77.0645 },
+        { name: "रोहिणी (North-West Delhi - DSFDC Branch & PNB)", lat: 28.7235, lng: 77.1142 },
+        { name: "पीतमपुरा / रानी बाग (Pitampura, North-West Delhi)", lat: 28.6990, lng: 77.1384 },
+        { name: "दिल्ली केंद्रीय / ITO (Central Delhi - DSFDC HQ)", lat: 28.6294, lng: 77.2435 },
+        { name: "भीकाजी कामा प्लेस (South Delhi - NSFDC Apex HQ)", lat: 28.5684, lng: 77.1895 },
+        { name: "पूर्वी दिल्ली / लक्ष्मी नगर (East Delhi)", lat: 28.6304, lng: 77.2773 },
+        { name: "द्वारका / पश्चिम दिल्ली (Dwarka / West Delhi)", lat: 28.5921, lng: 77.0460 }
     ],
     "Uttar Pradesh": [
         { name: "नोएडा / ग्रेटर नोएडा (Gautam Buddha Nagar - UPSCFDC)", lat: 28.5355, lng: 77.3910 },
@@ -3147,18 +3150,29 @@ function updateCityDropdownForState(stateKey) {
 
 function handleStateSelectChange() {
     const stateSelect = document.getElementById("partner-state-select");
+    const queryInput = document.getElementById("partner-query-input");
     const selectedState = stateSelect ? stateSelect.value : "ALL";
 
     console.log("State selected:", selectedState);
 
-    // Dynamically update cities dropdown to only show cities of this state
+    // If query input has old city name from another state, clear it to avoid conflicting results
+    if (queryInput && queryInput.value) {
+        queryInput.value = "";
+    }
+
+    // Dynamically update cities dropdown to show cities of this state
     updateCityDropdownForState(selectedState);
 
-    // Update status badge
+    // Update status badge immediately
     const statusBadge = document.getElementById("geo-status-badge");
-    if (statusBadge && !isLocationPermissionGranted) {
+    if (statusBadge) {
         statusBadge.className = "geo-status-badge manual";
         statusBadge.innerHTML = `<i class="fa-solid fa-map-pin"></i> राज्य: ${selectedState === "ALL" ? "सभी राज्य" : selectedState}`;
+    }
+
+    // Pan map to first city of state
+    if (partnerMap && typeof partnerMap.setView === "function" && userCoordinates) {
+        partnerMap.setView([userCoordinates.lat, userCoordinates.lng], selectedState === "ALL" ? 6 : 9);
     }
 
     // Refresh partner results
@@ -3172,11 +3186,19 @@ function handleCitySelectChange() {
     const [lat, lng] = select.value.split(",").map(Number);
     userCoordinates = { lat, lng };
 
+    const selectedOption = select.options[select.selectedIndex];
+    const selectedText = selectedOption ? selectedOption.text : "चयनित स्थान";
+    const cityNameOnly = selectedText.split("(")[0].trim();
+
     const statusBadge = document.getElementById("geo-status-badge");
-    if (statusBadge && !isLocationPermissionGranted) {
+    if (statusBadge) {
         statusBadge.className = "geo-status-badge manual";
-        const selectedText = select.options[select.selectedIndex]?.text || "चयनित शहर";
-        statusBadge.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${selectedText.split(" ")[0]}`;
+        statusBadge.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${cityNameOnly}`;
+    }
+
+    // Pan map to chosen city
+    if (partnerMap && typeof partnerMap.setView === "function") {
+        partnerMap.setView([lat, lng], 11);
     }
 
     fetchPartnersWithFilters();
