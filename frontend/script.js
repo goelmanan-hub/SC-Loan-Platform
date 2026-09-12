@@ -2144,7 +2144,14 @@ function formatDocNotes(notes, isEn) {
 /* =====================================================
    AI CHAT API INTEGRATION
 ===================================================== */
+let hasReadinessOptInPromptBeenShown = false;
+let hasUserDecidedReadinessOptIn = false;
+let hasCreditPromptBeenShown = false;
+
 async function startLoanSession() {
+    hasReadinessOptInPromptBeenShown = false;
+    hasUserDecidedReadinessOptIn = false;
+    hasCreditPromptBeenShown = false;
     try {
         const response = await fetch(`${API_BASE_URL}/api/ai/new-session`, {
             method: "POST",
@@ -2274,12 +2281,26 @@ async function handleUserChatMessage(userText) {
             }
         }
 
-        // Auto-update interim Readiness Score Simulator widget if data received
+        // Auto-update Readiness Score under Scheme Recommendation and in Simulator widget
         if (data.readiness) {
+            lastReadinessData = data.readiness;
+            hasUserDecidedReadinessOptIn = true;
+            populateReadinessUI("rec", data.readiness);
             populateReadinessUI("sim", data.readiness);
+
+            const recReadinessBox = document.getElementById("rec-readiness-box");
+            if (recReadinessBox) recReadinessBox.style.display = "block";
+
             const simResultBox = document.getElementById("sim-result-box");
             if (simResultBox) simResultBox.style.display = "block";
+
+            // If recommendation card is already on page, ensure it is visible and displaying readiness
+            const recCard = document.getElementById("recommendation-card");
+            if (recCard && (data.recommendation || lastRecommendationData)) {
+                recCard.style.display = "block";
+            }
         }
+
         if (data.user_data) {
             const simType = document.getElementById("sim-loan-type");
             const simAmount = document.getElementById("sim-loan-amount");
@@ -2312,22 +2333,21 @@ async function handleUserChatMessage(userText) {
             fetchPartnersWithFilters();
         }
 
-        // If conversation is complete, render recommendation, autofill all widgets, and readiness score
-        if (data.complete && data.recommendation) {
+        // If scheme recommendation is present OR if readiness arrived and recommendation exists, render/update recommendation card
+        const activeRec = data.recommendation || lastRecommendationData;
+        if (activeRec && activeRec.success) {
+            lastRecommendationData = activeRec;
             let recommendationEmi = data.emi;
-            if (!recommendationEmi && data.user_data && data.recommendation.recommended_scheme) {
+            if (!recommendationEmi && data.user_data && activeRec.recommended_scheme) {
                 recommendationEmi = await calculateRecommendationEmi(
                     data.user_data,
-                    data.recommendation.recommended_scheme
+                    activeRec.recommended_scheme
                 );
             }
-            renderRecommendationCard(data.recommendation, recommendationEmi, data.readiness, data.user_data);
+            renderRecommendationCard(activeRec, recommendationEmi, data.readiness || lastReadinessData, data.user_data);
 
-            // Auto-fill all interactive widgets in background (Channel Partner, EMI Calculator, Readiness Simulator)
-            autoFillAllWidgetsFromRecommendation(data.user_data, data.recommendation.recommended_scheme, recommendationEmi, data.readiness);
-
-            // Note: We do NOT automatically redirect away to channel partners.
-            // The user stays on the recommended scheme card to review recommendations & readiness score.
+            // Auto-fill all interactive widgets in background
+            autoFillAllWidgetsFromRecommendation(data.user_data, activeRec.recommended_scheme, recommendationEmi, data.readiness || lastReadinessData);
         }
 
     } catch (error) {
@@ -2382,21 +2402,15 @@ function appendChatMessage(sender, text) {
         `;
     }
 
-    // Add interactive quick CTA chips if bot is asking for Readiness Score Opt-In or Credit History
+    // Add interactive quick CTA chips ONLY ONCE when bot asks for Readiness Score Opt-In or Credit History
     if (sender === "bot" && typeof text === "string") {
         const textLower = text.toLowerCase();
-        const isReadinessOptInPrompt = (
-            text.includes("ऋण तैयारी स्कोर") ||
-            text.includes("Loan Readiness Score") ||
-            textLower.includes("readiness score")
-        ) && (
-            text.includes("जानना चाहते") ||
-            text.includes("चाहते हैं") ||
-            textLower.includes("would you like") ||
-            textLower.includes("want to calculate")
+        const isReadinessOptInPrompt = !hasReadinessOptInPromptBeenShown && !hasUserDecidedReadinessOptIn && !lastReadinessData && (
+            (text.includes("ऋण तैयारी स्कोर") || text.includes("Loan Readiness Score") || textLower.includes("readiness score"))
+            && (text.includes("जानना चाहते") || text.includes("चाहते हैं") || textLower.includes("would you like") || textLower.includes("want to calculate"))
         );
 
-        const isCreditHistoryPrompt = (
+        const isCreditHistoryPrompt = !lastReadinessData && !hasCreditPromptBeenShown && (
             text.includes("क्रेडिट इतिहास") ||
             text.includes("क्रेडिट रिकॉर्ड") ||
             text.includes("क्रेडिट विवरण") ||
@@ -2405,6 +2419,7 @@ function appendChatMessage(sender, text) {
         );
 
         if (isReadinessOptInPrompt) {
+            hasReadinessOptInPromptBeenShown = true;
             const yesText = isEn ? "📊 Yes, Calculate Readiness Score" : "📊 हाँ, ऋण तैयारी स्कोर जानना है";
             const noText = isEn ? "⏭️ Scheme Details Only" : "⏭️ केवल योजना विवरण चाहिए";
             const yesVal = isEn ? "Yes, calculate my loan readiness score" : "हाँ, मुझे ऋण तैयारी स्कोर जानना है";
@@ -2421,6 +2436,7 @@ function appendChatMessage(sender, text) {
                 </div>
             `;
         } else if (isCreditHistoryPrompt) {
+            hasCreditPromptBeenShown = true;
             const cleanText = isEn ? "✅ Clean Record (No Defaults)" : "✅ स्वच्छ रिकॉर्ड (कोई डिफ़ॉल्ट नहीं)";
             const activeText = isEn ? "💳 Active Loan (Regular Repayment)" : "💳 चालू ऋण (समय पर किस्त)";
             const overdueText = isEn ? "⚠️ Past Delay / Overdue" : "⚠️ पिछला विलंब / बकाया";
@@ -2459,6 +2475,9 @@ function appendChatMessage(sender, text) {
 }
 
 window.submitChatOption = function(msg) {
+    hasUserDecidedReadinessOptIn = true;
+    // Remove all previous quick action chip rows so they don't linger
+    document.querySelectorAll(".chat-quick-actions").forEach(el => el.remove());
     const chatInput = document.getElementById("chat-input");
     if (chatInput) {
         chatInput.value = msg;
