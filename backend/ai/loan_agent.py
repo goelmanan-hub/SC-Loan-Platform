@@ -162,12 +162,43 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
         res = " ".join(tokens).strip()
         return res if len(res) >= 2 else clean
 
-    # 7. Location regex matcher (e.g., "पानीपत में", "कुरुक्षेत्र में", "जयपुर में", "दिल्ली में")
-    loc_match = re.search(r"([a-zA-Z\u0900-\u097F]{2,20})\s+(?:में|me|mein)\s*(?:शुरू|kholna|kholni|shuru|karna|chalu|rahta|rehta|rahata)?", normalized_raw)
-    if loc_match:
-        cand = loc_match.group(1).strip()
+    def clean_location_text(val: str) -> str:
+        clean = re.sub(r"[।.,!?'\"()_-]", " ", str(val or "")).strip()
+        tokens = [t for t in clean.split() if t.lower() not in {
+            "my", "current", "location", "is", "live", "in", "from", "living", "at", "area", "city", "district", "state", "near",
+            "मेरा", "मेरी", "स्थान", "लोकेशन", "है", "हूँ", "रहता", "रहती", "का", "की", "के", "में", "से", "पास"
+        }]
+        res = " ".join(tokens).strip()
+        return res if len(res) >= 2 else clean
+
+    # 7. Location regex matcher (e.g., "my current location is begumpur delhi", "पानीपत में", "रहता हूँ दिल्ली में", "स्थान: रोहिणी")
+    loc_explicit_match = re.search(
+        r"(?:(?:my\s+)?current\s+location\s*(?:is|:)?|(?:my\s+)?location\s*(?:is|:)?|live\s+in|from|at|रहता\s*हूँ|रहती\s*हूँ|स्थान\s*(?:है|:)?|लोकेशन\s*(?:है|:)?)\s+([a-zA-Z\u0900-\u097F\s,/-]{2,40})",
+        normalized_raw,
+        re.IGNORECASE
+    )
+    if loc_explicit_match:
+        cand = clean_location_text(loc_explicit_match.group(1))
         if cand.lower() not in INVALID_FILLERS and len(cand) >= 2:
             extracted["location"] = cand
+
+    if not extracted.get("location"):
+        loc_match = re.search(r"([a-zA-Z\u0900-\u097F]{2,20})\s+(?:में|me|mein)\s*(?:शुरू|kholna|kholni|shuru|karna|chalu|rahta|rehta|rahata)?", normalized_raw)
+        if loc_match:
+            cand = loc_match.group(1).strip()
+            if cand.lower() not in INVALID_FILLERS and len(cand) >= 2:
+                extracted["location"] = cand
+
+    # Check for known geocoded places in user message directly
+    from services.partner_rag_service import geocode_location
+    geo_direct = geocode_location(normalized_raw)
+    if geo_direct:
+        if not extracted.get("location") or len(extracted.get("location", "")) < 3:
+            extracted["location"] = geo_direct.get("name", normalized_raw)
+        extracted["latitude"] = geo_direct["lat"]
+        extracted["longitude"] = geo_direct["lng"]
+        if geo_direct.get("state"):
+            extracted["state"] = geo_direct["state"]
 
     if not is_question_or_statement:
         if active_field == "business_type" or any(w in lower for w in BUSINESS_KEYWORDS) or extracted.get("loan_type") == "business":
@@ -181,8 +212,15 @@ def extract_entities_from_text(text: str, current_data: dict, active_field: str 
                 extracted["education_course"] = cleaned
 
         if (active_field == "location" or not current_data.get("location")) and not extracted.get("location"):
-            if cleaned_text.lower() not in INVALID_FILLERS and len(cleaned_text) >= 2 and not parsed_num:
-                extracted["location"] = cleaned_text
+            cleaned_loc = clean_location_text(cleaned_text)
+            if cleaned_loc.lower() not in INVALID_FILLERS and len(cleaned_loc) >= 2 and not parsed_num:
+                extracted["location"] = cleaned_loc
+                geo_loc = geocode_location(cleaned_loc)
+                if geo_loc:
+                    extracted["latitude"] = geo_loc["lat"]
+                    extracted["longitude"] = geo_loc["lng"]
+                    if geo_loc.get("state"):
+                        extracted["state"] = geo_loc["state"]
 
     return extracted
 

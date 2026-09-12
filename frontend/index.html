@@ -9,6 +9,7 @@
     <!-- External Icon Library & Map -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <!-- Tailwind CSS v3 CDN & Custom Theme Configuration -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -478,6 +479,28 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Next Action Steps / Quick Navigation Buttons -->
+                    <div class="rec-actions-toolbar" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.18); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 14px; font-weight: 600; color: #f1f5f9; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-circle-arrow-right" style="color: #f58220;"></i>
+                            <span id="rec-next-steps-label">अगला कदम चुनें (Choose Next Step):</span>
+                        </span>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                            <button type="button" class="rec-action-btn" style="padding: 10px 18px; font-size: 13.5px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #f58220, #e65100); color: #ffffff; border: none; font-weight: 600; box-shadow: 0 4px 14px rgba(245,130,32,0.35); transition: all 0.2s;" onclick="scrollToSection('partner-section')">
+                                <i class="fa-solid fa-building-columns"></i>
+                                <span id="rec-btn-partners">निकटतम चैनल पार्टनर देखें</span>
+                            </button>
+                            <button type="button" class="rec-action-btn" style="padding: 10px 18px; font-size: 13.5px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.3); font-weight: 600; backdrop-filter: blur(4px); transition: all 0.2s;" onclick="scrollToSection('doc-ocr-section')">
+                                <i class="fa-solid fa-file-shield" style="color: #4ade80;"></i>
+                                <span id="rec-btn-ocr">दस्तावेज OCR सत्यापन</span>
+                            </button>
+                            <button type="button" class="rec-action-btn" style="padding: 10px 18px; font-size: 13.5px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.3); font-weight: 600; backdrop-filter: blur(4px); transition: all 0.2s;" onclick="scrollToSection('emi-section')">
+                                <i class="fa-solid fa-calculator" style="color: #60a5fa;"></i>
+                                <span id="rec-btn-emi">EMI कैलकुलेटर</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- ================= STANDALONE READINESS SCORE SIMULATOR ================= -->
@@ -912,11 +935,10 @@
                                 <label for="partner-state-select" id="partner-state-label"><i
                                         class="fa-solid fa-map"></i> राज्य (State):</label>
                                 <select id="partner-state-select" class="custom-select">
-                                    <option value="ALL" id="state-opt-all">सभी राज्य (All States)</option>
-                                    <option value="Haryana" id="state-opt-hr" selected>Haryana (हरियाणा)</option>
+                                    <option value="ALL" id="state-opt-all" selected>सभी राज्य (All States)</option>
                                     <option value="Delhi" id="state-opt-dl">Delhi NCR (दिल्ली)</option>
-                                    <option value="Uttar Pradesh" id="state-opt-up">Uttar Pradesh (उत्तर प्रदेश)
-                                    </option>
+                                    <option value="Haryana" id="state-opt-hr">Haryana (हरियाणा)</option>
+                                    <option value="Uttar Pradesh" id="state-opt-up">Uttar Pradesh (उत्तर प्रदेश)</option>
                                     <option value="Punjab" id="state-opt-pb">Punjab (पंजाब)</option>
                                     <option value="Rajasthan" id="state-opt-rj">Rajasthan (राजस्थान)</option>
                                     <option value="Maharashtra" id="state-opt-mh">Maharashtra (महाराष्ट्र)</option>
@@ -1431,11 +1453,7 @@
     </div>
 
     <!-- Frontend Script Connection to FastAPI -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="script.js?v=20260911-full-english-bilingual-v3"></script>
+    <script src="script.js?v=20260911-full-english-bilingual-v4"></script>
 </body>
-
-</html>
 
 </html>

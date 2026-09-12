@@ -335,7 +335,46 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "Special self-employment kiosks for SC women & youth",
             "Free project appraisal & guidance"
         ],
-        "keywords": ["delhi", "dsfdc", "rohini", "north west delhi", "sca", "ambedkar bhawan", "pitampura", "delhi ncr"]
+        "keywords": [
+            "delhi", "dsfdc", "rohini", "begumpur", "begam pur", "begumpur delhi", "north west delhi", "sca",
+            "ambedkar bhawan", "sector 16 rohini", "sector 22 rohini", "sector 24 rohini", "pitampura",
+            "bawana", "narela", "nangloi", "mangolpuri", "sultanpuri", "paschim vihar", "shalimar bagh",
+            "keshavpuram", "rani bagh", "alipur", "khera kalan", "delhi ncr", "outer delhi"
+        ]
+    },
+    {
+        "id": "delhi_psb_pnb_rohini",
+        "name": "Punjab National Bank (PNB) - MSME & Micro-Credit Branch Rohini Sector 8, Delhi",
+        "name_hi": "पंजाब नेशनल बैंक (PNB) - एमएसएमई एवं माइक्रो क्रेडिट शाखा रोहिणी, दिल्ली",
+        "type": "PSB",
+        "type_label": "Public Sector Bank (सार्वजनिक क्षेत्र का बैंक - NSFDC चैनल पार्टनर)",
+        "state": "Delhi",
+        "district": "North West Delhi",
+        "city": "Delhi",
+        "pincode": "110085",
+        "address": "Community Centre, Sector 8, Rohini, North West Delhi 110085",
+        "address_hi": "कम्युनिटी सेंटर, सेक्टर 8, रोहिणी, उत्तर-पश्चिम दिल्ली 110085",
+        "latitude": 28.7065,
+        "longitude": 77.1235,
+        "phone": "+91 11 27941250",
+        "helpline": "1800-180-2222",
+        "email": "borohini@pnb.co.in",
+        "nodal_officer": "Chief Manager / MSME Credit Head",
+        "working_hours": "10:00 AM - 04:00 PM (Monday to Saturday, 2nd & 4th Sat Off)",
+        "schemes": [
+            "term_loan",
+            "education_loan",
+            "education_loan_abroad",
+            "stand_up_india_sc",
+            "green_business_scheme"
+        ],
+        "loan_types": ["business", "education"],
+        "special_services": [
+            "Stand-Up India SC Greenfield Entrepreneurship nodal branch",
+            "Concessional interest rate for SC borrowers",
+            "Direct subsidy processing with NSFDC"
+        ],
+        "keywords": ["pnb", "punjab national bank", "rohini", "begumpur", "sector 8 rohini", "north west delhi", "delhi", "psb", "stand up india"]
     },
     {
         "id": "delhi_sca_dsfdc_ito_hq",
@@ -372,7 +411,7 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "Overseas education loan specialized desk",
             "Women entrepreneur priority sanction cell"
         ],
-        "keywords": ["delhi", "ito", "vikas bhawan", "new delhi", "central delhi", "dsfdc hq", "sca", "ip estate"]
+        "keywords": ["delhi", "ito", "vikas bhawan", "new delhi", "central delhi", "dsfdc hq", "sca", "ip estate", "connaught place", "karol bagh", "daryaganj", "paharganj"]
     },
     {
         "id": "delhi_nsfdc_national_hq",
@@ -409,7 +448,7 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "Policy framing, state quota sanctioning & nationwide helpline",
             "National grievance escalation"
         ],
-        "keywords": ["nsfdc", "national hq", "delhi", "ministry of social justice", "apex", "bhikaji cama place", "laxmi nagar"]
+        "keywords": ["nsfdc", "national hq", "delhi", "ministry of social justice", "apex", "bhikaji cama place", "laxmi nagar", "south delhi", "saket", "hauz khas", "nehru place"]
     },
 
     # =====================================================

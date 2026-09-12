@@ -503,6 +503,17 @@ def loan_chat(
         if direct_parsed is not None:
             extracted[current_field] = direct_parsed
 
+    # Geocode location if available in extracted or session
+    from services.partner_rag_service import geocode_location
+    user_loc_text = extracted.get("location") or session.get("location")
+    if user_loc_text:
+        geo_info = geocode_location(user_loc_text)
+        if geo_info:
+            extracted["latitude"] = geo_info["lat"]
+            extracted["longitude"] = geo_info["lng"]
+            if geo_info.get("state"):
+                extracted["state"] = geo_info["state"]
+
     # Save all extracted values
     for field_name, val in extracted.items():
         if val is not None:
@@ -510,6 +521,16 @@ def loan_chat(
 
     # Re-fetch session
     session = get_session(request.session_id)
+
+    # If coordinates still missing, attempt to geocode current session location
+    if session.get("location") and not (session.get("latitude") and session.get("longitude")):
+        geo_info = geocode_location(session.get("location"))
+        if geo_info:
+            session["latitude"] = geo_info["lat"]
+            session["longitude"] = geo_info["lng"]
+            session["state"] = geo_info.get("state")
+            save_answer(request.session_id, "latitude", geo_info["lat"])
+            save_answer(request.session_id, "longitude", geo_info["lng"])
 
     # Check if essential fields are collected
     loan_type = session.get("loan_type")
@@ -524,9 +545,12 @@ def loan_chat(
 
     next_field = get_next_question(request.session_id)
 
-    # If all mandatory fields are gathered (or only tenure remains), mark complete
+    # Core parameters needed to evaluate scheme recommendation and loan readiness score:
+    # 1. loan_type
+    # 2. loan_required
+    # 3. income
     is_fully_collected = bool(
-        loan_type and loan_required and (business_or_edu or (loan_type and income)) and income and location
+        loan_type and loan_required and income
     )
 
     # Check if this is the initial transition to completion
@@ -538,6 +562,9 @@ def loan_chat(
     if (next_field is None or is_fully_collected) and not already_completed:
         session["is_completed_shown"] = True
         session["complete"] = True
+        if not session.get("location"):
+            session["location"] = "Delhi NCR"
+            save_answer(request.session_id, "location", session["location"])
         if not session.get("tenure_months"):
             session["tenure_months"] = 36
             save_answer(request.session_id, "tenure_months", 36)
@@ -563,13 +590,47 @@ def loan_chat(
             emi_data=emi_result
         )
 
-        completion_message = agent_result.get("reply") or (
-            "धन्यवाद! आवश्यक जानकारी मिल गई है। आपकी व्यक्तिगत ऋण योजना की सलाह तैयार है।"
+        is_en = bool(request.language and request.language.startswith("en"))
+        default_reply = (
+            "Thank you! All required details have been gathered. Your personalized loan recommendation and readiness score are ready below."
+            if is_en
+            else "धन्यवाद! आवश्यक जानकारी मिल गई है। आपकी व्यक्तिगत ऋण योजना की सलाह तैयार है।"
         )
-        if emi_result and "EMI" not in completion_message:
-            completion_message += f"\n\n📊 **अनुमानित EMI**: ₹{emi_result['monthly_emi']:,.2f}/माह"
-        if readiness_result and "Readiness" not in completion_message:
-            completion_message += f"\n🎯 **ऋण तैयारी स्कोर**: {readiness_result['score']}/100 ({readiness_result['badge']})"
+        completion_message = agent_result.get("reply") or default_reply
+
+        # Retrieve nearest channel partner for user location and scheme
+        user_loc = session.get("location") or ""
+        rag_query = f"{user_loc} {scheme.get('name', '') if scheme else ''}"
+        nearest_partners = retrieve_channel_partners(
+            query=rag_query,
+            scheme_id=scheme.get("id") if scheme else None,
+            latitude=session.get("latitude"),
+            longitude=session.get("longitude"),
+            top_k=1
+        )
+        nearest_partner = nearest_partners[0] if nearest_partners else None
+
+        dist_str = f" ({nearest_partner['distance_km']} km)" if nearest_partner and nearest_partner.get("distance_km") is not None else ""
+
+        if is_en:
+            if emi_result and "EMI" not in completion_message:
+                completion_message += f"\n\n📊 **Estimated Monthly EMI**: ₹{emi_result['monthly_emi']:,.2f}/month"
+            if readiness_result and "Readiness" not in completion_message:
+                badge_text = readiness_result.get("badge_en") or (
+                    "Excellent" if readiness_result['score'] >= 80 else "High" if readiness_result['score'] >= 65 else "Moderate"
+                )
+                completion_message += f"\n🎯 **Loan Readiness Score**: {readiness_result['score']}/100 ({badge_text})"
+            if nearest_partner and "Partner" not in completion_message and "Bank" not in completion_message:
+                p_phone = f" (📞 {nearest_partner['phone']})" if nearest_partner.get("phone") else ""
+                completion_message += f"\n🏛️ **Nearest Official Channel Partner**{dist_str}: {nearest_partner['name']} — {nearest_partner.get('address') or nearest_partner.get('city')}{p_phone}"
+        else:
+            if emi_result and "EMI" not in completion_message:
+                completion_message += f"\n\n📊 **अनुमानित EMI**: ₹{emi_result['monthly_emi']:,.2f}/माह"
+            if readiness_result and "Readiness" not in completion_message:
+                completion_message += f"\n🎯 **ऋण तैयारी स्कोर**: {readiness_result['score']}/100 ({readiness_result['badge']})"
+            if nearest_partner and "पार्टनर" not in completion_message and "कार्यालय" not in completion_message:
+                p_phone = f" (📞 {nearest_partner['phone']})" if nearest_partner.get("phone") else ""
+                completion_message += f"\n🏛️ **निकटतम आधिकारिक चैनल पार्टनर**{dist_str}: {nearest_partner['name']} — {nearest_partner.get('address') or nearest_partner.get('city')}{p_phone}"
 
         return {
             "success": True,
@@ -579,7 +640,14 @@ def loan_chat(
             "user_data": session,
             "recommendation": recommendation,
             "emi": emi_result,
-            "readiness": readiness_result
+            "readiness": readiness_result,
+            "nearest_partner": nearest_partner,
+            "user_coordinates": {
+                "lat": session.get("latitude"),
+                "lng": session.get("longitude"),
+                "location": session.get("location"),
+                "state": session.get("state")
+            } if session.get("latitude") and session.get("longitude") else None
         }
 
     # =================================================
@@ -587,12 +655,21 @@ def loan_chat(
     # =================================================
     session["current_question"] = next_field
 
+    interim_readiness = None
+    if session.get("loan_type") and session.get("loan_required") and session.get("income"):
+        interim_readiness = calculate_loan_readiness(
+            session,
+            scheme=None
+        )
+
     return {
         "success": True,
         "complete": False,
         "session_id": request.session_id,
         "message": agent_result.get("reply"),
-        "next_field": next_field
+        "next_field": next_field,
+        "user_data": session,
+        "readiness": interim_readiness
     }
 
 

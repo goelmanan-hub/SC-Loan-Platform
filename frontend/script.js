@@ -39,8 +39,12 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchAvailableSchemes();
     checkBackendHealth();
     initSavedUserLocation();
-    // Automatically trigger browser location access prompt on page load/reload
-    handleLocationPermissionRequest(false);
+    // 1. Immediately load default channel partners and render map on page load
+    loadDefaultPartners();
+    // 2. Request browser location in background
+    if ("geolocation" in navigator) {
+        handleLocationPermissionRequest(false);
+    }
 });
 
 /* =====================================================
@@ -284,7 +288,11 @@ const TRANSLATIONS = {
         recDocsTitle: '<i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज (Mandatory Documents Checklist):',
         recReadinessTitle: '<i class="fa-solid fa-gauge-high"></i> आपका ऋण तैयारी स्कोर (Loan Readiness Score)',
         recTipsTitle: '<i class="fa-solid fa-lightbulb"></i> ऋण तैयारी बेहतर करने के सुझाव (Actionable Guidance)',
-        recChecklistTitle: '<i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज चेकलिस्ट (Required Documents)'
+        recChecklistTitle: '<i class="fa-solid fa-folder-open"></i> आवश्यक दस्तावेज चेकलिस्ट (Required Documents)',
+        recNextStepsLabel: "अगला कदम चुनें (Choose Next Step):",
+        recBtnPartners: "निकटतम चैनल पार्टनर देखें",
+        recBtnOcr: "दस्तावेज OCR सत्यापन",
+        recBtnEmi: "EMI कैलकुलेटर"
     },
     "en-IN": {
         langName: "English",
@@ -515,7 +523,11 @@ const TRANSLATIONS = {
         recDocsTitle: '<i class="fa-solid fa-folder-open"></i> Required Documents (Mandatory Checklist):',
         recReadinessTitle: '<i class="fa-solid fa-gauge-high"></i> Your Loan Readiness Score',
         recTipsTitle: '<i class="fa-solid fa-lightbulb"></i> Actionable Improvement Guidance',
-        recChecklistTitle: '<i class="fa-solid fa-folder-open"></i> Document Checklist'
+        recChecklistTitle: '<i class="fa-solid fa-folder-open"></i> Document Checklist',
+        recNextStepsLabel: "Choose Next Step:",
+        recBtnPartners: "View Nearest Channel Partners",
+        recBtnOcr: "Verify Documents (OCR)",
+        recBtnEmi: "EMI Calculator"
     },
     "bn-IN": {
         langName: "বাংলা",
@@ -1345,6 +1357,10 @@ function setAppLanguage(langCode, speakGreeting = false) {
     updateHTML("rec-readiness-title", t.recReadinessTitle);
     updateHTML("rec-tips-title", t.recTipsTitle);
     updateHTML("rec-checklist-title", t.recChecklistTitle);
+    updateText("rec-next-steps-label", t.recNextStepsLabel);
+    updateText("rec-btn-partners", t.recBtnPartners);
+    updateText("rec-btn-ocr", t.recBtnOcr);
+    updateText("rec-btn-emi", t.recBtnEmi);
 
     // 16. Dynamic Re-renders for Active Components
     renderSidebarSchemes();
@@ -2171,7 +2187,9 @@ async function handleUserChatMessage(userText) {
     }
 
     // Typing indicator
-    const typingId = appendChatMessage("bot", "<i>योजनासेतु सोच रहा है...</i>");
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+    const thinkingText = isEn ? "<i>YojnaSetu is thinking...</i>" : "<i>योजनासेतु सोच रहा है...</i>";
+    const typingId = appendChatMessage("bot", thinkingText);
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/ai/loan-chat`, {
@@ -2223,6 +2241,86 @@ async function handleUserChatMessage(userText) {
                     }
                 }, 1400);
             }
+
+            // Auto-redirect to Channel Partner section ONLY if user specifically inquires about channel partners/banks/where to apply
+            const isPartnerQuery = (userText && (
+                userText.toLowerCase().includes("partner") ||
+                userText.toLowerCase().includes("पार्टनर") ||
+                userText.toLowerCase().includes("चैनल") ||
+                userText.toLowerCase().includes("channel") ||
+                userText.toLowerCase().includes("बैंक") ||
+                userText.toLowerCase().includes("bank") ||
+                userText.toLowerCase().includes("एजेंसी") ||
+                userText.toLowerCase().includes("agency") ||
+                userText.toLowerCase().includes("sca") ||
+                userText.toLowerCase().includes("शाखा") ||
+                userText.toLowerCase().includes("branch") ||
+                userText.toLowerCase().includes("कहाँ आवेदन") ||
+                userText.toLowerCase().includes("कहाँ जाना") ||
+                userText.toLowerCase().includes("कहा जाना") ||
+                userText.toLowerCase().includes("कहाँ जमा") ||
+                userText.toLowerCase().includes("where to apply") ||
+                userText.toLowerCase().includes("where to submit") ||
+                userText.toLowerCase().includes("nearest office") ||
+                userText.toLowerCase().includes("निकटतम केंद्र") ||
+                userText.toLowerCase().includes("ऑफिस") ||
+                userText.toLowerCase().includes("office") ||
+                userText.toLowerCase().includes("locator")
+            )) || (!data.complete && data.message && (
+                data.message.includes("चैनल पार्टनर") ||
+                data.message.includes("Channel Partner") ||
+                data.message.includes("State Channelising Agency") ||
+                data.message.includes("स्टेट चैनेलाइजिंग एजेंसी")
+            ));
+
+            if (isPartnerQuery) {
+                setTimeout(() => {
+                    scrollToSection("partner-section");
+                    const partnerSec = document.getElementById("partner-section");
+                    if (partnerSec) {
+                        partnerSec.classList.add("chat-highlight-pulse");
+                        setTimeout(() => partnerSec.classList.remove("chat-highlight-pulse"), 2500);
+                    }
+                }, 1400);
+            }
+        }
+
+        // Auto-update interim Readiness Score Simulator widget if data received
+        if (data.readiness) {
+            populateReadinessUI("sim", data.readiness);
+            const simResultBox = document.getElementById("sim-result-box");
+            if (simResultBox) simResultBox.style.display = "block";
+        }
+        if (data.user_data) {
+            const simType = document.getElementById("sim-loan-type");
+            const simAmount = document.getElementById("sim-loan-amount");
+            const simIncome = document.getElementById("sim-income");
+            const simPurpose = document.getElementById("sim-purpose");
+            const simLocation = document.getElementById("sim-location");
+            if (simType && data.user_data.loan_type) simType.value = data.user_data.loan_type;
+            if (simAmount && data.user_data.loan_required) simAmount.value = data.user_data.loan_required;
+            if (simIncome && data.user_data.income) simIncome.value = data.user_data.income;
+            if (simPurpose && (data.user_data.business_type || data.user_data.education_course)) {
+                simPurpose.value = data.user_data.business_type || data.user_data.education_course;
+            }
+            if (simLocation && data.user_data.location) simLocation.value = data.user_data.location;
+        }
+
+        // Auto-update user coordinates & partner locator if location provided in chat
+        if (data.user_coordinates && typeof data.user_coordinates.lat === "number") {
+            userCoordinates = { lat: data.user_coordinates.lat, lng: data.user_coordinates.lng };
+            const partnerStateSelect = document.getElementById("partner-state-select");
+            if (partnerStateSelect && data.user_coordinates.state) {
+                partnerStateSelect.value = data.user_coordinates.state;
+                updateCityDropdownForState(data.user_coordinates.state);
+            }
+            const statusBadge = document.getElementById("geo-status-badge");
+            if (statusBadge) {
+                statusBadge.className = "geo-status-badge granted";
+                const isEn = currentLanguage && currentLanguage.startsWith("en");
+                statusBadge.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${escapeHtml(data.user_coordinates.location || (isEn ? 'Location Set' : 'स्थान निर्धारित'))}`;
+            }
+            fetchPartnersWithFilters();
         }
 
         // If conversation is complete, render recommendation, autofill all widgets, and readiness score
@@ -2236,18 +2334,22 @@ async function handleUserChatMessage(userText) {
             }
             renderRecommendationCard(data.recommendation, recommendationEmi, data.readiness, data.user_data);
 
-            // Auto-fill all interactive widgets (Channel Partner, EMI Calculator, Readiness Simulator)
+            // Auto-fill all interactive widgets in background (Channel Partner, EMI Calculator, Readiness Simulator)
             autoFillAllWidgetsFromRecommendation(data.user_data, data.recommendation.recommended_scheme, recommendationEmi, data.readiness);
 
-            // Continue the user journey to nearby channel partners after presentation
-            setTimeout(() => scrollToSection("partner-section"), 1400);
+            // Note: We do NOT automatically redirect away to channel partners.
+            // The user stays on the recommended scheme card to review recommendations & readiness score.
         }
 
     } catch (error) {
         console.error("Loan Chat Error:", error);
         const typingElem = document.getElementById(typingId);
         if (typingElem) typingElem.remove();
-        appendChatMessage("bot", "❌ क्षमा करें, संदेश भेजने में त्रुटि हुई। कृपया backend की स्थिति जाँचें।");
+        const isEn = currentLanguage && currentLanguage.startsWith("en");
+        const errMsg = isEn
+            ? "❌ Sorry, there was an error communicating with the server. Please ensure the backend is running."
+            : "❌ क्षमा करें, संदेश भेजने में त्रुटि हुई। कृपया backend की स्थिति जाँचें।";
+        appendChatMessage("bot", errMsg);
     }
 }
 
@@ -2255,16 +2357,17 @@ function appendChatMessage(sender, text) {
     const container = document.getElementById("chat-messages");
     if (!container) return;
 
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
     const msgId = "msg-" + Date.now() + "-" + Math.random().toString(36).substr(2, 4);
     const msgDiv = document.createElement("div");
     msgDiv.id = msgId;
     msgDiv.className = `message ${sender === "user" ? "user-message" : "bot-message"}`;
 
     const avatarIcon = sender === "user" ? "fa-user" : "fa-robot";
-    const isTyping = typeof text === "string" && text.includes("योजनासेतु सोच रहा है");
+    const isTyping = typeof text === "string" && (text.includes("योजनासेतु सोच रहा है") || text.includes("YojnaSetu is thinking"));
 
     const listenBtn = sender === "bot" && !isTyping
-        ? `<button type="button" class="chat-listen-btn" title="आवाज़ सुनें (Listen Voice)" onclick="speakChatMessage('${msgId}')"><i class="fa-solid fa-volume-high"></i></button>`
+        ? `<button type="button" class="chat-listen-btn" title="${isEn ? 'Listen Voice' : 'आवाज़ सुनें'}" onclick="speakChatMessage('${msgId}')"><i class="fa-solid fa-volume-high"></i></button>`
         : '';
 
     // Format newlines and markdown bold text cleanly
@@ -2272,12 +2375,19 @@ function appendChatMessage(sender, text) {
         ? text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br>")
         : text;
 
-    // Add direct CTA button if bot is describing documents
-    if (sender === "bot" && typeof text === "string" && (text.includes("दस्तावेज OCR") || text.includes("जाति प्रमाण पत्र") || text.includes("Caste Certificate"))) {
+    // Add direct CTA button if bot is describing documents or caste certificate
+    if (sender === "bot" && typeof text === "string" && (
+        text.includes("दस्तावेज OCR") ||
+        text.includes("जाति प्रमाण पत्र") ||
+        text.includes("Caste Certificate") ||
+        text.toLowerCase().includes("caste certificate") ||
+        text.toLowerCase().includes("certificate ready")
+    )) {
+        const ocrBtnText = isEn ? "Verify Documents (OCR)" : "दस्तावेज OCR पर जाएँ व सत्यापित करें";
         formattedText += `
             <div style="margin-top: 10px;">
                 <button type="button" class="btn-primary" style="padding: 6px 14px; font-size: 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" onclick="scrollToSection('doc-ocr-section')">
-                    <i class="fa-solid fa-file-shield"></i> दस्तावेज OCR पर जाएँ व सत्यापित करें
+                    <i class="fa-solid fa-file-shield"></i> ${ocrBtnText}
                 </button>
             </div>
         `;
@@ -2316,7 +2426,7 @@ function updateSpeakerBubble(text) {
 /* =====================================================
    RECOMMENDATION & READINESS SCORE RENDERING
 ===================================================== */
-function renderRecommendationCard(rec, emi, readiness) {
+function renderRecommendationCard(rec, emi, readiness, userData) {
     const card = document.getElementById("recommendation-card");
     if (!card) return;
 
@@ -2802,15 +2912,10 @@ function initSavedUserLocation() {
  */
 function handleLocationPermissionRequest(isExplicitClick = false) {
     const statusBadge = document.getElementById("geo-status-badge");
-    const listContainer = document.getElementById("partners-list");
 
-    if (statusBadge) {
+    if (statusBadge && isExplicitClick) {
         statusBadge.className = "geo-status-badge waiting";
         statusBadge.innerHTML = `<span class="pulse-dot"></span> स्थान प्राप्त किया जा रहा है...`;
-    }
-
-    if (listContainer) {
-        listContainer.innerHTML = `<div class="loading-placeholder">📍 आपका सटीक स्थान प्राप्त किया जा रहा है...</div>`;
     }
 
     if ("geolocation" in navigator) {
@@ -2840,45 +2945,27 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
                 hideGlobalLocationBanner(500);
                 hideLocationPermissionBox(1000);
 
-                // Notify user via green toast
-                showToast(`📍 आपका लाइव स्थान प्राप्त हुआ (${lat.toFixed(3)}°, ${lng.toFixed(3)}°) — निकटतम चैनल पार्टनर लोड हो रहे हैं`, "success");
-
-                // Auto select nearest state if in North India
-                const stateSelect = document.getElementById("partner-state-select");
-                if (stateSelect && (lat >= 27.5 && lat <= 31.5) && (lng >= 74.0 && lng <= 78.5)) {
-                    stateSelect.value = "ALL";
+                // Notify user via green toast if explicit click
+                if (isExplicitClick) {
+                    showToast(`📍 आपका लाइव स्थान प्राप्त हुआ (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`, "success");
                 }
 
                 await fetchPartnersWithFilters();
             },
             async (error) => {
-                console.warn("Geolocation permission denied/error:", error);
-                isLocationPermissionGranted = false;
-
-                if (statusBadge) {
+                console.warn("Geolocation background status:", error);
+                if (statusBadge && isExplicitClick) {
                     statusBadge.className = "geo-status-badge denied";
-                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> स्थान अनुमति अस्वीकृत (डिफ़ॉल्ट सक्रिय)`;
+                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> स्थान अनुमति अनुपलब्ध`;
+                    showToast("⚠️ ब्राउज़र स्थान अनुमति उपलब्ध नहीं है। डिफ़ॉल्ट शहर सक्रिय।", "info");
                 }
-
-                if (isExplicitClick) {
-                    showToast("⚠️ ब्राउज़र स्थान अनुमति उपलब्ध नहीं है। डिफ़ॉल्ट कुरुक्षेत्र शहर लोड किया गया।", "info");
-                }
-
-                // Use current dropdown value
-                handleCitySelectChange();
             },
             {
-                enableHighAccuracy: true,
-                timeout: 8000,
-                maximumAge: 0
+                enableHighAccuracy: false,
+                timeout: 5000,
+                maximumAge: 600000
             }
         );
-    } else {
-        if (statusBadge) {
-            statusBadge.className = "geo-status-badge manual";
-            statusBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ब्राउज़र स्थान असमर्थ`;
-        }
-        handleCitySelectChange();
     }
 }
 
@@ -2887,10 +2974,13 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
 // =====================================================
 const STATE_CITY_MAPPING = {
     "ALL": [
-        { name: "कुरुक्षेत्र (Kurukshetra, Haryana)", lat: 29.9695, lng: 76.8783 },
+        { name: "बेगमपुर / रोहिणी (Begumpur & Rohini - North-West Delhi)", lat: 28.7240, lng: 77.0645 },
+        { name: "रोहिणी (North-West Delhi - DSFDC Branch & PNB)", lat: 28.7235, lng: 77.1142 },
         { name: "दिल्ली केंद्रीय / ITO (Central Delhi - DSFDC HQ)", lat: 28.6294, lng: 77.2435 },
-        { name: "रोहिणी (North-West Delhi - DSFDC Branch)", lat: 28.7235, lng: 77.1142 },
         { name: "भीकाजी कामा प्लेस (South Delhi - NSFDC Apex HQ)", lat: 28.5684, lng: 77.1895 },
+        { name: "पीतमपुरा / रानी बाग (Pitampura, North-West Delhi)", lat: 28.6990, lng: 77.1384 },
+        { name: "द्वारका / पश्चिम दिल्ली (Dwarka / West Delhi)", lat: 28.5921, lng: 77.0460 },
+        { name: "कुरुक्षेत्र (Kurukshetra, Haryana)", lat: 29.9695, lng: 76.8783 },
         { name: "करनाल (Karnal, Haryana)", lat: 29.6857, lng: 76.9905 },
         { name: "अंबाला (Ambala, Haryana)", lat: 30.3782, lng: 76.7767 },
         { name: "पानीपत (Panipat, Haryana)", lat: 29.3909, lng: 76.9635 },
@@ -2907,8 +2997,10 @@ const STATE_CITY_MAPPING = {
         { name: "चेन्नई (Chennai, Tamil Nadu)", lat: 13.0336, lng: 80.2447 }
     ],
     "Delhi": [
+        { name: "बेगमपुर / रोहिणी (Begumpur & Rohini - North-West Delhi)", lat: 28.7240, lng: 77.0645 },
+        { name: "रोहिणी (North-West Delhi - DSFDC Branch & PNB)", lat: 28.7235, lng: 77.1142 },
+        { name: "पीतमपुरा / रानी बाग (Pitampura, North-West Delhi)", lat: 28.6990, lng: 77.1384 },
         { name: "दिल्ली केंद्रीय / ITO (Central Delhi - DSFDC HQ)", lat: 28.6294, lng: 77.2435 },
-        { name: "रोहिणी (North-West Delhi - DSFDC Branch)", lat: 28.7235, lng: 77.1142 },
         { name: "भीकाजी कामा प्लेस (South Delhi - NSFDC Apex HQ)", lat: 28.5684, lng: 77.1895 },
         { name: "पूर्वी दिल्ली / लक्ष्मी नगर (East Delhi)", lat: 28.6304, lng: 77.2773 },
         { name: "द्वारका / पश्चिम दिल्ली (Dwarka / West Delhi)", lat: 28.5921, lng: 77.0460 }
@@ -3019,9 +3111,9 @@ function handleCitySelectChange() {
 }
 
 async function loadDefaultPartners() {
-    // Initial city population for default selected state (Haryana)
+    initSavedUserLocation();
     const stateSelect = document.getElementById("partner-state-select");
-    const initialState = stateSelect ? stateSelect.value : "Haryana";
+    const initialState = stateSelect ? stateSelect.value : "ALL";
     updateCityDropdownForState(initialState);
     await fetchPartnersWithFilters();
 }
@@ -3045,6 +3137,34 @@ async function fetchPartnersWithFilters() {
     const state = stateSelect ? stateSelect.value : "ALL";
     const schemeId = schemeSelect ? schemeSelect.value : "";
     const partnerType = activePartnerTypeFilter || "ALL";
+
+    // Instant client-side geocoding check to center map and calculate accurate distance
+    if (query) {
+        const qLower = query.toLowerCase();
+        const clientGeoMatches = [
+            { key: "begumpur", lat: 28.7240, lng: 77.0645, state: "Delhi" },
+            { key: "begam pur", lat: 28.7240, lng: 77.0645, state: "Delhi" },
+            { key: "rohini", lat: 28.7235, lng: 77.1142, state: "Delhi" },
+            { key: "pitampura", lat: 28.6990, lng: 77.1384, state: "Delhi" },
+            { key: "dwarka", lat: 28.5921, lng: 77.0460, state: "Delhi" },
+            { key: "delhi", lat: 28.6500, lng: 77.1500, state: "Delhi" },
+            { key: "kurukshetra", lat: 29.9695, lng: 76.8783, state: "Haryana" },
+            { key: "karnal", lat: 29.6857, lng: 76.9905, state: "Haryana" },
+            { key: "ambala", lat: 30.3782, lng: 76.7767, state: "Haryana" },
+            { key: "panipat", lat: 29.3909, lng: 76.9635, state: "Haryana" },
+            { key: "noida", lat: 28.5355, lng: 77.3910, state: "Uttar Pradesh" },
+            { key: "lucknow", lat: 26.8833, lng: 80.9462, state: "Uttar Pradesh" },
+            { key: "jaipur", lat: 26.8920, lng: 75.8055, state: "Rajasthan" },
+            { key: "mumbai", lat: 19.1125, lng: 72.8340, state: "Maharashtra" },
+            { key: "bengaluru", lat: 12.9784, lng: 77.5913, state: "Karnataka" }
+        ];
+        for (const gm of clientGeoMatches) {
+            if (qLower.includes(gm.key)) {
+                userCoordinates = { lat: gm.lat, lng: gm.lng };
+                break;
+            }
+        }
+    }
 
     try {
         const payload = {
@@ -3123,26 +3243,28 @@ function renderPartnersList(partners) {
             : (p.rag_score ? `🎯 RAG: ${Math.round(p.rag_score)}%` : (isEn ? "📍 Available" : "📍 उपलब्ध"));
 
         const schemesList = (p.schemes || []).slice(0, 4).map(s => {
-            const formatted = s.replace(/_/g, " ");
+            const formatted = String(s || "").replace(/_/g, " ");
             return `<span class="partner-scheme-tag">${escapeHtml(formatted)}</span>`;
         }).join("");
 
         const phoneClean = (p.phone || "").replace(/[^\d+]/g, "");
+        const pLat = Number(p.latitude) || 29.9695;
+        const pLng = Number(p.longitude) || 76.8783;
 
         return `
-            <div class="partner-card" id="card-${p.id}">
+            <div class="partner-card" id="card-${p.id || 'partner'}">
                 <div class="partner-card-header">
                     <span class="partner-type-badge ${typeClass}">${typeBadgeName}</span>
                     <span class="partner-distance-pill">${distanceDisplay}</span>
                 </div>
                 
-                <h3>${escapeHtml(p.name)}</h3>
+                <h3>${escapeHtml(p.name || 'NSFDC Partner Office')}</h3>
                 
                 <div class="partner-address">
                     <i class="fa-solid fa-location-dot" style="color: #ef4444; margin-top: 2px;"></i>
                     <div>
-                        <span>${escapeHtml(p.address || p.city)}</span>
-                        ${p.pincode ? ` <strong>(PIN: ${p.pincode})</strong>` : ''}
+                        <span>${escapeHtml(p.address || p.city || "")}</span>
+                        ${p.pincode ? ` <strong>(PIN: ${escapeHtml(p.pincode)})</strong>` : ''}
                     </div>
                 </div>
 
@@ -3158,7 +3280,7 @@ function renderPartnersList(partners) {
                 </div>
 
                 <div class="partner-card-actions">
-                    <a href="${p.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${p.latitude},${p.longitude}`}" target="_blank" rel="noopener noreferrer" class="partner-action-btn directions" title="${isEn ? 'Get directions on Google Maps' : 'Google Maps पर रास्ता देखें'}">
+                    <a href="${p.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${pLat},${pLng}`}" target="_blank" rel="noopener noreferrer" class="partner-action-btn directions" title="${isEn ? 'Get directions on Google Maps' : 'Google Maps पर रास्ता देखें'}">
                         <i class="fa-solid fa-diamond-turn-right"></i> ${t.partnerDirections || (isEn ? 'Directions' : 'दिशा-निर्देश')}
                     </a>
                     ${p.phone ? `
@@ -3166,7 +3288,7 @@ function renderPartnersList(partners) {
                             <i class="fa-solid fa-phone"></i> ${t.partnerCall || (isEn ? 'Call' : 'कॉल')}
                         </a>
                     ` : ''}
-                    <button type="button" class="partner-action-btn call" onclick="focusPartnerOnMap('${p.id}', ${p.latitude}, ${p.longitude})" title="${isEn ? 'Show on map' : 'मानचित्र पर देखें'}">
+                    <button type="button" class="partner-action-btn call" onclick="focusPartnerOnMap('${p.id}', ${pLat}, ${pLng})" title="${isEn ? 'Show on map' : 'मानचित्र पर देखें'}">
                         <i class="fa-solid fa-map-pin"></i> ${t.partnerMap || (isEn ? 'Map' : 'मैप')}
                     </button>
                 </div>
@@ -3222,80 +3344,104 @@ async function calculateRecommendationEmi(userData, scheme) {
 ===================================================== */
 function renderPartnerMap(latitude, longitude, partners) {
     const mapElement = document.getElementById("partner-map");
-    if (!mapElement || !window.L) return;
-
-    if (!partnerMap) {
-        partnerMap = L.map(mapElement).setView([latitude, longitude], 11);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 19,
-            attribution: "&copy; OpenStreetMap contributors | NSFDC Network"
-        }).addTo(partnerMap);
-        partnerMarkers = L.layerGroup().addTo(partnerMap);
-    } else {
-        partnerMap.setView([latitude, longitude], 11);
-        partnerMarkers.clearLayers();
+    if (!mapElement || typeof L === "undefined" || !L.map) {
+        console.warn("Leaflet L is not loaded yet");
+        return;
     }
 
-    partnerMapMarkersDict = {};
+    try {
+        if (!partnerMap) {
+            if (mapElement._leaflet_id) {
+                mapElement._leaflet_id = null;
+                mapElement.innerHTML = "";
+            }
+            partnerMap = L.map(mapElement, {
+                center: [latitude, longitude],
+                zoom: 11,
+                scrollWheelZoom: false
+            });
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: "&copy; OpenStreetMap contributors | NSFDC"
+            }).addTo(partnerMap);
+            partnerMarkers = L.layerGroup().addTo(partnerMap);
+        } else {
+            partnerMap.setView([latitude, longitude], 11);
+            if (partnerMarkers) partnerMarkers.clearLayers();
+        }
 
-    // 1. User Marker (High-visibility pulsing blue beacon)
-    const userMarker = L.circleMarker([latitude, longitude], {
-        radius: 10,
-        color: "#ffffff",
-        weight: 3,
-        fillColor: "#0072bc",
-        fillOpacity: 1
-    }).bindPopup("<div style='text-align: center; font-weight: bold;'>📍 आपका वर्तमान स्थान<br><span style='font-size: 11px; color: #64748b;'>यहाँ से दूरी मापी जा रही है</span></div>");
-    partnerMarkers.addLayer(userMarker);
+        partnerMapMarkersDict = {};
 
-    const mapBounds = [[latitude, longitude]];
+        // 1. User Marker (High-visibility pulsing blue beacon)
+        const isEn = currentLanguage && currentLanguage.startsWith("en");
+        const userPopupText = isEn
+            ? "<div style='text-align: center; font-weight: bold;'>📍 Your Current Location<br><span style='font-size: 11px; color: #64748b;'>Measuring distance from here</span></div>"
+            : "<div style='text-align: center; font-weight: bold;'>📍 आपका वर्तमान स्थान<br><span style='font-size: 11px; color: #64748b;'>यहाँ से दूरी मापी जा रही है</span></div>";
 
-    // 2. Add Partner Markers
-    partners.forEach((partner) => {
-        if (typeof partner.latitude !== "number" || typeof partner.longitude !== "number") return;
+        const userMarker = L.circleMarker([latitude, longitude], {
+            radius: 10,
+            color: "#ffffff",
+            weight: 3,
+            fillColor: "#0072bc",
+            fillOpacity: 1
+        }).bindPopup(userPopupText);
+        partnerMarkers.addLayer(userMarker);
 
-        const typeColor = partner.type === "SCA" ? "#d97706" : partner.type === "PSB" ? "#16a34a" : "#ea580c";
-        const typeLabel = partner.type === "SCA" ? "🏛️ SCA" : partner.type === "PSB" ? "🏦 PSB" : "🌾 RRB";
+        const mapBounds = [[latitude, longitude]];
 
-        const markerHtml = `
-            <div style="background: ${typeColor}; color: #ffffff; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: inline-flex; align-items: center; gap: 4px;">
-                ${typeLabel}
-            </div>
-        `;
+        // 2. Add Partner Markers
+        if (partners && partners.length > 0) {
+            partners.forEach((partner) => {
+                const pLat = Number(partner.latitude);
+                const pLng = Number(partner.longitude);
+                if (isNaN(pLat) || isNaN(pLng)) return;
 
-        const customIcon = L.divIcon({
-            html: markerHtml,
-            className: "partner-map-custom-pin",
-            iconSize: [80, 26],
-            iconAnchor: [40, 13]
-        });
+                const typeColor = partner.type === "SCA" ? "#d97706" : partner.type === "PSB" ? "#16a34a" : "#ea580c";
+                const typeLabel = partner.type === "SCA" ? "🏛️ SCA" : partner.type === "PSB" ? "🏦 PSB" : "🌾 RRB";
 
-        const popupContent = `
-            <div style="min-width: 200px; font-family: sans-serif;">
-                <strong style="color: #003366; font-size: 13px; display: block; margin-bottom: 4px;">${escapeHtml(partner.name)}</strong>
-                <div style="font-size: 11px; color: #475569; margin-bottom: 6px;">📍 ${escapeHtml(partner.address || partner.city)}</div>
-                ${partner.distance_km !== null ? `<div style="font-size: 12px; font-weight: bold; color: #16a34a; margin-bottom: 8px;">दूरी: ${partner.distance_km} km</div>` : ''}
-                <div style="display: flex; gap: 6px;">
-                    <a href="${partner.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${partner.latitude},${partner.longitude}`}" target="_blank" rel="noopener noreferrer" style="background: #003366; color: #ffffff; text-decoration: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block;">
-                        🗺️ नेविगेट करें
-                    </a>
-                    ${partner.phone ? `<a href="tel:${partner.phone.replace(/[^\d+]/g, '')}" style="background: #e2e8f0; color: #0f172a; text-decoration: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block;">📞 कॉल</a>` : ''}
-                </div>
-            </div>
-        `;
+                const markerHtml = `
+                    <div style="background: ${typeColor}; color: #ffffff; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;">
+                        ${typeLabel}
+                    </div>
+                `;
 
-        const marker = L.marker([partner.latitude, partner.longitude], { icon: customIcon })
-            .bindPopup(popupContent);
+                const customIcon = L.divIcon({
+                    html: markerHtml,
+                    className: "partner-map-custom-pin",
+                    iconSize: [60, 24],
+                    iconAnchor: [30, 12]
+                });
 
-        partnerMarkers.addLayer(marker);
-        partnerMapMarkersDict[partner.id] = marker;
-        mapBounds.push([partner.latitude, partner.longitude]);
-    });
+                const popupContent = `
+                    <div style="min-width: 200px; font-family: sans-serif;">
+                        <strong style="color: #003366; font-size: 13px; display: block; margin-bottom: 4px;">${escapeHtml(partner.name || '')}</strong>
+                        <div style="font-size: 11px; color: #475569; margin-bottom: 6px;">📍 ${escapeHtml(partner.address || partner.city || '')}</div>
+                        ${partner.distance_km !== null && partner.distance_km !== undefined ? `<div style="font-size: 12px; font-weight: bold; color: #16a34a; margin-bottom: 8px;">${isEn ? 'Distance:' : 'दूरी:'} ${partner.distance_km} km</div>` : ''}
+                        <div style="display: flex; gap: 6px;">
+                            <a href="${partner.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${pLat},${pLng}`}" target="_blank" rel="noopener noreferrer" style="background: #003366; color: #ffffff; text-decoration: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block;">
+                                🗺️ ${isEn ? 'Directions' : 'नेविगेट करें'}
+                            </a>
+                            ${partner.phone ? `<a href="tel:${String(partner.phone).replace(/[^\d+]/g, '')}" style="background: #e2e8f0; color: #0f172a; text-decoration: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block;">📞 ${isEn ? 'Call' : 'कॉल'}</a>` : ''}
+                        </div>
+                    </div>
+                `;
 
-    if (mapBounds.length > 1) {
-        partnerMap.fitBounds(mapBounds, { padding: [40, 40], maxZoom: 14 });
+                const marker = L.marker([pLat, pLng], { icon: customIcon }).bindPopup(popupContent);
+                partnerMarkers.addLayer(marker);
+                if (partner.id) partnerMapMarkersDict[partner.id] = marker;
+                mapBounds.push([pLat, pLng]);
+            });
+        }
+
+        if (mapBounds.length > 1) {
+            partnerMap.fitBounds(mapBounds, { padding: [40, 40], maxZoom: 14 });
+        }
+        setTimeout(() => {
+            if (partnerMap) partnerMap.invalidateSize();
+        }, 200);
+    } catch (err) {
+        console.error("Leaflet Map rendering error:", err);
     }
-    setTimeout(() => partnerMap.invalidateSize(), 100);
 }
 
 function escapeHtml(value) {

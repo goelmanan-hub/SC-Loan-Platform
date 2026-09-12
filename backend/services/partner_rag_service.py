@@ -12,8 +12,137 @@ from database.db import get_all_stored_partners
 
 
 # =====================================================
-# HAVERSINE GEODISTANCE CALCULATOR
+# HAVERSINE GEODISTANCE CALCULATOR & GEOCODER
 # =====================================================
+
+GEOCODED_LOCATIONS: Dict[str, Dict[str, Any]] = {
+    # Delhi Localities & Districts
+    "begumpur": {"lat": 28.7240, "lng": 77.0645, "name": "Begumpur (North West Delhi)", "state": "Delhi"},
+    "begam pur": {"lat": 28.7240, "lng": 77.0645, "name": "Begumpur (North West Delhi)", "state": "Delhi"},
+    "rohini": {"lat": 28.7235, "lng": 77.1142, "name": "Rohini (North West Delhi)", "state": "Delhi"},
+    "pitampura": {"lat": 28.6990, "lng": 77.1384, "name": "Pitampura (North West Delhi)", "state": "Delhi"},
+    "bawana": {"lat": 28.7997, "lng": 77.0326, "name": "Bawana (North West Delhi)", "state": "Delhi"},
+    "narela": {"lat": 28.8527, "lng": 77.0931, "name": "Narela (North Delhi)", "state": "Delhi"},
+    "nangloi": {"lat": 28.6835, "lng": 77.0654, "name": "Nangloi (West Delhi)", "state": "Delhi"},
+    "mangolpuri": {"lat": 28.6925, "lng": 77.0789, "name": "Mangolpuri (North West Delhi)", "state": "Delhi"},
+    "sultanpuri": {"lat": 28.6987, "lng": 77.0754, "name": "Sultanpuri (North West Delhi)", "state": "Delhi"},
+    "paschim vihar": {"lat": 28.6692, "lng": 77.1002, "name": "Paschim Vihar (West Delhi)", "state": "Delhi"},
+    "dwarka": {"lat": 28.5921, "lng": 77.0460, "name": "Dwarka (South West Delhi)", "state": "Delhi"},
+    "najafgarh": {"lat": 28.6090, "lng": 76.9798, "name": "Najafgarh (South West Delhi)", "state": "Delhi"},
+    "janakpuri": {"lat": 28.6219, "lng": 77.0878, "name": "Janakpuri (West Delhi)", "state": "Delhi"},
+    "ito": {"lat": 28.6294, "lng": 77.2435, "name": "ITO / Vikas Bhawan (Central Delhi)", "state": "Delhi"},
+    "connaught place": {"lat": 28.6315, "lng": 77.2167, "name": "Connaught Place (New Delhi)", "state": "Delhi"},
+    "karol bagh": {"lat": 28.6517, "lng": 77.1906, "name": "Karol Bagh (Central Delhi)", "state": "Delhi"},
+    "laxmi nagar": {"lat": 28.6304, "lng": 77.2773, "name": "Laxmi Nagar (East Delhi)", "state": "Delhi"},
+    "bhikaji cama place": {"lat": 28.5684, "lng": 77.1895, "name": "Bhikaji Cama Place (South Delhi)", "state": "Delhi"},
+    "saket": {"lat": 28.5245, "lng": 77.2066, "name": "Saket (South Delhi)", "state": "Delhi"},
+    "delhi": {"lat": 28.6500, "lng": 77.1500, "name": "Delhi NCR", "state": "Delhi"},
+    "new delhi": {"lat": 28.6139, "lng": 77.2090, "name": "New Delhi", "state": "Delhi"},
+    "delhi ncr": {"lat": 28.6500, "lng": 77.1500, "name": "Delhi NCR", "state": "Delhi"},
+
+    # Haryana Cities
+    "kurukshetra": {"lat": 29.9695, "lng": 76.8783, "name": "Kurukshetra (Haryana)", "state": "Haryana"},
+    "thanesar": {"lat": 29.9695, "lng": 76.8783, "name": "Thanesar (Kurukshetra)", "state": "Haryana"},
+    "pehowa": {"lat": 29.9800, "lng": 76.5800, "name": "Pehowa (Kurukshetra)", "state": "Haryana"},
+    "karnal": {"lat": 29.6857, "lng": 76.9905, "name": "Karnal (Haryana)", "state": "Haryana"},
+    "ambala": {"lat": 30.3782, "lng": 76.7767, "name": "Ambala (Haryana)", "state": "Haryana"},
+    "panipat": {"lat": 29.3909, "lng": 76.9635, "name": "Panipat (Haryana)", "state": "Haryana"},
+    "panchkula": {"lat": 30.6942, "lng": 76.8606, "name": "Panchkula (Haryana)", "state": "Haryana"},
+    "rohtak": {"lat": 28.8955, "lng": 76.6066, "name": "Rohtak (Haryana)", "state": "Haryana"},
+    "hisar": {"lat": 29.1492, "lng": 75.7217, "name": "Hisar (Haryana)", "state": "Haryana"},
+    "sonipat": {"lat": 28.9931, "lng": 77.0151, "name": "Sonipat (Haryana)", "state": "Haryana"},
+    "gurugram": {"lat": 28.4595, "lng": 77.0266, "name": "Gurugram (Haryana)", "state": "Haryana"},
+    "gurgaon": {"lat": 28.4595, "lng": 77.0266, "name": "Gurgaon (Haryana)", "state": "Haryana"},
+    "faridabad": {"lat": 28.4089, "lng": 77.3178, "name": "Faridabad (Haryana)", "state": "Haryana"},
+
+    # Uttar Pradesh
+    "noida": {"lat": 28.5355, "lng": 77.3910, "name": "Noida / Greater Noida (UP)", "state": "Uttar Pradesh"},
+    "greater noida": {"lat": 28.5355, "lng": 77.3910, "name": "Greater Noida (UP)", "state": "Uttar Pradesh"},
+    "ghaziabad": {"lat": 28.6692, "lng": 77.4538, "name": "Ghaziabad (UP)", "state": "Uttar Pradesh"},
+    "lucknow": {"lat": 26.8833, "lng": 80.9462, "name": "Lucknow (UP)", "state": "Uttar Pradesh"},
+    "agra": {"lat": 27.1985, "lng": 78.0064, "name": "Agra (UP)", "state": "Uttar Pradesh"},
+    "kanpur": {"lat": 26.4499, "lng": 80.3319, "name": "Kanpur (UP)", "state": "Uttar Pradesh"},
+    "varanasi": {"lat": 25.3176, "lng": 82.9739, "name": "Varanasi (UP)", "state": "Uttar Pradesh"},
+
+    # Punjab & Chandigarh
+    "chandigarh": {"lat": 30.7410, "lng": 76.7850, "name": "Chandigarh (Punjab)", "state": "Punjab"},
+    "ludhiana": {"lat": 30.9010, "lng": 75.8573, "name": "Ludhiana (Punjab)", "state": "Punjab"},
+    "amritsar": {"lat": 31.6340, "lng": 74.8723, "name": "Amritsar (Punjab)", "state": "Punjab"},
+    "jalandhar": {"lat": 31.3260, "lng": 75.5762, "name": "Jalandhar (Punjab)", "state": "Punjab"},
+    "patiala": {"lat": 30.3398, "lng": 76.3869, "name": "Patiala (Punjab)", "state": "Punjab"},
+
+    # Rajasthan
+    "jaipur": {"lat": 26.8920, "lng": 75.8055, "name": "Jaipur (Rajasthan)", "state": "Rajasthan"},
+    "jodhpur": {"lat": 26.2389, "lng": 73.0243, "name": "Jodhpur (Rajasthan)", "state": "Rajasthan"},
+    "kota": {"lat": 25.2138, "lng": 75.8648, "name": "Kota (Rajasthan)", "state": "Rajasthan"},
+    "udaipur": {"lat": 24.5854, "lng": 73.7125, "name": "Udaipur (Rajasthan)", "state": "Rajasthan"},
+
+    # Maharashtra & South
+    "mumbai": {"lat": 19.1125, "lng": 72.8340, "name": "Mumbai (Maharashtra)", "state": "Maharashtra"},
+    "pune": {"lat": 18.5284, "lng": 73.8743, "name": "Pune (Maharashtra)", "state": "Maharashtra"},
+    "nagpur": {"lat": 21.1458, "lng": 79.0882, "name": "Nagpur (Maharashtra)", "state": "Maharashtra"},
+    "bengaluru": {"lat": 12.9784, "lng": 77.5913, "name": "Bengaluru (Karnataka)", "state": "Karnataka"},
+    "bangalore": {"lat": 12.9784, "lng": 77.5913, "name": "Bengaluru (Karnataka)", "state": "Karnataka"},
+    "chennai": {"lat": 13.0336, "lng": 80.2447, "name": "Chennai (Tamil Nadu)", "state": "Tamil Nadu"}
+}
+
+
+def geocode_location(text: Optional[str]) -> Optional[Dict[str, Any]]:
+    """
+    Resolves natural language location string or query to exact GPS coordinates & normalized place name.
+    Handles specific sub-localities (e.g., Begumpur, Rohini, Pitampura) as well as major districts & states.
+    """
+    if not text:
+        return None
+
+    cleaned = str(text).lower().strip()
+    # Normalize Hindi/English terms
+    cleaned = re.sub(r"[^\w\s\u0900-\u097F]", " ", cleaned)
+
+    # 1. Exact or substring match in priority order (longer names first)
+    sorted_keys = sorted(GEOCODED_LOCATIONS.keys(), key=lambda k: len(k), reverse=True)
+    for key in sorted_keys:
+        if re.search(rf"\b{re.escape(key)}\b", cleaned):
+            info = GEOCODED_LOCATIONS[key].copy()
+            info["key"] = key
+            return info
+
+    # 2. Hindi equivalents match
+    hindi_map = {
+        "बेगमपुर": "begumpur",
+        "रोहिणी": "rohini",
+        "पीतमपुरा": "pitampura",
+        "दिल्ली": "delhi",
+        "नई दिल्ली": "new delhi",
+        "कुरुक्षेत्र": "kurukshetra",
+        "करनाल": "karnal",
+        "अंबाला": "ambala",
+        "पानीपत": "panipat",
+        "पंचकूला": "panchkula",
+        "रोहतक": "rohtak",
+        "हिसार": "hisar",
+        "सोनीपत": "sonipat",
+        "गुड़गांव": "gurugram",
+        "गुरुग्राम": "gurugram",
+        "नोएडा": "noida",
+        "लखनऊ": "lucknow",
+        "आगरा": "agra",
+        "चंडीगढ़": "chandigarh",
+        "लुधियाना": "ludhiana",
+        "जयपुर": "jaipur",
+        "मुंबई": "mumbai",
+        "पुणे": "pune",
+        "बेंगलुरु": "bengaluru",
+        "चेन्नई": "chennai"
+    }
+    for h_word, eng_key in hindi_map.items():
+        if h_word in text:
+            info = GEOCODED_LOCATIONS[eng_key].copy()
+            info["key"] = eng_key
+            return info
+
+    return None
+
 
 def calculate_haversine_distance(
     lat1: float,
@@ -206,9 +335,19 @@ def retrieve_channel_partners(
     3. Computes semantic TF-IDF vector similarity for natural language queries.
     4. Applies domain boosting for primary SCAs and lead district banks.
     """
+    # 0. Automatic Geocoding if coordinates not provided
+    clean_query = (query or "").strip()
+    if not (latitude is not None and longitude is not None):
+        # Try geocoding city, query, or state
+        geo_match = geocode_location(city) or geocode_location(clean_query) or geocode_location(state)
+        if geo_match:
+            latitude = geo_match["lat"]
+            longitude = geo_match["lng"]
+            if not state or state.lower() in ["all", "सभी"]:
+                state = geo_match.get("state")
+
     partners = PARTNER_VECTOR_STORE.partners or get_all_channel_partners_kb()
     has_coords = (latitude is not None and longitude is not None)
-    clean_query = (query or "").strip()
 
     sim_scores = PARTNER_VECTOR_STORE.query_similarity(clean_query) if clean_query else [0.0] * len(partners)
 
@@ -238,7 +377,6 @@ def retrieve_channel_partners(
             p_city = partner.get("city", "").lower()
             p_dist = partner.get("district", "").lower()
             if city.lower() not in p_city and city.lower() not in p_dist:
-                # If explicit city requested but not in city, check if state matches
                 pass
 
         # Calculate geospatial distance
@@ -262,8 +400,8 @@ def retrieve_channel_partners(
 
         # Distance score bonus (closer partners receive higher score)
         if distance_km is not None:
-            # Score bonus for proximity: up to +30 for < 20km, decaying with distance
-            dist_bonus = max(0.0, 30.0 - (distance_km * 0.15))
+            # Score bonus for proximity: up to +35 for < 10km, decaying with distance
+            dist_bonus = max(0.0, 35.0 - (distance_km * 0.18))
             score += dist_bonus
 
         # Scheme specific authorization bonus
@@ -294,12 +432,12 @@ def retrieve_channel_partners(
         results.append(entry)
 
     # Sorting priority:
-    # If text query provided: sort by RAG score descending
-    # If no text query but coords provided: sort by distance ascending
-    if clean_query:
+    # If coords available (either explicit or geocoded): sort primarily by distance ascending when searching local offices
+    if has_coords:
+        # Sort by distance primarily (with slight weight to RAG score for authorized schemes)
+        results.sort(key=lambda x: (x.get("distance_km") if x.get("distance_km") is not None else 999999, -x["rag_score"]))
+    elif clean_query:
         results.sort(key=lambda x: x["rag_score"], reverse=True)
-    elif has_coords:
-        results.sort(key=lambda x: x.get("distance_km") or 999999)
     else:
         results.sort(key=lambda x: x["rag_score"], reverse=True)
 
