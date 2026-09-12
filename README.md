@@ -63,17 +63,20 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
 - Interactive visual SVG gauge with actionable recommendations to maximize loan approval odds.
 
 ### 📄 6. Document OCR & Verification Pipeline
-- **Vision OCR Classifier**: Extracts text and validates official keywords/seals for:
-  - 🆔 **SC Caste Certificate**
-  - 📄 **Income Certificate (< ₹3 Lakh)**
-  - 🪪 **Aadhaar / Voter ID**
-  - 🏦 **Bank Passbook / IFSC**
-  - 📋 **Project Report / Quotation / Admission Letter**
-- Computes real-time **Document Readiness Percentage** against scheme checklists.
+- **Native PDF & Vision OCR Pipeline**: Extracts text from PDFs natively via `pypdf` and images via Vision AI models.
+- **Strict Entity & Category Validation**:
+  - 🆔 **Aadhaar / Voter ID / National ID** (strict regex word-boundary matching prevents false positives from academic/exam papers)
+  - 📄 **SC Caste Certificate (Permanent Valid)**
+  - 💰 **Family Income Certificate (< ₹3 Lakh)**
+  - 🏦 **Bank Passbook / Cancelled Cheque / IFSC Validation**
+  - 📋 **Project Report / Quotation / Admission & Fee Letter**
+  - ⚠️ **Automated Mismatch & Ineligible Doc Detection**: Detects and flags Exam Question Papers, EWS certificates, and OBC certificates with explicit corrective guidance.
+- Computes real-time **Document Readiness Percentage** against scheme-specific checklists.
 
 ### 📍 7. Nationwide Partner RAG & Geolocation Router
-- **Comprehensive Partner Knowledge Base (`nsfdc_partners_kb.py`)**: Covers State Channelising Agencies (SCAs), Lead District Banks, Regional Rural Banks (RRBs), and Public Sector Banks (PSBs) across all Indian states/UTs.
-- **Hybrid Geo + Semantic Search**: Calculates nearest partner distances using the **Haversine formula** with Leaflet interactive map integration and direct driving directions.
+- **Comprehensive Partner Knowledge Base (`nsfdc_partners_kb.py`)**: Covers State Channelising Agencies (SCAs), Lead District Banks, Regional Rural Banks (RRBs), and Public Sector Banks (PSBs) across 36+ Indian states/UTs.
+- **Hybrid Geo + Semantic Search**: Calculates nearest partner distances using the **Haversine formula** with interactive Leaflet map integration and direct driving directions.
+- **Browser Geolocation Integration**: Requests high-accuracy live GPS coordinates on reload and automatically sorts offices by physical distance.
 
 ---
 
@@ -148,9 +151,9 @@ flowchart TD
 
 ## 🛠️ Tech Stack
 
-- **Backend**: Python 3.10+, FastAPI, Uvicorn, SQLite 3, Pydantic v2, `python-dotenv`, `gTTS`, `Pillow`, `openai` SDK, `beautifulsoup4`, `requests`.
+- **Backend**: Python 3.10+, FastAPI, Uvicorn, SQLite 3, Pydantic v2, `python-dotenv`, `gTTS`, `Pillow`, `openai` SDK, `pypdf`, `httpx`, `beautifulsoup4`, `pytest`.
 - **Frontend**: HTML5, Modern Responsive CSS (Glassmorphism, Flex/Grid), Vanilla JavaScript (ES6+), Web Speech API, Leaflet Maps.
-- **AI & RAG**: OpenRouter API (`gpt-4o-mini`), In-Memory TF-IDF Vector Indices, Document OCR Parser.
+- **AI & RAG**: Google Gemini / OpenRouter API (`gemini-3.5-flash-lite`, `gpt-4o-mini`), In-Memory TF-IDF Vector Indices, `pypdf` Multi-Tiered Document OCR Parser.
 - **Security & Storage**: Secure OTP generation, SQLite relational persistence.
 
 ---
