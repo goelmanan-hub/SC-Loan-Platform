@@ -37,9 +37,10 @@ document.addEventListener("DOMContentLoaded", () => {
     setupEventListeners();
     setupOcrDropzoneEvents();
     fetchAvailableSchemes();
-    loadDefaultPartners();
     checkBackendHealth();
     initSavedUserLocation();
+    // Automatically trigger browser location access prompt on page load/reload
+    handleLocationPermissionRequest(false);
 });
 
 /* =====================================================
@@ -2788,12 +2789,7 @@ function initSavedUserLocation() {
             const parsed = JSON.parse(saved);
             if (parsed && typeof parsed.lat === "number" && typeof parsed.lng === "number") {
                 userCoordinates = { lat: parsed.lat, lng: parsed.lng };
-                isLocationPermissionGranted = true;
-                const box = document.getElementById("location-permission-box");
-                if (box) {
-                    box.style.display = "none";
-                }
-                console.log("Restored saved user location:", userCoordinates);
+                console.log("Restored fallback user location:", userCoordinates);
             }
         }
     } catch (e) {
