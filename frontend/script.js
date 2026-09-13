@@ -3556,7 +3556,7 @@ function renderPartnersList(partners) {
                 const phoneClean = (p.phone || "").replace(/[^\d+]/g, "");
                 const pLat = Number(p.latitude) || 29.9695;
                 const pLng = Number(p.longitude) || 76.8783;
-                const destPlaceQuery = encodeURIComponent(`${p.name || 'NSFDC Channel Partner'}, ${p.address || p.city || ''}`);
+                const destPlaceQuery = encodeURIComponent(p.destination_query || `${p.name || 'NSFDC Channel Partner'}, ${p.address || p.city || ''}`);
                 
                 let directionsHref = p.directions_url;
                 if (!directionsHref || directionsHref.includes("destination=null")) {
@@ -3566,6 +3566,7 @@ function renderPartnersList(partners) {
                         directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${destPlaceQuery}&travelmode=driving`;
                     }
                 }
+
 
                 const npaPct = p.npa_rate_pct !== undefined && p.npa_rate_pct !== null ? Number(p.npa_rate_pct) : 2.0;
                 const recPct = p.recovery_rate_pct !== undefined && p.recovery_rate_pct !== null ? Number(p.recovery_rate_pct) : 95.0;
@@ -3765,7 +3766,7 @@ function renderPartnerMap(latitude, longitude, partners) {
                     iconAnchor: [30, 12]
                 });
 
-                const popupDestQuery = encodeURIComponent(`${partner.name || 'NSFDC Partner'}, ${partner.address || partner.city || ''}`);
+                const popupDestQuery = encodeURIComponent(partner.destination_query || `${partner.name || 'NSFDC Partner'}, ${partner.address || partner.city || ''}`);
                 let popupDirectionsUrl = partner.directions_url;
                 if (!popupDirectionsUrl || popupDirectionsUrl.includes("destination=null")) {
                     if (hasUserLoc) {

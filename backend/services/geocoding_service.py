@@ -54,6 +54,41 @@ EXACT_PARTNER_LOCATIONS: Dict[str, Tuple[float, float, str]] = {
     "tamilnadu_sca_tahdco_chennai": (13.0336, 80.2447, "No. 31, Cenotaph Road, Teynampet, Chennai, Tamil Nadu 600018")
 }
 
+# Explicit Google Maps Destination Place Queries for 100% Reliable Navigation
+EXACT_DESTINATION_QUERIES: Dict[str, str] = {
+    # Panipat & Karnal explicit landmarks
+    "haryana_sca_panipat": "Mini Secretariat, Sector 6, Panipat, Haryana 132103",
+    "haryana_sca_karnal": "Old Tehsil Complex, Kunjpura Road, Karnal, Haryana 132001",
+    "haryana_sca_kurukshetra": "Mini Secretariat, Sector 10, Kurukshetra, Haryana 136118",
+    "haryana_sca_ambala": "Panchayat Bhawan, Poly-Technic Chowk, Ambala City, Haryana 134003",
+    "haryana_sca_hq_panchkula": "HSCFDC, Bays No. 49-52, Sector 2, Panchkula, Haryana 134112",
+    "haryana_rrb_sarva_gramin": "Sarva Haryana Gramin Bank, SCO 42-43, Sector 17, Kurukshetra, Haryana 136118",
+    "haryana_psb_pnb_lead": "Punjab National Bank Circle Office, Sector 12, Karnal, Haryana 132001",
+    "haryana_psb_sbi_kurukshetra": "State Bank of India Main Branch, Railway Road, Kurukshetra, Haryana 136118",
+    "haryana_psb_canara_rohtak": "Canara Bank Regional SME Branch, Delhi Road, Rohtak, Haryana 124001",
+
+    # Delhi
+    "delhi_psb_pnb_rohini": "Punjab National Bank, Community Centre, Sector 8, Rohini, Delhi 110085",
+    "delhi_sca_dsfdc_rohini": "Ambedkar Bhawan, Sector 16, Rohini, Delhi 110089",
+    "delhi_sca_dsfdc_ito_hq": "Vikas Bhawan, IP Estate, New Delhi 110002",
+    "delhi_nsfdc_national_hq": "Scope Minar, Laxmi Nagar District Centre, Delhi 110092",
+
+    # UP
+    "up_sca_upscfdc_noida": "Vikas Bhawan, Surajpur, Greater Noida, Uttar Pradesh 201306",
+    "up_sca_upscfdc_lucknow_hq": "Pragati Kendra, B-1/29, Sector 16, Gomti Nagar, Lucknow, Uttar Pradesh 226010",
+    "up_sca_upscfdc_agra": "Vikas Bhawan, Sanjay Place, Agra, Uttar Pradesh 282002",
+
+    # Punjab & Others
+    "punjab_sca_pscfc_chandigarh_hq": "PSCFC, SCO No. 101-103, Sector 17-C, Chandigarh 160017",
+    "punjab_sca_pscfc_ludhiana": "Mini Secretariat, 3rd Floor, Ferozepur Road, Ludhiana, Punjab 141001",
+    "rajasthan_sca_anuja_nigam_jaipur": "Nehru Sahkar Bhawan, 22 Godam Circle, Jaipur, Rajasthan 302001",
+    "maharashtra_sca_mpbcdc_mumbai": "Supreme Shopping Centre, Gulmohar Cross Road, Juhu, Mumbai 400051",
+    "maharashtra_sca_mpbcdc_pune": "Dr. Babasaheb Ambedkar Bhavan, Station Road, Pune, Maharashtra 411001",
+    "karnataka_sca_ambedkar_corp_bengaluru": "Vishveshwaraiah Mini Tower, Dr. Ambedkar Veedhi, Bengaluru 560001",
+    "tamilnadu_sca_tahdco_chennai": "No. 31, Cenotaph Road, Teynampet, Chennai, Tamil Nadu 600018"
+}
+
+
 
 def get_db_connection():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)

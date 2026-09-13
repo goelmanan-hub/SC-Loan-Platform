@@ -10,7 +10,7 @@ import urllib.parse
 from typing import List, Dict, Any, Optional
 from data.nsfdc_partners_kb import get_all_channel_partners_kb, get_channel_partner_by_id_kb
 from database.db import get_all_stored_partners
-from services.geocoding_service import resolve_partner_geocoding
+from services.geocoding_service import resolve_partner_geocoding, EXACT_DESTINATION_QUERIES
 
 
 # =====================================================
@@ -540,13 +540,15 @@ def retrieve_channel_partners(
         entry["vector_similarity"] = round(sim_score, 4)
 
         # Generate Google Maps directions URL & Maps Search URL with exact destination place query
+        p_id = partner.get('id', '')
         p_lat = partner.get('latitude')
         p_lng = partner.get('longitude')
         p_name = partner.get('name', '')
         p_addr = partner.get('address', partner.get('city', ''))
         
-        # Build canonical search & destination string
-        dest_query = urllib.parse.quote_plus(f"{p_name}, {p_addr}")
+        # Build canonical search & destination string from exact destination query map if available
+        dest_place = EXACT_DESTINATION_QUERIES.get(p_id, f"{p_name}, {p_addr}")
+        dest_query = urllib.parse.quote_plus(dest_place)
         
         if has_coords:
             entry["directions_url"] = (
@@ -558,6 +560,7 @@ def retrieve_channel_partners(
             )
 
         entry["google_maps_url"] = f"https://www.google.com/maps/search/?api=1&query={dest_query}"
+        entry["destination_query"] = dest_place
 
         results.append(entry)
 
