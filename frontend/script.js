@@ -3513,12 +3513,14 @@ function renderPartnersList(partners) {
     const listContainer = document.getElementById("partners-list");
     if (!listContainer) return;
 
-    const isEn = currentLanguage && currentLanguage.startsWith("en");
-    const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS["hi-IN"];
+    const isEn = Boolean(currentLanguage && currentLanguage.startsWith("en"));
+    const t = (typeof TRANSLATIONS !== "undefined" && TRANSLATIONS && TRANSLATIONS[currentLanguage])
+        ? TRANSLATIONS[currentLanguage]
+        : ((typeof TRANSLATIONS !== "undefined" && TRANSLATIONS && TRANSLATIONS["hi-IN"]) ? TRANSLATIONS["hi-IN"] : {});
 
     const countText = document.getElementById("partner-count-text");
     if (countText && partners) {
-        countText.textContent = `${partners.length} ${t.partnerCountSuffix || (isEn ? 'Official NSFDC Channel Partners Available' : 'आधिकारिक NSFDC चैनल पार्टनर उपलब्ध')}`;
+        countText.textContent = `${partners.length} ${t?.partnerCountSuffix || (isEn ? 'Official NSFDC Channel Partners Available' : 'आधिकारिक NSFDC चैनल पार्टनर उपलब्ध')}`;
     }
 
     if (!partners || partners.length === 0) {
@@ -3532,98 +3534,112 @@ function renderPartnersList(partners) {
         return;
     }
 
-    listContainer.innerHTML = partners.map(p => {
-        const typeClass = (p.type || "SCA").toLowerCase();
-        const typeBadgeName = p.type === "SCA"
-            ? (isEn ? "🏛️ State Agency (SCA)" : "🏛️ राज्य एजेंसी (SCA)")
-            : p.type === "PSB"
-                ? (isEn ? "🏦 Lead Bank (PSB)" : "🏦 सरकारी बैंक (PSB)")
-                : (isEn ? "🌾 Gramin Bank (RRB)" : "🌾 ग्रामीण बैंक (RRB)");
+    try {
+        const cardsHtml = partners.map(p => {
+            try {
+                const typeClass = (p.type || "SCA").toLowerCase();
+                const typeBadgeName = p.type === "SCA"
+                    ? (isEn ? "🏛️ State Agency (SCA)" : "🏛️ राज्य एजेंसी (SCA)")
+                    : p.type === "PSB"
+                        ? (isEn ? "🏦 Lead Bank (PSB)" : "🏦 सरकारी बैंक (PSB)")
+                        : (isEn ? "🌾 Gramin Bank (RRB)" : "🌾 ग्रामीण बैंक (RRB)");
 
-        const distanceDisplay = p.distance_km !== null && p.distance_km !== undefined
-            ? `📍 ${p.distance_km} ${t.partnerDistanceAway || (isEn ? 'km away' : 'km दूर')}`
-            : (isEn ? "📍 Official Centre" : "📍 आधिकारिक केंद्र");
+                const distanceDisplay = p.distance_km !== null && p.distance_km !== undefined
+                    ? `📍 ${p.distance_km} ${t?.partnerDistanceAway || (isEn ? 'km away' : 'km दूर')}`
+                    : (isEn ? "📍 Official Centre" : "📍 आधिकारिक केंद्र");
 
-        const schemesList = (p.schemes || []).slice(0, 4).map(s => {
-            const formatted = String(s || "").replace(/_/g, " ");
-            return `<span class="partner-scheme-tag">${escapeHtml(formatted)}</span>`;
+                const schemesList = (p.schemes || []).slice(0, 4).map(s => {
+                    const formatted = String(s || "").replace(/_/g, " ");
+                    return `<span class="partner-scheme-tag">${escapeHtml(formatted)}</span>`;
+                }).join("");
+
+                const phoneClean = (p.phone || "").replace(/[^\d+]/g, "");
+                const pLat = Number(p.latitude) || 29.9695;
+                const pLng = Number(p.longitude) || 76.8783;
+                const destPlaceQuery = encodeURIComponent(`${p.name || 'NSFDC Channel Partner'}, ${p.address || p.city || ''}`);
+                
+                let directionsHref = p.directions_url;
+                if (!directionsHref || directionsHref.includes("destination=null")) {
+                    if (typeof userCoordinates !== "undefined" && userCoordinates && userCoordinates.lat && userCoordinates.lng) {
+                        directionsHref = `https://www.google.com/maps/dir/?api=1&origin=${userCoordinates.lat},${userCoordinates.lng}&destination=${destPlaceQuery}&travelmode=driving`;
+                    } else {
+                        directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${destPlaceQuery}&travelmode=driving`;
+                    }
+                }
+
+                const npaPct = p.npa_rate_pct !== undefined && p.npa_rate_pct !== null ? Number(p.npa_rate_pct) : 2.0;
+                const recPct = p.recovery_rate_pct !== undefined && p.recovery_rate_pct !== null ? Number(p.recovery_rate_pct) : 95.0;
+                const npaBadgeClass = p.npa_badge_class || (npaPct <= 3.0 ? "low-npa" : (npaPct <= 6.0 ? "standard-npa" : "moderate-npa"));
+                const npaStatusDisplay = isEn ? (p.npa_status || (npaPct <= 3.0 ? "Low NPA" : "Standard NPA")) : (p.npa_status_hi || (npaPct <= 3.0 ? "अल्प एनपीए" : "मानक एनपीए"));
+                const gradeText = p.underwriting_grade || (npaPct <= 1.5 ? "A+ (Excellent)" : (npaPct <= 3.0 ? "A (Low Risk)" : "B (Standard)"));
+
+                return `
+                    <div class="partner-card" id="card-${p.id || 'partner'}">
+                        <div class="partner-card-header">
+                            <span class="partner-type-badge ${typeClass}">${typeBadgeName}</span>
+                            <span class="partner-distance-pill">${distanceDisplay}</span>
+                        </div>
+                        
+                        <h3>${escapeHtml(p.name || 'NSFDC Partner Office')}</h3>
+
+                        <div class="partner-metrics-container">
+                            <span class="partner-npa-badge ${npaBadgeClass}" title="${isEn ? 'Non-Performing Assets rate' : 'एनपीए दर - कम जोखिम'}">
+                                <i class="fa-solid fa-shield-halved"></i> ${escapeHtml(npaStatusDisplay)} (${npaPct}%)
+                            </span>
+                            <span class="partner-recovery-pill" title="${isEn ? 'Loan Recovery Track Record' : 'ऋण रिकवरी दर'}">
+                                <i class="fa-solid fa-chart-line"></i> ${isEn ? 'Recovery' : 'रिकवरी'}: <strong>${recPct}%</strong>
+                            </span>
+                            <span class="partner-grade-tag" title="${isEn ? 'Underwriting Reliability Grade' : 'विश्वसनीयता ग्रेड'}">
+                                <i class="fa-solid fa-award"></i> ${escapeHtml(gradeText)}
+                            </span>
+                        </div>
+                        
+                        <div class="partner-address">
+                            <i class="fa-solid fa-location-dot" style="color: #ef4444; margin-top: 2px;"></i>
+                            <div>
+                                <span>${escapeHtml(p.address || p.city || "")}</span>
+                                ${p.pincode ? ` <strong>(PIN: ${escapeHtml(p.pincode)})</strong>` : ''}
+                            </div>
+                        </div>
+
+                        <div class="partner-contact-row">
+                            ${p.nodal_officer ? `<div><strong>${t?.partnerOfficer || (isEn ? 'Officer' : 'अधिकारी')}</strong>: ${escapeHtml(p.nodal_officer)}</div>` : ''}
+                            ${p.phone ? `<div><strong>${t?.partnerPhone || (isEn ? 'Phone' : 'फोन')}</strong>: <a href="tel:${phoneClean}">${escapeHtml(p.phone)}</a></div>` : ''}
+                            ${p.helpline ? `<div><strong>${t?.partnerTollFree || (isEn ? 'Toll-Free' : 'टोल-फ्री')}</strong>: <a href="tel:${p.helpline}">${escapeHtml(p.helpline)}</a></div>` : ''}
+                            ${p.working_hours ? `<div style="color: #64748b; font-size: 11px;"><i class="fa-regular fa-clock"></i> ${escapeHtml(p.working_hours)}</div>` : ''}
+                        </div>
+
+                        <div class="partner-schemes-tags">
+                            ${schemesList}
+                        </div>
+
+                        <div class="partner-card-actions">
+                            <a href="${directionsHref}" target="_blank" rel="noopener noreferrer" class="partner-action-btn directions" title="${isEn ? 'Get directions on Google Maps' : 'Google Maps पर रास्ता देखें'}">
+                                <i class="fa-solid fa-diamond-turn-right"></i> ${t?.partnerDirections || (isEn ? 'Directions' : 'दिशा-निर्देश')}
+                            </a>
+                            ${p.phone ? `
+                                <a href="tel:${phoneClean}" class="partner-action-btn call" title="${isEn ? 'Call directly' : 'सीधे कॉल करें'}">
+                                    <i class="fa-solid fa-phone"></i> ${t?.partnerCall || (isEn ? 'Call' : 'कॉल')}
+                                </a>
+                            ` : ''}
+                            <button type="button" class="partner-action-btn call" onclick="focusPartnerOnMap('${p.id}', ${pLat}, ${pLng})" title="${isEn ? 'Show on map' : 'मानचित्र पर देखें'}">
+                                <i class="fa-solid fa-map-pin"></i> ${t?.partnerMap || (isEn ? 'Map' : 'मैप')}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } catch (cardErr) {
+                console.error("Error generating single partner card:", cardErr, p);
+                return "";
+            }
         }).join("");
 
-        const phoneClean = (p.phone || "").replace(/[^\d+]/g, "");
-        const pLat = Number(p.latitude) || 29.9695;
-        const destPlaceQuery = encodeURIComponent(`${p.name || 'NSFDC Channel Partner'}, ${p.address || p.city || ''}`);
-        let directionsHref = p.directions_url;
-        if (!directionsHref || directionsHref.includes("destination=null")) {
-            if (userCoordinates && userCoordinates.lat && userCoordinates.lng) {
-                directionsHref = `https://www.google.com/maps/dir/?api=1&origin=${userCoordinates.lat},${userCoordinates.lng}&destination=${destPlaceQuery}&travelmode=driving`;
-            } else {
-                directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${destPlaceQuery}&travelmode=driving`;
-            }
-        }
-
-        const npaPct = p.npa_rate_pct !== undefined && p.npa_rate_pct !== null ? Number(p.npa_rate_pct) : 2.0;
-        const recPct = p.recovery_rate_pct !== undefined && p.recovery_rate_pct !== null ? Number(p.recovery_rate_pct) : 95.0;
-        const npaBadgeClass = p.npa_badge_class || (npaPct <= 3.0 ? "low-npa" : (npaPct <= 6.0 ? "standard-npa" : "moderate-npa"));
-        const npaStatusDisplay = isEn ? (p.npa_status || (npaPct <= 3.0 ? "Low NPA" : "Standard NPA")) : (p.npa_status_hi || (npaPct <= 3.0 ? "अल्प एनपीए" : "मानक एनपीए"));
-        const gradeText = p.underwriting_grade || (npaPct <= 1.5 ? "A+ (Excellent)" : (npaPct <= 3.0 ? "A (Low Risk)" : "B (Standard)"));
-
-        return `
-            <div class="partner-card" id="card-${p.id || 'partner'}">
-                <div class="partner-card-header">
-                    <span class="partner-type-badge ${typeClass}">${typeBadgeName}</span>
-                    <span class="partner-distance-pill">${distanceDisplay}</span>
-                </div>
-                
-                <h3>${escapeHtml(p.name || 'NSFDC Partner Office')}</h3>
-
-                <div class="partner-metrics-container">
-                    <span class="partner-npa-badge ${npaBadgeClass}" title="${isEn ? 'Non-Performing Assets rate' : 'एनपीए दर - कम जोखिम'}">
-                        <i class="fa-solid fa-shield-halved"></i> ${escapeHtml(npaStatusDisplay)} (${npaPct}%)
-                    </span>
-                    <span class="partner-recovery-pill" title="${isEn ? 'Loan Recovery Track Record' : 'ऋण रिकवरी दर'}">
-                        <i class="fa-solid fa-chart-line"></i> ${isEn ? 'Recovery' : 'रिकवरी'}: <strong>${recPct}%</strong>
-                    </span>
-                    <span class="partner-grade-tag" title="${isEn ? 'Underwriting Reliability Grade' : 'विश्वसनीयता ग्रेड'}">
-                        <i class="fa-solid fa-award"></i> ${escapeHtml(gradeText)}
-                    </span>
-                </div>
-                
-                <div class="partner-address">
-                    <i class="fa-solid fa-location-dot" style="color: #ef4444; margin-top: 2px;"></i>
-                    <div>
-                        <span>${escapeHtml(p.address || p.city || "")}</span>
-                        ${p.pincode ? ` <strong>(PIN: ${escapeHtml(p.pincode)})</strong>` : ''}
-                    </div>
-                </div>
-
-                <div class="partner-contact-row">
-                    ${p.nodal_officer ? `<div><strong>${t.partnerOfficer || (isEn ? 'Officer' : 'अधिकारी')}</strong>: ${escapeHtml(p.nodal_officer)}</div>` : ''}
-                    ${p.phone ? `<div><strong>${t.partnerPhone || (isEn ? 'Phone' : 'फोन')}</strong>: <a href="tel:${phoneClean}">${escapeHtml(p.phone)}</a></div>` : ''}
-                    ${p.helpline ? `<div><strong>${t.partnerTollFree || (isEn ? 'Toll-Free' : 'टोल-फ्री')}</strong>: <a href="tel:${p.helpline}">${escapeHtml(p.helpline)}</a></div>` : ''}
-                    ${p.working_hours ? `<div style="color: #64748b; font-size: 11px;"><i class="fa-regular fa-clock"></i> ${escapeHtml(p.working_hours)}</div>` : ''}
-                </div>
-
-                <div class="partner-schemes-tags">
-                    ${schemesList}
-                </div>
-
-                <div class="partner-card-actions">
-                    <a href="${directionsHref}" target="_blank" rel="noopener noreferrer" class="partner-action-btn directions" title="${isEn ? 'Get directions on Google Maps' : 'Google Maps पर रास्ता देखें'}">
-                        <i class="fa-solid fa-diamond-turn-right"></i> ${t.partnerDirections || (isEn ? 'Directions' : 'दिशा-निर्देश')}
-                    </a>
-                    ${p.phone ? `
-                        <a href="tel:${phoneClean}" class="partner-action-btn call" title="${isEn ? 'Call directly' : 'सीधे कॉल करें'}">
-                            <i class="fa-solid fa-phone"></i> ${t.partnerCall || (isEn ? 'Call' : 'कॉल')}
-                        </a>
-                    ` : ''}
-                    <button type="button" class="partner-action-btn call" onclick="focusPartnerOnMap('${p.id}', ${pLat}, ${pLng})" title="${isEn ? 'Show on map' : 'मानचित्र पर देखें'}">
-                        <i class="fa-solid fa-map-pin"></i> ${t.partnerMap || (isEn ? 'Map' : 'मैप')}
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join("");
+        listContainer.innerHTML = cardsHtml;
+    } catch (err) {
+        console.error("Critical error in renderPartnersList:", err);
+    }
 }
+
 
 function focusPartnerOnMap(partnerId, lat, lng) {
     const mapElement = document.getElementById("partner-map");
