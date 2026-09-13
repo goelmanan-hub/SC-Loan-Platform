@@ -4,11 +4,11 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![SQLite](https://img.shields.io/badge/Database-SQLite_3-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 [![AI Engine](https://img.shields.io/badge/AI_Engine-RAG_%2B_LLM-412991?logo=openai&logoColor=white)](https://openrouter.ai/)
-[![Languages](https://img.shields.io/badge/Languages-9_Indian_Languages-orange)](#-multilingual-voice-support)
+[![Languages](https://img.shields.io/badge/Languages-9_Indian_Languages-orange)](#-1-multilingual-voice-first-conversational-ai-assistant)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Hackathon](https://img.shields.io/badge/Hackathon-Financial_Inclusion-orange)](#)
 
-> **Empowering Scheduled Caste (SC) beneficiaries across India with voice-first conversational AI in 9 Indian languages, secure OTP-authenticated profiles, RAG-driven NSFDC loan discovery, automated official portal web crawling, instant document OCR validation, multi-pillar readiness scoring, and nationwide channel partner routing.**
+> **Empowering Scheduled Caste (SC) beneficiaries across India with voice-first conversational AI in 9 Indian languages, secure session-based applicant profiles, RAG-driven NSFDC loan discovery, automated official portal web crawling, instant document OCR validation, multi-pillar readiness scoring, robust concessional EMI calculations, and nationwide channel partner routing.**
 
 ---
 
@@ -20,7 +20,7 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
 - **High Document Rejection Rates**: Applications get delayed or rejected due to unverified or missing certificates (Caste, Income, Bank Passbook, Quotation).
 - **Advisory & Last-Mile Reach**: Lack of knowledge on local State Channelising Agencies (SCAs), Regional Rural Banks (RRBs), or Public Sector Banks (PSBs).
 
-**YojanaSetu** bridges this gap with an empathetic, multilingual voice-first AI platform that understands and speaks in **9 Indian languages**, performs grounded **RAG (Retrieval-Augmented Generation)** recommendations, verifies documents via **Vision OCR**, computes loan readiness scores, continuously syncs government updates via an automated **Web Crawler**, and connects applicants to their closest verified financial partner.
+**YojanaSetu** bridges this gap with an empathetic, multilingual voice-first AI platform that understands and speaks in **9 Indian languages**, performs grounded **RAG (Retrieval-Augmented Generation)** recommendations, verifies documents via **Vision OCR**, computes loan readiness scores, calculates concessional EMIs with moratorium support, continuously syncs government updates via an automated **Web Crawler**, and connects applicants to their closest verified financial partner.
 
 ---
 
@@ -41,19 +41,16 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
 
 ### 🔐 2. Secure OTP Authentication & Persistence Layer
 - **Multi-Channel OTP Verification**: Time-bounded 6-digit OTP verification via simulated SMS and Email gateways.
+- **Session-Based State Management**: Clean `sessionStorage` architecture ensures fresh login states upon browser reloads without ghost sessions.
 - **Persistent SQLite Database**: Automatically manages user profiles, verified applicant statuses, multi-pillar loan assessment histories, and conversation audit trails.
-- **Saved Assessments Dashboard**: Beneficiaries can view previous loan evaluations and readiness scores across sessions.
+- **Saved Assessments Dashboard**: Beneficiaries can view previous loan evaluations and readiness scores across active sessions.
 
 ### 🧠 3. RAG-Powered Scheme Recommendation Engine
 - **Official NSFDC Knowledge Base**: Indexes comprehensive concessional schemes with limits, interest rates, capital subsidies, and moratorium terms.
 - **Hybrid Vector Retriever**: TF-IDF semantic vector search combined with hard eligibility constraints (amount ceilings, gender rebates, skill certifications).
 - **Grounded LLM Reasoning**: Outputs a 0–100% match score, transparent eligibility justifications, government subsidy calculations, and document checklists.
 
-### 🕷️ 4. Automated Official Portal Web Crawler
-- **Live Knowledge Synchronization (`crawler_service.py` & `crawler_runner.py`)**: Periodically crawls official NSFDC and government portal updates, policy amendments, and channel partner updates into the local RAG knowledge store.
-- **Resilient Pipeline**: Parses structured scheme parameters, interest rate notifications, and nodal officer contacts.
-
-### 🎯 5. 100-Point Multi-Pillar Loan Readiness Engine (Zero Self-Assumed Flow)
+### 🎯 4. 100-Point Multi-Pillar Loan Readiness Engine (Zero Self-Assumed Flow)
 - **User-Controlled Two-Phase Opt-In**:
   - **Phase 1 (Scheme Recommendation)**: Delivers pure scheme analysis, interest rates, capital subsidies, and requirements without assuming user's personal credit or location parameters.
   - **Phase 2 (Loan Readiness Opt-In)**: The conversational AI asks if the user wants to calculate their readiness score. Only upon affirmative opt-in and receiving actual credit status and location, the engine calculates the score and renders it directly underneath the recommendation card.
@@ -63,9 +60,8 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
   - **Project Viability & Purpose (20 pts)**: Evaluates trade legitimacy and business potential.
   - **Credit History & Banking Discipline (10 pts)**: Verifies clean repayment records vs. defaults (0 points if unprovided; no self-assumptions).
   - **Proximity & Accessibility (10 pts)**: Calculates real-time Haversine distance to nearest verified channel partner office (<10 km = full 10 pts; 0 points if location unprovided).
-- Interactive visual SVG gauge with personalized feedback to maximize loan sanction probability.
 
-### 📄 6. Document OCR & Verification Pipeline
+### 📄 5. Document OCR & Verification Pipeline
 - **Native PDF & Vision OCR Pipeline**: Extracts text from PDFs natively via `pypdf` and images via Vision AI models.
 - **Strict Entity & Category Validation**:
   - 🆔 **Aadhaar / Voter ID / National ID** (strict regex word-boundary matching prevents false positives from academic/exam papers)
@@ -74,13 +70,22 @@ Millions of Scheduled Caste (SC) entrepreneurs, students, women artisans, and sm
   - 🏦 **Bank Passbook / Cancelled Cheque / IFSC Validation**
   - 📋 **Project Report / Quotation / Admission & Fee Letter**
   - ⚠️ **Automated Mismatch & Ineligible Doc Detection**: Detects and flags Exam Question Papers, EWS certificates, and OBC certificates with explicit corrective guidance.
-- Computes real-time **Document Readiness Percentage** against scheme-specific checklists.
 
-### 📍 7. Nationwide Partner RAG & Precision Navigation
+### 💰 6. Concessional EMI & Amortization Calculator
+- **Moratorium-Aware Compounding**: Accurate calculation accounting for initial moratorium periods where principal repayment is deferred.
+- **Bilingual Validation & Error Banners**: Server and client-side bounds checking (₹1,000 to ₹50 Crore, 0% to 36% interest, 1 to 360 months tenure).
+- **Offline Client-Side Fallback**: Ensures instant calculations even if backend network is momentarily interrupted.
+
+### 📍 7. Nationwide Partner Locator & Precision Geolocation
 - **Comprehensive Partner Knowledge Base (`nsfdc_partners_kb.py`)**: Covers State Channelising Agencies (SCAs), Lead District Banks, Regional Rural Banks (RRBs), and Public Sector Banks (PSBs) across 36+ Indian states/UTs.
-- **Hybrid Geo + Semantic Search**: Calculates nearest partner distances using the **Haversine formula** with interactive Leaflet map integration and custom categorical map pins (🏛️ SCA, 🏦 PSB, 🌾 RRB).
-- **Building-Level Google Maps Routing**: Generates query-encoded official building navigation links (`https://www.google.com/maps/dir/?api=1&destination=...`) ensuring navigation lands precisely on official government offices and banks rather than ambiguous nearby landmarks.
-- **Dynamic State & District Switcher**: Supports live GPS geolocation alongside instant state-wise and city-wise dropdown filtering.
+- **Strict Proximity Ranking on GPS**: When live GPS coordinates are acquired, branches are ranked strictly by real-time distance proximity (e.g. local branches within 5 km appear at the top).
+- **Interactive Leaflet Map & Custom Pins**: Categorical map pins (🏛️ SCA, 🏦 PSB, 🌾 RRB) with popup details and direct Google Maps driving navigation links.
+- **State-to-City Dynamic Filtering**: Dropdown cascading allows users without GPS to select states and specific districts/cities.
+- **NPA Health & Recovery Filters**: Filter by Tier-1 Low NPA (< 3.0%) and high recovery rates.
+
+### 🕷️ 8. Automated Official Portal Web Crawler
+- **Live Knowledge Synchronization (`crawler_service.py` & `crawler_runner.py`)**: Periodically crawls official NSFDC and government portal updates, policy amendments, and channel partner updates into the local RAG knowledge store.
+- **Resilient Pipeline**: Parses structured scheme parameters, interest rate notifications, and nodal officer contacts.
 
 ---
 
@@ -213,6 +218,15 @@ Interactive API Documentation (Swagger):
 
 ---
 
+## 🧪 Testing
+
+Run the automated test suite with `pytest`:
+```bash
+pytest test_auth_and_db.py test_partner_rag.py test_readiness_optin_flow.py
+```
+
+---
+
 ## 📡 API Reference
 
 ### 🔐 Authentication & User Profile
@@ -245,7 +259,7 @@ Interactive API Documentation (Swagger):
 | :---: | :--- | :--- |
 | `GET` | `/api/partners/all` | Returns list of all indexed channel partners. |
 | `GET` | `/api/partners/states` | Returns list of unique states covered. |
-| `POST` | `/api/find-partners` | Haversine nearest partner search via coordinates. |
+| `POST` | `/api/find-partners` | Haversine nearest partner search via coordinates & filters. |
 | `POST` | `/api/partners/rag-search` | Semantic RAG partner query matching across states/districts. |
 
 ---
