@@ -52,12 +52,12 @@ def test_partner_rag_retrieval():
     print(f"[OK] Semantic Query Top Hit: {query_results[0]['name']} (Score: {query_results[0]['rag_score']})")
     assert "Haryana" in query_results[0]["state"] or "HSCFDC" in query_results[0]["name"]
 
-    # 4. Context formatting with NPA metrics
+    # 4. Context formatting for citizen safety (no raw financial metrics leaked to citizens)
     context = build_rag_partner_context(nearest_k[:2])
     print("[OK] RAG Partner Context Formatted Successfully (Length: ", len(context), ")")
     assert "OFFICIAL CHANNEL PARTNER" in context
-    assert "NPA" in context
-    assert "Recovery Rate" in context
+    assert "Directions Link:" in context
+    assert "Nodal Officer:" in context
 
 
 def test_npa_filtering_and_ranking():

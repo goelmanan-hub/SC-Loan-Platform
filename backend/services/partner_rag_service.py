@@ -450,15 +450,18 @@ def retrieve_channel_partners(
             if partner.get("state", "").lower() != state.lower():
                 continue
 
-        # 4. NPA Status filter
-        if npa_filter and npa_filter.upper() != "ALL":
+        # 4. NPA Health Filter (Strictly omit moderate to high NPA partners)
+        if npa_filter and npa_filter.upper() not in ["ALL", ""]:
             npa_filter_clean = npa_filter.upper()
             if npa_filter_clean in ["LOW", "LOW_NPA", "LOW-NPA", "TIER1", "TIER-1"]:
                 if npa_pct > 3.0:
                     continue
-            elif npa_filter_clean in ["STANDARD", "STANDARD_NPA", "TIER2", "TIER-2"]:
-                if npa_pct > 6.0:
-                    continue
+            elif npa_pct > 3.5:
+                continue
+        else:
+            # Default policy: Do not recommend or tell nearest channel partners with moderate to high NPA (>3.5%)
+            if npa_pct > 3.5:
+                continue
 
         # 5. Minimum Recovery Rate filter
         if min_recovery_rate is not None:
@@ -606,7 +609,7 @@ def retrieve_channel_partners(
 # =====================================================
 
 def build_rag_partner_context(partners: List[Dict[str, Any]]) -> str:
-    """Formats retrieved channel partner data with NPA & Recovery metrics into structured context for LLM prompt."""
+    """Formats retrieved channel partner data into structured context for LLM prompt."""
     if not partners:
         return "No specific channel partner found in this vicinity."
 
@@ -615,13 +618,9 @@ def build_rag_partner_context(partners: List[Dict[str, Any]]) -> str:
         dist_info = f"{p['distance_km']} km away" if p.get("distance_km") is not None else "Location matched"
         schemes_str = ", ".join(p.get("schemes", []))
         services_str = "; ".join(p.get("special_services", []))
-        recovery_pct = p.get("recovery_rate_pct", 95.0)
-        npa_pct = p.get("npa_rate_pct", 2.0)
-        npa_status = p.get("npa_status", "Low NPA")
-        perf_badge = p.get("performance_badge", "Low NPA Verified")
 
         block = f"""
-[OFFICIAL CHANNEL PARTNER #{rank} — {p.get('npa_tier', 'Tier-1')}]
+[OFFICIAL CHANNEL PARTNER #{rank}]
 Name: {p.get('name')} ({p.get('name_hi')})
 Agency Type: {p.get('type_label')} ({p.get('type')})
 Location: {p.get('city')}, {p.get('state')} (PIN: {p.get('pincode')})
@@ -631,8 +630,7 @@ Nodal Officer: {p.get('nodal_officer')}
 Contact Phone: {p.get('phone')} | Helpline: {p.get('helpline')}
 Email: {p.get('email')}
 Working Hours: {p.get('working_hours')}
-Credit Health & NPA Status: {npa_status} (NPA: {npa_pct}%, Recovery Rate: {recovery_pct}%)
-Performance Rating: {perf_badge} (Grade: {p.get('underwriting_grade', 'A+')})
+Accreditation: Official NSFDC Channel Partner with Direct Application Desk
 Authorized Schemes: {schemes_str}
 Special Services & Facilities: {services_str}
 Directions Link: {p.get('directions_url')}
