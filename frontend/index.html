@@ -958,6 +958,27 @@
                             </div>
 
                             <div class="filter-group">
+                                <label for="partner-npa-select" id="partner-npa-label"><i
+                                        class="fa-solid fa-shield-halved" style="color: #10b981;"></i> एनपीए स्थिति (NPA Health):</label>
+                                <select id="partner-npa-select" class="custom-select">
+                                    <option value="ALL" id="npa-opt-all" selected>सभी एनपीए स्तर (All Tiers)</option>
+                                    <option value="LOW_NPA" id="npa-opt-low">🟢 केवल अल्प एनपीए (Low NPA &lt; 3.0%)</option>
+                                    <option value="STANDARD_NPA" id="npa-opt-standard">🔵 मानक एनपीए (Standard &lt; 6.0%)</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
+                                <label for="partner-sort-select" id="partner-sort-label"><i
+                                        class="fa-solid fa-arrow-down-wide-short" style="color: #6366f1;"></i> क्रमबद्ध करें (Sort By):</label>
+                                <select id="partner-sort-select" class="custom-select">
+                                    <option value="recommended" id="sort-opt-recommended" selected>⭐ सर्वश्रेष्ठ (दूरी + कम एनपीए + रिकवरी)</option>
+                                    <option value="distance" id="sort-opt-dist">📍 नजदीकी दूरी (Nearest Distance)</option>
+                                    <option value="low_npa" id="sort-opt-npa">🟢 सबसे कम एनपीए (Lowest NPA %)</option>
+                                    <option value="recovery_rate" id="sort-opt-recovery">📈 उच्चतम रिकवरी (Highest Recovery %)</option>
+                                </select>
+                            </div>
+
+                            <div class="filter-group">
                                 <label for="city-select" id="city-select-label"><i class="fa-solid fa-city"></i> त्वरित
                                     शहर (Quick City):</label>
                                 <select id="city-select" class="custom-select">

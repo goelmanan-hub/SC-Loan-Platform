@@ -139,6 +139,10 @@ def init_db():
             email TEXT,
             nodal_officer TEXT,
             working_hours TEXT,
+            recovery_rate_pct REAL,
+            npa_rate_pct REAL,
+            npa_status TEXT,
+            npa_tier TEXT,
             schemes_json TEXT,
             loan_types_json TEXT,
             special_services_json TEXT,
@@ -148,6 +152,24 @@ def init_db():
             last_updated TEXT NOT NULL
         )
     """)
+
+    # Migration helper for existing sqlite databases
+    try:
+        cursor.execute("ALTER TABLE channel_partners ADD COLUMN recovery_rate_pct REAL")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE channel_partners ADD COLUMN npa_rate_pct REAL")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE channel_partners ADD COLUMN npa_status TEXT")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE channel_partners ADD COLUMN npa_tier TEXT")
+    except Exception:
+        pass
 
     # 7. Crawler Audit Logs Table
     cursor.execute("""
@@ -510,9 +532,9 @@ def upsert_channel_partner(partner_dict: Dict[str, Any], content_hash: str) -> b
         INSERT INTO channel_partners (
             id, name, name_hi, type, type_label, state, district, city, pincode,
             address, address_hi, latitude, longitude, phone, helpline, email,
-            nodal_officer, working_hours, schemes_json, loan_types_json,
-            special_services_json, keywords_json, raw_json, content_hash, last_updated
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            nodal_officer, working_hours, recovery_rate_pct, npa_rate_pct, npa_status, npa_tier,
+            schemes_json, loan_types_json, special_services_json, keywords_json, raw_json, content_hash, last_updated
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
             name_hi = excluded.name_hi,
@@ -531,6 +553,10 @@ def upsert_channel_partner(partner_dict: Dict[str, Any], content_hash: str) -> b
             email = excluded.email,
             nodal_officer = excluded.nodal_officer,
             working_hours = excluded.working_hours,
+            recovery_rate_pct = excluded.recovery_rate_pct,
+            npa_rate_pct = excluded.npa_rate_pct,
+            npa_status = excluded.npa_status,
+            npa_tier = excluded.npa_tier,
             schemes_json = excluded.schemes_json,
             loan_types_json = excluded.loan_types_json,
             special_services_json = excluded.special_services_json,
@@ -557,6 +583,10 @@ def upsert_channel_partner(partner_dict: Dict[str, Any], content_hash: str) -> b
         partner_dict.get("email", ""),
         partner_dict.get("nodal_officer", ""),
         partner_dict.get("working_hours", ""),
+        float(partner_dict.get("recovery_rate_pct", 95.0)),
+        float(partner_dict.get("npa_rate_pct", 2.0)),
+        partner_dict.get("npa_status", "Low NPA"),
+        partner_dict.get("npa_tier", "Tier-1 (Low NPA)"),
         schemes_json,
         loan_types_json,
         special_services_json,

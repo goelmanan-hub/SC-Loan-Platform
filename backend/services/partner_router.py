@@ -30,11 +30,14 @@ def find_suitable_partners(
     scheme_id: Optional[str] = None,
     partner_type: Optional[str] = None,
     query: Optional[str] = None,
+    npa_filter: Optional[str] = None,
+    min_recovery_rate: Optional[float] = None,
+    sort_by: Optional[str] = "recommended",
     top_k: int = 10
 ) -> List[Dict[str, Any]]:
     """
     Finds and ranks official NSFDC channel partners suitable for the applicant,
-    combining geospatial proximity, scheme authorization, and semantic RAG matching.
+    combining geospatial proximity, Low NPA status, recovery rates, scheme authorization, and semantic RAG matching.
     """
     return retrieve_channel_partners(
         query=query,
@@ -43,5 +46,8 @@ def find_suitable_partners(
         loan_type=loan_type,
         scheme_id=scheme_id,
         partner_type=partner_type,
+        npa_filter=npa_filter,
+        min_recovery_rate=min_recovery_rate,
+        sort_by=sort_by,
         top_k=top_k
     )

@@ -45,6 +45,9 @@ class PartnerRequest(BaseModel):
     city: Optional[str] = None
     partner_type: Optional[str] = None
     query: Optional[str] = None
+    npa_filter: Optional[str] = None
+    min_recovery_rate: Optional[float] = None
+    sort_by: Optional[str] = "recommended"
     radius_km: Optional[float] = None
     top_k: Optional[int] = 10
 
@@ -58,6 +61,9 @@ class PartnerSearchRequest(BaseModel):
     state: Optional[str] = None
     city: Optional[str] = None
     partner_type: Optional[str] = None
+    npa_filter: Optional[str] = None
+    min_recovery_rate: Optional[float] = None
+    sort_by: Optional[str] = "recommended"
     radius_km: Optional[float] = None
     top_k: Optional[int] = 10
 

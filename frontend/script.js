@@ -123,6 +123,8 @@ const TRANSLATIONS = {
         partnerRagBtnText: "खोजें",
         partnerStateLabel: '<i class="fa-solid fa-map"></i> राज्य (State):',
         partnerSchemeLabel: '<i class="fa-solid fa-hand-holding-dollar"></i> योजना (Scheme):',
+        partnerNpaLabel: '<i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> एनपीए स्थिति (NPA Health):',
+        partnerSortLabel: '<i class="fa-solid fa-arrow-down-wide-short" style="color: #6366f1;"></i> क्रमबद्ध करें (Sort By):',
         citySelectLabel: '<i class="fa-solid fa-city"></i> त्वरित शहर (Quick City):',
         partnerTypePillsLabel: "एजेंसी प्रकार:",
         pillAll: "सभी (All)",
@@ -358,6 +360,8 @@ const TRANSLATIONS = {
         partnerRagBtnText: "Search",
         partnerStateLabel: '<i class="fa-solid fa-map"></i> State:',
         partnerSchemeLabel: '<i class="fa-solid fa-hand-holding-dollar"></i> Scheme:',
+        partnerNpaLabel: '<i class="fa-solid fa-shield-halved" style="color: #10b981;"></i> NPA Health:',
+        partnerSortLabel: '<i class="fa-solid fa-arrow-down-wide-short" style="color: #6366f1;"></i> Sort By:',
         citySelectLabel: '<i class="fa-solid fa-city"></i> Quick City:',
         partnerTypePillsLabel: "Agency Type:",
         pillAll: "All",
@@ -1636,6 +1640,16 @@ function setupEventListeners() {
     const partnerSchemeSelect = document.getElementById("partner-scheme-select");
     if (partnerSchemeSelect) {
         partnerSchemeSelect.addEventListener("change", () => fetchPartnersWithFilters());
+    }
+
+    const partnerNpaSelect = document.getElementById("partner-npa-select");
+    if (partnerNpaSelect) {
+        partnerNpaSelect.addEventListener("change", () => fetchPartnersWithFilters());
+    }
+
+    const partnerSortSelect = document.getElementById("partner-sort-select");
+    if (partnerSortSelect) {
+        partnerSortSelect.addEventListener("change", () => fetchPartnersWithFilters());
     }
 
     const citySelect = document.getElementById("city-select");
@@ -3226,10 +3240,14 @@ async function fetchPartnersWithFilters() {
     const queryInput = document.getElementById("partner-query-input");
     const stateSelect = document.getElementById("partner-state-select");
     const schemeSelect = document.getElementById("partner-scheme-select");
+    const npaSelect = document.getElementById("partner-npa-select");
+    const sortSelect = document.getElementById("partner-sort-select");
 
     const query = queryInput ? queryInput.value.trim() : "";
     const state = stateSelect ? stateSelect.value : "ALL";
     const schemeId = schemeSelect ? schemeSelect.value : "";
+    const npaFilter = npaSelect ? npaSelect.value : "ALL";
+    const sortBy = sortSelect ? sortSelect.value : "recommended";
     const partnerType = activePartnerTypeFilter || "ALL";
 
     // Instant client-side geocoding check to center map and calculate accurate distance
@@ -3268,6 +3286,8 @@ async function fetchPartnersWithFilters() {
             state: state !== "ALL" ? state : undefined,
             scheme_id: schemeId || undefined,
             partner_type: partnerType !== "ALL" ? partnerType : undefined,
+            npa_filter: npaFilter !== "ALL" ? npaFilter : undefined,
+            sort_by: sortBy,
             top_k: 8
         };
 
@@ -3348,6 +3368,12 @@ function renderPartnersList(partners) {
         const destQuery = encodeURIComponent(`${p.name || ''}, ${p.address || p.city || ''}`);
         const directionsHref = p.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${destQuery}&travelmode=driving`;
 
+        const npaPct = p.npa_rate_pct !== undefined && p.npa_rate_pct !== null ? Number(p.npa_rate_pct) : 2.0;
+        const recPct = p.recovery_rate_pct !== undefined && p.recovery_rate_pct !== null ? Number(p.recovery_rate_pct) : 95.0;
+        const npaBadgeClass = p.npa_badge_class || (npaPct <= 3.0 ? "low-npa" : (npaPct <= 6.0 ? "standard-npa" : "moderate-npa"));
+        const npaStatusDisplay = isEn ? (p.npa_status || (npaPct <= 3.0 ? "Low NPA" : "Standard NPA")) : (p.npa_status_hi || (npaPct <= 3.0 ? "अल्प एनपीए" : "मानक एनपीए"));
+        const gradeText = p.underwriting_grade || (npaPct <= 1.5 ? "A+ (Excellent)" : (npaPct <= 3.0 ? "A (Low Risk)" : "B (Standard)"));
+
         return `
             <div class="partner-card" id="card-${p.id || 'partner'}">
                 <div class="partner-card-header">
@@ -3356,6 +3382,18 @@ function renderPartnersList(partners) {
                 </div>
                 
                 <h3>${escapeHtml(p.name || 'NSFDC Partner Office')}</h3>
+
+                <div class="partner-metrics-container">
+                    <span class="partner-npa-badge ${npaBadgeClass}" title="${isEn ? 'Non-Performing Assets rate' : 'एनपीए दर - कम जोखिम'}">
+                        <i class="fa-solid fa-shield-halved"></i> ${escapeHtml(npaStatusDisplay)} (${npaPct}%)
+                    </span>
+                    <span class="partner-recovery-pill" title="${isEn ? 'Loan Recovery Track Record' : 'ऋण रिकवरी दर'}">
+                        <i class="fa-solid fa-chart-line"></i> ${isEn ? 'Recovery' : 'रिकवरी'}: <strong>${recPct}%</strong>
+                    </span>
+                    <span class="partner-grade-tag" title="${isEn ? 'Underwriting Reliability Grade' : 'विश्वसनीयता ग्रेड'}">
+                        <i class="fa-solid fa-award"></i> ${escapeHtml(gradeText)}
+                    </span>
+                </div>
                 
                 <div class="partner-address">
                     <i class="fa-solid fa-location-dot" style="color: #ef4444; margin-top: 2px;"></i>
@@ -3511,11 +3549,17 @@ function renderPartnerMap(latitude, longitude, partners) {
 
                 const popupDestQuery = encodeURIComponent(`${partner.name || ''}, ${partner.address || partner.city || ''}`);
                 const popupDirectionsUrl = partner.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${popupDestQuery}&travelmode=driving`;
+                const npaPct = partner.npa_rate_pct !== undefined && partner.npa_rate_pct !== null ? partner.npa_rate_pct : 2.0;
+                const recPct = partner.recovery_rate_pct !== undefined && partner.recovery_rate_pct !== null ? partner.recovery_rate_pct : 95.0;
 
                 const popupContent = `
-                    <div style="min-width: 200px; font-family: sans-serif;">
+                    <div style="min-width: 210px; font-family: sans-serif;">
                         <strong style="color: #003366; font-size: 13px; display: block; margin-bottom: 4px;">${escapeHtml(partner.name || '')}</strong>
-                        <div style="font-size: 11px; color: #475569; margin-bottom: 6px;">📍 ${escapeHtml(partner.address || partner.city || '')}</div>
+                        <div style="font-size: 11px; color: #475569; margin-bottom: 4px;">📍 ${escapeHtml(partner.address || partner.city || '')}</div>
+                        <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                            <span style="background: #ecfdf5; color: #065f46; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #a7f3d0;">🟢 NPA: ${npaPct}%</span>
+                            <span style="background: #f0f9ff; color: #0369a1; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px; border: 1px solid #bae6fd;">📈 Rec: ${recPct}%</span>
+                        </div>
                         ${partner.distance_km !== null && partner.distance_km !== undefined ? `<div style="font-size: 12px; font-weight: bold; color: #16a34a; margin-bottom: 8px;">${isEn ? 'Distance:' : 'दूरी:'} ${partner.distance_km} km</div>` : ''}
                         <div style="display: flex; gap: 6px;">
                             <a href="${popupDirectionsUrl}" target="_blank" rel="noopener noreferrer" style="background: #003366; color: #ffffff; text-decoration: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; display: inline-block;">

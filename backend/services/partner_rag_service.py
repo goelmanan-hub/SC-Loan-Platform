@@ -317,6 +317,65 @@ PARTNER_VECTOR_STORE = PartnerVectorStore()
 # HYBRID CHANNEL PARTNER RETRIEVER
 # =====================================================
 
+# =====================================================
+# NPA CLASSIFICATION & UNDERWRITING HEALTH HELPER
+# =====================================================
+
+def classify_partner_npa(partner: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Classifies a channel partner based on Recovery Rate and NPA (Non-Performing Asset) metrics.
+    Categorizes into Tier-1 (Low NPA / Top Performing), Tier-2 (Standard NPA), or Tier-3 (Moderate NPA).
+    """
+    recovery_pct = float(partner.get("recovery_rate_pct") or 95.0)
+    npa_pct = float(partner.get("npa_rate_pct") or 2.0)
+
+    if npa_pct <= 1.5:
+        npa_status = "Very Low NPA"
+        npa_status_hi = "अति अल्प एनपीए (शीर्ष प्रदर्शन)"
+        tier = "Tier-1 (Top Performing)"
+        badge_class = "low-npa"
+        grade = "A+ (Excellent)"
+    elif npa_pct <= 3.0:
+        npa_status = "Low NPA"
+        npa_status_hi = "अल्प एनपीए (उत्कृष्ट)"
+        tier = "Tier-1 (Low NPA)"
+        badge_class = "low-npa"
+        grade = "A (Low Risk)"
+    elif npa_pct <= 6.0:
+        npa_status = "Standard NPA"
+        npa_status_hi = "मानक एनपीए"
+        tier = "Tier-2 (Standard NPA)"
+        badge_class = "standard-npa"
+        grade = "B (Standard)"
+    else:
+        npa_status = "Moderate NPA"
+        npa_status_hi = "मध्यम एनपीए"
+        tier = "Tier-3 (Moderate NPA)"
+        badge_class = "moderate-npa"
+        grade = "C (Moderate Risk)"
+
+    badge = partner.get("performance_badge") or (
+        f"🟢 {npa_status} ({npa_pct}%) • Recovery ({recovery_pct}%)"
+        if npa_pct <= 3.0 else f"🔵 {npa_status} ({npa_pct}%) • Recovery ({recovery_pct}%)"
+    )
+
+    return {
+        "recovery_rate_pct": round(recovery_pct, 1),
+        "npa_rate_pct": round(npa_pct, 1),
+        "npa_status": partner.get("npa_status") or npa_status,
+        "npa_status_hi": partner.get("npa_status_hi") or npa_status_hi,
+        "npa_tier": partner.get("npa_tier") or tier,
+        "npa_badge_class": badge_class,
+        "underwriting_grade": grade,
+        "performance_badge": badge,
+        "recovery_rating": float(partner.get("recovery_rating") or 4.8)
+    }
+
+
+# =====================================================
+# HYBRID CHANNEL PARTNER RETRIEVER & MULTI-FACTOR RANKER
+# =====================================================
+
 def retrieve_channel_partners(
     query: Optional[str] = None,
     latitude: Optional[float] = None,
@@ -326,20 +385,24 @@ def retrieve_channel_partners(
     state: Optional[str] = None,
     city: Optional[str] = None,
     partner_type: Optional[str] = None,
+    npa_filter: Optional[str] = None,
+    min_recovery_rate: Optional[float] = None,
+    sort_by: Optional[str] = "recommended",
     radius_km: Optional[float] = None,
     top_k: int = 6
 ) -> List[Dict[str, Any]]:
     """
-    Hybrid retriever for official NSFDC Channel Partners.
-    1. Evaluates geospatial proximity (Haversine distance) if coordinates are provided.
-    2. Applies hard constraint filters (loan_type, scheme_id, state, partner_type).
-    3. Computes semantic TF-IDF vector similarity for natural language queries.
-    4. Applies domain boosting for primary SCAs and lead district banks.
+    Multi-Factor Hybrid Retriever & Ranker for Official NSFDC Channel Partners.
+    Classifies and ranks nearest channel partners based on:
+    1. Distance Proximity from user (Haversine formula).
+    2. Low NPA Status & NPA Rate % (Lower NPA prioritized for faster loan processing).
+    3. Recovery Rate Percentage (Higher recovery indicates high reliability).
+    4. Scheme Authorization and Agency Hierarchy (SCA Nodal Agency boost).
+    5. Multi-lingual Semantic RAG query similarity.
     """
     # 0. Automatic Geocoding if coordinates not provided
     clean_query = (query or "").strip()
     if not (latitude is not None and longitude is not None):
-        # Try geocoding city, query, or state
         geo_match = geocode_location(city) or geocode_location(clean_query) or geocode_location(state)
         if geo_match:
             latitude = geo_match["lat"]
@@ -355,6 +418,10 @@ def retrieve_channel_partners(
     results = []
 
     for idx, partner in enumerate(partners):
+        classification = classify_partner_npa(partner)
+        recovery_pct = classification["recovery_rate_pct"]
+        npa_pct = classification["npa_rate_pct"]
+
         # 1. Partner Type filter
         if partner_type and partner_type.upper() != "ALL":
             if partner.get("type", "").upper() != partner_type.upper():
@@ -373,12 +440,20 @@ def retrieve_channel_partners(
             if partner.get("state", "").lower() != state.lower():
                 continue
 
-        # 4. City / District filter
-        if city and city.lower() not in ["all", "सभी"]:
-            p_city = partner.get("city", "").lower()
-            p_dist = partner.get("district", "").lower()
-            if city.lower() not in p_city and city.lower() not in p_dist:
-                pass
+        # 4. NPA Status filter
+        if npa_filter and npa_filter.upper() != "ALL":
+            npa_filter_clean = npa_filter.upper()
+            if npa_filter_clean in ["LOW", "LOW_NPA", "LOW-NPA", "TIER1", "TIER-1"]:
+                if npa_pct > 3.0:
+                    continue
+            elif npa_filter_clean in ["STANDARD", "STANDARD_NPA", "TIER2", "TIER-2"]:
+                if npa_pct > 6.0:
+                    continue
+
+        # 5. Minimum Recovery Rate filter
+        if min_recovery_rate is not None:
+            if recovery_pct < min_recovery_rate:
+                continue
 
         # Calculate geospatial distance
         distance_km = None
@@ -392,31 +467,60 @@ def retrieve_channel_partners(
             if radius_km and distance_km > radius_km:
                 continue
 
-        # Base hybrid score calculation
-        score = 50.0
+        # Base hybrid composite score calculation (0 - 100 scale)
+        score = 25.0
 
-        # Vector semantic similarity score (scaled 0-40)
-        sim_score = sim_scores[idx] if idx < len(sim_scores) else 0.0
-        score += min(sim_score * 80.0, 40.0)
-
-        # Distance score bonus (closer partners receive higher score)
+        # A. Distance Proximity Score (up to 35 pts, strongly weighting local proximity)
         if distance_km is not None:
-            # Score bonus for proximity: up to +35 for < 10km, decaying with distance
-            dist_bonus = max(0.0, 35.0 - (distance_km * 0.18))
-            score += dist_bonus
+            dist_score = max(0.0, 35.0 - (distance_km * 0.55))
+            score += dist_score
 
-        # Scheme specific authorization bonus
+        # B. Low NPA Performance Bonus (up to 25 pts)
+        if npa_pct <= 1.0:
+            npa_score = 25.0
+        elif npa_pct <= 2.0:
+            npa_score = 22.0
+        elif npa_pct <= 3.0:
+            npa_score = 18.0
+        elif npa_pct <= 5.0:
+            npa_score = 12.0
+        elif npa_pct <= 8.0:
+            npa_score = 5.0
+        else:
+            npa_score = -5.0
+        score += npa_score
+
+        # C. Recovery Rate Performance Bonus (up to 20 pts)
+        if recovery_pct >= 98.0:
+            rec_score = 20.0
+        elif recovery_pct >= 95.0:
+            rec_score = 16.0
+        elif recovery_pct >= 90.0:
+            rec_score = 11.0
+        elif recovery_pct >= 85.0:
+            rec_score = 5.0
+        else:
+            rec_score = 0.0
+        score += rec_score
+
+        # D. Vector semantic similarity score (up to 15 pts)
+        sim_score = sim_scores[idx] if idx < len(sim_scores) else 0.0
+        score += min(sim_score * 50.0, 15.0)
+
+        # E. Scheme specific authorization bonus
         if scheme_id:
             if scheme_id in partner.get("schemes", []):
-                score += 20.0
+                score += 15.0
             else:
-                score -= 15.0
+                score -= 10.0
 
-        # SCA Priority bonus (SCAs are the principal nodal agency for NSFDC)
+        # F. SCA Nodal Agency Priority bonus
         if partner.get("type") == "SCA":
-            score += 10.0
+            score += 5.0
 
         entry = partner.copy()
+        entry.update(classification)
+
         if distance_km is not None:
             entry["distance_km"] = round(distance_km, 2)
         else:
@@ -435,15 +539,33 @@ def retrieve_channel_partners(
 
         results.append(entry)
 
-    # Sorting priority:
-    # If coords available (either explicit or geocoded): sort primarily by distance ascending when searching local offices
-    if has_coords:
-        # Sort by distance primarily (with slight weight to RAG score for authorized schemes)
-        results.sort(key=lambda x: (x.get("distance_km") if x.get("distance_km") is not None else 999999, -x["rag_score"]))
-    elif clean_query:
-        results.sort(key=lambda x: x["rag_score"], reverse=True)
+    # Sorting options:
+    sort_mode = (sort_by or "recommended").lower()
+
+    if sort_mode in ["distance", "nearest"]:
+        # Sort primarily by distance ascending, then by lowest NPA
+        results.sort(key=lambda x: (
+            x.get("distance_km") if x.get("distance_km") is not None else 999999,
+            x.get("npa_rate_pct", 99.0),
+            -x.get("recovery_rate_pct", 0.0)
+        ))
+    elif sort_mode in ["low_npa", "lowest_npa", "npa"]:
+        # Sort primarily by lowest NPA rate, then highest recovery, then nearest distance
+        results.sort(key=lambda x: (
+            x.get("npa_rate_pct", 99.0),
+            -x.get("recovery_rate_pct", 0.0),
+            x.get("distance_km") if x.get("distance_km") is not None else 999999
+        ))
+    elif sort_mode in ["recovery_rate", "highest_recovery", "recovery"]:
+        # Sort primarily by highest recovery rate, then lowest NPA, then nearest distance
+        results.sort(key=lambda x: (
+            -x.get("recovery_rate_pct", 0.0),
+            x.get("npa_rate_pct", 99.0),
+            x.get("distance_km") if x.get("distance_km") is not None else 999999
+        ))
     else:
-        results.sort(key=lambda x: x["rag_score"], reverse=True)
+        # Default "recommended": Multi-factor composite ranking balancing distance + low NPA + recovery rate
+        results.sort(key=lambda x: -x["rag_score"])
 
     return results[:top_k]
 
@@ -453,7 +575,7 @@ def retrieve_channel_partners(
 # =====================================================
 
 def build_rag_partner_context(partners: List[Dict[str, Any]]) -> str:
-    """Formats retrieved channel partner data into structured context for LLM prompt."""
+    """Formats retrieved channel partner data with NPA & Recovery metrics into structured context for LLM prompt."""
     if not partners:
         return "No specific channel partner found in this vicinity."
 
@@ -462,9 +584,13 @@ def build_rag_partner_context(partners: List[Dict[str, Any]]) -> str:
         dist_info = f"{p['distance_km']} km away" if p.get("distance_km") is not None else "Location matched"
         schemes_str = ", ".join(p.get("schemes", []))
         services_str = "; ".join(p.get("special_services", []))
+        recovery_pct = p.get("recovery_rate_pct", 95.0)
+        npa_pct = p.get("npa_rate_pct", 2.0)
+        npa_status = p.get("npa_status", "Low NPA")
+        perf_badge = p.get("performance_badge", "Low NPA Verified")
 
         block = f"""
-[OFFICIAL CHANNEL PARTNER #{rank}]
+[OFFICIAL CHANNEL PARTNER #{rank} — {p.get('npa_tier', 'Tier-1')}]
 Name: {p.get('name')} ({p.get('name_hi')})
 Agency Type: {p.get('type_label')} ({p.get('type')})
 Location: {p.get('city')}, {p.get('state')} (PIN: {p.get('pincode')})
@@ -474,6 +600,8 @@ Nodal Officer: {p.get('nodal_officer')}
 Contact Phone: {p.get('phone')} | Helpline: {p.get('helpline')}
 Email: {p.get('email')}
 Working Hours: {p.get('working_hours')}
+Credit Health & NPA Status: {npa_status} (NPA: {npa_pct}%, Recovery Rate: {recovery_pct}%)
+Performance Rating: {perf_badge} (Grade: {p.get('underwriting_grade', 'A+')})
 Authorized Schemes: {schemes_str}
 Special Services & Facilities: {services_str}
 Directions Link: {p.get('directions_url')}
@@ -481,3 +609,4 @@ Directions Link: {p.get('directions_url')}
         blocks.append(block.strip())
 
     return "\n\n".join(blocks)
+

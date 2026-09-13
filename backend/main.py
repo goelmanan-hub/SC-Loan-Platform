@@ -291,7 +291,7 @@ def find_partners_api(
     request: PartnerRequest
 ):
     """
-    Geospatial + RAG router for official NSFDC Channel Partners.
+    Geospatial + RAG router for official NSFDC Channel Partners with NPA & Recovery classification.
     """
     partners = find_suitable_partners(
         latitude=request.latitude,
@@ -300,6 +300,9 @@ def find_partners_api(
         scheme_id=request.scheme_id,
         partner_type=request.partner_type,
         query=request.query,
+        npa_filter=request.npa_filter,
+        min_recovery_rate=request.min_recovery_rate,
+        sort_by=request.sort_by,
         top_k=request.top_k or 10
     )
 
@@ -316,6 +319,7 @@ def partner_rag_search_api(
 ):
     """
     Semantic RAG Search across Official NSFDC Channel Partners.
+    Ranks by proximity, Low NPA status, and high recovery rates.
     Supports natural language queries in Hindi, English, and Hinglish.
     """
     from services.partner_rag_service import retrieve_channel_partners
@@ -329,6 +333,9 @@ def partner_rag_search_api(
         state=request.state,
         city=request.city,
         partner_type=request.partner_type,
+        npa_filter=request.npa_filter,
+        min_recovery_rate=request.min_recovery_rate,
+        sort_by=request.sort_by,
         radius_km=request.radius_km,
         top_k=request.top_k or 10
     )
@@ -343,9 +350,9 @@ def partner_rag_search_api(
 
 @app.get("/api/partners/all")
 def get_all_partners_api():
-    """Returns all official NSFDC Channel Partners in the knowledge base."""
-    from data.nsfdc_partners_kb import get_all_channel_partners_kb
-    partners = get_all_channel_partners_kb()
+    """Returns all official NSFDC Channel Partners with Recovery Rate and NPA metrics."""
+    from services.partner_rag_service import retrieve_channel_partners
+    partners = retrieve_channel_partners(top_k=100)
     return {
         "success": True,
         "count": len(partners),
@@ -619,6 +626,7 @@ def loan_chat(
                 scheme_id=scheme.get("id") if scheme else None,
                 latitude=session.get("latitude"),
                 longitude=session.get("longitude"),
+                sort_by="distance",
                 top_k=1
             )
             if nearest_partners:

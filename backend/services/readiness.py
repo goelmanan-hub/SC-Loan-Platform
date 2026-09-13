@@ -187,6 +187,7 @@ def calculate_loan_readiness(
                 latitude=lat,
                 longitude=lng,
                 scheme_id=scheme.get("id") if scheme else None,
+                sort_by="distance",
                 top_k=1
             )
             if matched_partners and matched_partners[0].get("distance_km") is not None:
