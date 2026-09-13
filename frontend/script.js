@@ -2918,13 +2918,132 @@ async function calculateReadinessFromBackend() {
 }
 
 /* =====================================================
-   EMI CALCULATOR API INTEGRATION
+   EMI CALCULATOR API INTEGRATION & VALIDATION
 ===================================================== */
+function clearEmiErrors() {
+    const errorBox = document.getElementById("emi-error-box");
+    if (errorBox) errorBox.style.display = "none";
+    ["emi-principal", "emi-rate", "emi-tenure", "emi-moratorium"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove("input-error");
+    });
+}
+
+function showEmiError(element, message) {
+    const errorBox = document.getElementById("emi-error-box");
+    const errorMsg = document.getElementById("emi-error-msg");
+    const resultBox = document.getElementById("emi-result-box");
+
+    if (errorBox && errorMsg) {
+        errorMsg.textContent = message;
+        errorBox.style.display = "flex";
+    }
+    if (resultBox) {
+        resultBox.style.display = "none";
+    }
+    if (element) {
+        element.classList.add("input-error");
+        element.focus();
+        element.addEventListener("input", function onInputClear() {
+            element.classList.remove("input-error");
+            if (errorBox) errorBox.style.display = "none";
+            element.removeEventListener("input", onInputClear);
+        });
+    }
+}
+
+function calculateClientSideEmi(principal, annualRate, tenureMonths, moratoriumMonths) {
+    const p = parseFloat(principal);
+    const r = parseFloat(annualRate);
+    const t = parseInt(tenureMonths);
+    const m = parseInt(moratoriumMonths || 0);
+
+    const repaymentMonths = t - m;
+    const monthlyRate = (r / 12) / 100;
+    let emi = 0;
+    if (monthlyRate === 0) {
+        emi = p / repaymentMonths;
+    } else {
+        const factor = Math.pow(1 + monthlyRate, repaymentMonths);
+        if (!isFinite(factor) || factor <= 1) {
+            return null;
+        }
+        emi = (p * monthlyRate * factor) / (factor - 1);
+    }
+    const totalPayment = emi * repaymentMonths;
+    const totalInterest = Math.max(0, totalPayment - p);
+
+    return {
+        monthly_emi: Math.round(emi * 100) / 100,
+        total_interest: Math.round(totalInterest * 100) / 100,
+        total_payment: Math.round(totalPayment * 100) / 100
+    };
+}
+
 async function calculateEmiFromBackend() {
-    const principal = parseFloat(document.getElementById("emi-principal").value) || 0;
-    const rate = parseFloat(document.getElementById("emi-rate").value) || 0;
-    const tenure = parseInt(document.getElementById("emi-tenure").value) || 12;
-    const moratorium = parseInt(document.getElementById("emi-moratorium").value) || 0;
+    clearEmiErrors();
+
+    const principalElem = document.getElementById("emi-principal");
+    const rateElem = document.getElementById("emi-rate");
+    const tenureElem = document.getElementById("emi-tenure");
+    const moratoriumElem = document.getElementById("emi-moratorium");
+
+    const principalVal = principalElem ? principalElem.value.trim() : "";
+    const rateVal = rateElem ? rateElem.value.trim() : "";
+    const tenureVal = tenureElem ? tenureElem.value.trim() : "";
+    const moratoriumVal = moratoriumElem ? moratoriumElem.value.trim() : "0";
+
+    const isEn = (currentLanguage || "").startsWith("en");
+
+    // 1. Validation - Principal
+    if (!principalVal || isNaN(Number(principalVal))) {
+        showEmiError(principalElem, isEn ? "Please enter a valid loan amount (minimum ₹1,000)." : "कृपया मान्य ऋण राशि दर्ज करें (कम से कम ₹1,000)।");
+        return;
+    }
+    const principal = parseFloat(principalVal);
+    if (principal < 1000) {
+        showEmiError(principalElem, isEn ? "Principal loan amount must be at least ₹1,000." : "ऋण राशि कम से कम ₹1,000 होनी चाहिए।");
+        return;
+    }
+    if (principal > 500000000) {
+        showEmiError(principalElem, isEn ? "Loan amount cannot exceed ₹50 Crore (₹500,000,000)." : "ऋण राशि अधिकतम सीमा (₹50 करोड़) से अधिक नहीं हो सकती।");
+        return;
+    }
+
+    // 2. Validation - Annual Interest Rate
+    if (rateVal === "" || isNaN(Number(rateVal))) {
+        showEmiError(rateElem, isEn ? "Please enter annual interest rate (e.g. 6.5%)." : "कृपया वार्षिक ब्याज दर दर्ज करें (उदा. 6.5%)।");
+        return;
+    }
+    const rate = parseFloat(rateVal);
+    if (rate < 0 || rate > 36) {
+        showEmiError(rateElem, isEn ? "Annual interest rate must be between 0% and 36%." : "वार्षिक ब्याज दर 0% से 36% के बीच होनी चाहिए।");
+        return;
+    }
+
+    // 3. Validation - Tenure
+    if (!tenureVal || isNaN(Number(tenureVal))) {
+        showEmiError(tenureElem, isEn ? "Please enter tenure in months (e.g. 36)." : "कृपया अवधि (महीनों में) दर्ज करें (उदा. 36)।");
+        return;
+    }
+    const tenure = parseInt(tenureVal);
+    if (tenure < 1 || tenure > 360) {
+        showEmiError(tenureElem, isEn ? "Tenure must be between 1 and 360 months (up to 30 years)." : "ऋण अवधि 1 से 360 महीने (अधिकतम 30 वर्ष) के बीच होनी चाहिए।");
+        return;
+    }
+
+    // 4. Validation - Moratorium
+    const moratorium = moratoriumVal ? parseInt(moratoriumVal) : 0;
+    if (isNaN(moratorium) || moratorium < 0) {
+        showEmiError(moratoriumElem, isEn ? "Moratorium period cannot be negative." : "मोरैटोरियम अवधि ऋणात्मक नहीं हो सकती।");
+        return;
+    }
+    if (moratorium >= tenure) {
+        showEmiError(moratoriumElem, isEn ? `Moratorium period (${moratorium} mo) must be strictly less than total tenure (${tenure} mo).` : `मोरैटोरियम अवधि (${moratorium} माह) कुल ऋण अवधि (${tenure} माह) से कम होनी चाहिए।`);
+        return;
+    }
+
+    let res = null;
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/calculate-emi`, {
@@ -2938,22 +3057,45 @@ async function calculateEmiFromBackend() {
             })
         });
 
-        if (!response.ok) {
-            throw new Error("EMI API Calculation Failed");
-        }
-
-        const data = await response.json();
-        if (data.success && data.result) {
-            const res = data.result;
-            document.getElementById("res-monthly-emi").textContent = "₹" + res.monthly_emi.toLocaleString("en-IN", { minimumFractionDigits: 2 });
-            document.getElementById("res-total-interest").textContent = "₹" + res.total_interest.toLocaleString("en-IN", { minimumFractionDigits: 2 });
-            document.getElementById("res-total-payable").textContent = "₹" + res.total_payment.toLocaleString("en-IN", { minimumFractionDigits: 2 });
-            document.getElementById("emi-result-box").style.display = "grid";
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.result) {
+                res = data.result;
+            } else if (data.error) {
+                showEmiError(null, data.error);
+                return;
+            }
+        } else {
+            const errData = await response.json().catch(() => null);
+            if (errData && errData.detail) {
+                const detailMsg = Array.isArray(errData.detail) ? errData.detail[0]?.msg || "Validation error" : errData.detail;
+                showEmiError(null, detailMsg);
+                return;
+            }
         }
     } catch (error) {
-        console.error("EMI Calculation error:", error);
-        alert("EMI calculation error. Make sure FastAPI server is running.");
+        console.warn("FastAPI EMI endpoint unreachable, computing client-side:", error);
     }
+
+    // Fallback if backend was unreachable
+    if (!res) {
+        res = calculateClientSideEmi(principal, rate, tenure, moratorium);
+    }
+
+    if (!res) {
+        showEmiError(null, isEn ? "Unable to calculate EMI for the given parameters." : "दिए गए मानों के लिए EMI गणना संभव नहीं है।");
+        return;
+    }
+
+    const monthlyElem = document.getElementById("res-monthly-emi");
+    const interestElem = document.getElementById("res-total-interest");
+    const payableElem = document.getElementById("res-total-payable");
+    const resultBox = document.getElementById("emi-result-box");
+
+    if (monthlyElem) monthlyElem.textContent = "₹" + Number(res.monthly_emi || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+    if (interestElem) interestElem.textContent = "₹" + Number(res.total_interest || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+    if (payableElem) payableElem.textContent = "₹" + Number(res.total_payment || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 });
+    if (resultBox) resultBox.style.display = "grid";
 }
 
 /* =====================================================

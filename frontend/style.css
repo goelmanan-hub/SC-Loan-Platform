@@ -1677,6 +1677,41 @@
     color: #0f172a;
 }
 
+.emi-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 12px 18px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    color: #b91c1c;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    animation: fadeInShake 0.3s ease;
+}
+
+.emi-error-banner i {
+    font-size: 18px;
+    color: #dc2626;
+    flex-shrink: 0;
+}
+
+.form-group input.input-error {
+    border-color: #ef4444 !important;
+    background-color: #fff5f5 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+@keyframes fadeInShake {
+    0% { opacity: 0; transform: translateY(-4px); }
+    30% { transform: translateX(4px); }
+    60% { transform: translateX(-4px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
 /* =====================================================
    PARTNER LOCATOR & RAG GEOLOCATION STYLES
 ===================================================== */

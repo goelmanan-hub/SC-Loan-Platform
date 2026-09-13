@@ -30,10 +30,10 @@ class SchemeResponse(BaseModel):
 
 
 class EMIRequest(BaseModel):
-    principal: float = Field(..., gt=0)
-    annual_interest_rate: float = Field(..., ge=0)
-    tenure_months: int = Field(..., gt=0)
-    moratorium_months: int = Field(0, ge=0)
+    principal: float = Field(..., gt=0, le=500000000, description="Principal amount between ₹1 and ₹50 Crore")
+    annual_interest_rate: float = Field(..., ge=0, le=36, description="Interest rate between 0% and 36%")
+    tenure_months: int = Field(..., ge=1, le=360, description="Tenure between 1 and 360 months")
+    moratorium_months: int = Field(0, ge=0, description="Moratorium period in months")
 
 
 class PartnerRequest(BaseModel):

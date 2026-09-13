@@ -268,13 +268,18 @@ async def verify_documents_api(
 def calculate_emi_api(
     request: EMIRequest
 ):
-
     result = calculate_emi(
         principal=request.principal,
         annual_interest_rate=request.annual_interest_rate,
         tenure_months=request.tenure_months,
         moratorium_months=request.moratorium_months
     )
+
+    if "error" in result:
+        return {
+            "success": False,
+            "error": result["error"]
+        }
 
     return {
         "success": True,
