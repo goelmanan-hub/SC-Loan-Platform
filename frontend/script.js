@@ -3533,7 +3533,7 @@ function renderPartnersList(partners) {
 
         const distanceDisplay = p.distance_km !== null && p.distance_km !== undefined
             ? `📍 ${p.distance_km} ${t.partnerDistanceAway || (isEn ? 'km away' : 'km दूर')}`
-            : (p.rag_score ? `🎯 RAG: ${Math.round(p.rag_score)}%` : (isEn ? "📍 Available" : "📍 उपलब्ध"));
+            : (isEn ? "📍 Official Centre" : "📍 आधिकारिक केंद्र");
 
         const schemesList = (p.schemes || []).slice(0, 4).map(s => {
             const formatted = String(s || "").replace(/_/g, " ");
