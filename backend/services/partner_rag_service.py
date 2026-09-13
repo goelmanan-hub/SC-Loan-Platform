@@ -539,33 +539,25 @@ def retrieve_channel_partners(
         entry["rag_score"] = round(score, 2)
         entry["vector_similarity"] = round(sim_score, 4)
 
-        # Generate Google Maps directions URL & Maps Search URL
+        # Generate Google Maps directions URL & Maps Search URL with exact destination place query
         p_lat = partner.get('latitude')
         p_lng = partner.get('longitude')
-        p_addr = partner.get('address', partner.get('name', ''))
+        p_name = partner.get('name', '')
+        p_addr = partner.get('address', partner.get('city', ''))
         
-        if p_lat is not None and p_lng is not None and p_lat != 0.0:
-            if has_coords:
-                entry["directions_url"] = (
-                    f"https://www.google.com/maps/dir/?api=1&origin={latitude},{longitude}&destination={p_lat},{p_lng}&travelmode=driving"
-                )
-            else:
-                entry["directions_url"] = (
-                    f"https://www.google.com/maps/dir/?api=1&destination={p_lat},{p_lng}&travelmode=driving"
-                )
+        # Build canonical search & destination string
+        dest_query = urllib.parse.quote_plus(f"{p_name}, {p_addr}")
+        
+        if has_coords:
+            entry["directions_url"] = (
+                f"https://www.google.com/maps/dir/?api=1&origin={latitude},{longitude}&destination={dest_query}&travelmode=driving"
+            )
         else:
-            dest_query = urllib.parse.quote_plus(f"{partner.get('name', '')}, {p_addr}")
-            if has_coords:
-                entry["directions_url"] = (
-                    f"https://www.google.com/maps/dir/?api=1&origin={latitude},{longitude}&destination={dest_query}&travelmode=driving"
-                )
-            else:
-                entry["directions_url"] = (
-                    f"https://www.google.com/maps/dir/?api=1&destination={dest_query}&travelmode=driving"
-                )
+            entry["directions_url"] = (
+                f"https://www.google.com/maps/dir/?api=1&destination={dest_query}&travelmode=driving"
+            )
 
-        search_query = urllib.parse.quote_plus(f"{partner.get('name', '')}, {p_addr}")
-        entry["google_maps_url"] = f"https://www.google.com/maps/search/?api=1&query={search_query}"
+        entry["google_maps_url"] = f"https://www.google.com/maps/search/?api=1&query={dest_query}"
 
         results.append(entry)
 
