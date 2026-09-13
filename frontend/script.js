@@ -20,7 +20,7 @@ let availableVoices = [];
 let stagedOcrFiles = [];
 
 // Geolocation & Partner Filter State
-let userCoordinates = { lat: 29.9695, lng: 76.8783 }; // Default to Kurukshetra center
+let userCoordinates = null; // Uninitialized until user grants GPS permission or selects a city
 let isLocationPermissionGranted = false;
 let activePartnerTypeFilter = "ALL";
 
@@ -38,13 +38,8 @@ document.addEventListener("DOMContentLoaded", () => {
     setupOcrDropzoneEvents();
     fetchAvailableSchemes();
     checkBackendHealth();
-    initSavedUserLocation();
-    // 1. Immediately load default channel partners and render map on page load
+    // 1. Immediately load default channel partners on page load without pretending to have location
     loadDefaultPartners();
-    // 2. Request browser location in background
-    if ("geolocation" in navigator) {
-        handleLocationPermissionRequest(false);
-    }
 });
 
 /* =====================================================
@@ -3102,8 +3097,17 @@ async function calculateEmiFromBackend() {
    NSFDC CHANNEL PARTNER FINDER & RAG GEOLOCATION ENGINE
 ===================================================== */
 
+function hideGlobalLocationBanner(delayMs = 500) {
+    const banner = document.getElementById("global-location-banner");
+    if (banner) {
+        setTimeout(() => {
+            banner.style.display = "none";
+        }, delayMs);
+    }
+}
+
 /**
- * Smoothly hides the location permission banner once location is received and saved
+ * Smoothly hides the location permission banner once location is received
  */
 function hideLocationPermissionBox(delayMs = 1200) {
     const box = document.getElementById("location-permission-box");
@@ -3118,91 +3122,87 @@ function hideLocationPermissionBox(delayMs = 1200) {
 }
 
 /**
- * Initializes location from localStorage if already saved previously
- */
-function initSavedUserLocation() {
-    try {
-        const saved = localStorage.getItem("yojnasetu_user_location");
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            if (parsed && typeof parsed.lat === "number" && typeof parsed.lng === "number") {
-                // Only restore if saved within the last 1 hour
-                if (!parsed.timestamp || Date.now() - parsed.timestamp < 3600000) {
-                    userCoordinates = { lat: parsed.lat, lng: parsed.lng };
-                    console.log("Restored active user location:", userCoordinates);
-                }
-            }
-        }
-    } catch (e) {
-        console.warn("Could not parse saved location:", e);
-    }
-}
-
-/**
  * Handles explicit or automatic browser location permission request
  */
 function handleLocationPermissionRequest(isExplicitClick = false) {
     const statusBadge = document.getElementById("geo-status-badge");
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
 
-    if (statusBadge && isExplicitClick) {
+    if (statusBadge) {
         statusBadge.className = "geo-status-badge waiting";
-        statusBadge.innerHTML = `<span class="pulse-dot"></span> लाइव स्थान प्राप्त किया जा रहा है...`;
+        statusBadge.innerHTML = `<span class="pulse-dot"></span> ${isEn ? "Fetching live location..." : "लाइव स्थान प्राप्त किया जा रहा है..."}`;
     }
 
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                const accuracy = Math.round(position.coords.accuracy || 0);
+    if (!("geolocation" in navigator)) {
+        if (statusBadge) {
+            statusBadge.className = "geo-status-badge denied";
+            statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${isEn ? "Location unsupported" : "स्थान अनुपलब्ध"}`;
+        }
+        if (isExplicitClick) {
+            showToast(isEn ? "⚠️ Geolocation is not supported by your browser." : "⚠️ आपके ब्राउज़र में स्थान सेवा समर्थित नहीं है।", "info");
+        }
+        return;
+    }
 
-                // Save location state
-                userCoordinates = { lat, lng };
-                isLocationPermissionGranted = true;
-                try {
-                    localStorage.setItem("yojnasetu_user_location", JSON.stringify({ lat, lng, timestamp: Date.now() }));
-                } catch (e) {
-                    console.warn("Storage error:", e);
-                }
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = Math.round(position.coords.accuracy || 0);
 
-                console.log(`Live GPS Location granted: ${lat}, ${lng} (accuracy: ${accuracy}m)`);
+            // Save active session location
+            userCoordinates = { lat, lng };
+            isLocationPermissionGranted = true;
 
-                if (statusBadge) {
-                    statusBadge.className = "geo-status-badge granted";
-                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> लाइव स्थान (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`;
-                }
+            console.log(`Live GPS Location granted: ${lat}, ${lng} (accuracy: ${accuracy}m)`);
 
-                // Hide permission prompts
-                hideGlobalLocationBanner(500);
-                hideLocationPermissionBox(1000);
-
-                // Notify user via green toast if explicit click
-                if (isExplicitClick) {
-                    showToast(`📍 आपका लाइव स्थान प्राप्त हुआ (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`, "success");
-                }
-
-                // If map is initialized, pan to new coordinates
-                if (partnerMap && typeof partnerMap.setView === "function") {
-                    partnerMap.setView([lat, lng], 11);
-                }
-
-                await fetchPartnersWithFilters();
-            },
-            async (error) => {
-                console.warn("Geolocation status:", error);
-                if (statusBadge && isExplicitClick) {
-                    statusBadge.className = "geo-status-badge denied";
-                    statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> स्थान अनुमति अनुपलब्ध (ड्रॉपडाउन से चुनें)`;
-                    showToast("⚠️ ब्राउज़र स्थान अनुमति उपलब्ध नहीं है। कृपया नीचे दिए गए राज्य/शहर ड्रॉपडाउन से चुनें।", "info");
-                }
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 8000,
-                maximumAge: 0
+            if (statusBadge) {
+                statusBadge.className = "geo-status-badge granted";
+                statusBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${isEn ? "Live Location" : "लाइव स्थान"} (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`;
             }
-        );
-    }
+
+            // Hide permission prompts
+            hideGlobalLocationBanner(500);
+            hideLocationPermissionBox(1000);
+
+            // Notify user via green toast if explicit click
+            if (isExplicitClick) {
+                showToast(
+                    isEn
+                        ? `📍 Live location acquired (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`
+                        : `📍 आपका लाइव स्थान प्राप्त हुआ (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`,
+                    "success"
+                );
+            }
+
+            // If map is initialized, pan to new coordinates
+            if (partnerMap && typeof partnerMap.setView === "function") {
+                partnerMap.setView([lat, lng], 11);
+            }
+
+            await fetchPartnersWithFilters();
+        },
+        async (error) => {
+            console.warn("Geolocation status:", error);
+            if (statusBadge) {
+                statusBadge.className = "geo-status-badge denied";
+                statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${isEn ? "Location permission denied" : "स्थान अनुमति अनुपलब्ध (ड्रॉपडाउन से चुनें)"}`;
+            }
+            if (isExplicitClick) {
+                showToast(
+                    isEn
+                        ? "⚠️ Browser location permission was denied. Please select your State / City from the dropdowns."
+                        : "⚠️ ब्राउज़र स्थान अनुमति उपलब्ध नहीं है। कृपया नीचे दिए गए राज्य/शहर ड्रॉपडाउन से चुनें।",
+                    "info"
+                );
+            }
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
 }
 
 // =====================================================
@@ -3210,10 +3210,10 @@ function handleLocationPermissionRequest(isExplicitClick = false) {
 // =====================================================
 const STATE_CITY_MAPPING = {
     "ALL": [
-        { name: "कुरुक्षेत्र (Kurukshetra - HSCFDC Office)", lat: 29.9695, lng: 76.8783 },
         { name: "बेगमपुर / रोहिणी (Begumpur & Rohini - North-West Delhi)", lat: 28.7240, lng: 77.0645 },
         { name: "रोहिणी (North-West Delhi - DSFDC Branch & PNB)", lat: 28.7235, lng: 77.1142 },
         { name: "दिल्ली केंद्रीय / ITO (Central Delhi - DSFDC HQ)", lat: 28.6294, lng: 77.2435 },
+        { name: "कुरुक्षेत्र (Kurukshetra - HSCFDC Office)", lat: 29.9695, lng: 76.8783 },
         { name: "करनाल (Karnal, Haryana)", lat: 29.6857, lng: 76.9905 },
         { name: "अंबाला (Ambala, Haryana)", lat: 30.3782, lng: 76.7767 },
         { name: "पानीपत (Panipat, Haryana)", lat: 29.3909, lng: 76.9635 },
@@ -3288,18 +3288,19 @@ const STATE_CITY_MAPPING = {
 /**
  * Updates the Quick City dropdown when the user selects a State
  */
-function updateCityDropdownForState(stateKey) {
+function updateCityDropdownForState(stateKey, setCoords = false) {
     const citySelect = document.getElementById("city-select");
     if (!citySelect) return;
 
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
+    const placeholderText = isEn ? "-- Select City / Locality --" : "-- त्वरित शहर / इलाका चुनें --";
     const cities = STATE_CITY_MAPPING[stateKey] || STATE_CITY_MAPPING["ALL"];
 
-    citySelect.innerHTML = cities.map((c, index) => `
-        <option value="${c.lat},${c.lng}" ${index === 0 ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+    citySelect.innerHTML = `<option value="" selected>${placeholderText}</option>` + cities.map((c) => `
+        <option value="${c.lat},${c.lng}">${escapeHtml(c.name)}</option>
     `).join("");
 
-    // Set coordinates to first city of selected state
-    if (cities.length > 0) {
+    if (setCoords && cities.length > 0) {
         userCoordinates = { lat: cities[0].lat, lng: cities[0].lng };
     }
 }
@@ -3308,6 +3309,7 @@ function handleStateSelectChange() {
     const stateSelect = document.getElementById("partner-state-select");
     const queryInput = document.getElementById("partner-query-input");
     const selectedState = stateSelect ? stateSelect.value : "ALL";
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
 
     console.log("State selected:", selectedState);
 
@@ -3317,18 +3319,36 @@ function handleStateSelectChange() {
     }
 
     // Dynamically update cities dropdown to show cities of this state
-    updateCityDropdownForState(selectedState);
+    updateCityDropdownForState(selectedState, false);
 
-    // Update status badge immediately
+    // Update status badge immediately if user hasn't granted live GPS
     const statusBadge = document.getElementById("geo-status-badge");
-    if (statusBadge) {
+    if (statusBadge && !isLocationPermissionGranted) {
         statusBadge.className = "geo-status-badge manual";
-        statusBadge.innerHTML = `<i class="fa-solid fa-map-pin"></i> राज्य: ${selectedState === "ALL" ? "सभी राज्य" : selectedState}`;
+        statusBadge.innerHTML = `<i class="fa-solid fa-map-pin"></i> ${isEn ? "State: " : "राज्य: "}${selectedState === "ALL" ? (isEn ? "All States" : "सभी राज्य") : selectedState}`;
     }
 
-    // Pan map to first city of state
-    if (partnerMap && typeof partnerMap.setView === "function" && userCoordinates) {
-        partnerMap.setView([userCoordinates.lat, userCoordinates.lng], selectedState === "ALL" ? 6 : 9);
+    // Pan map to state region
+    if (partnerMap && typeof partnerMap.setView === "function") {
+        if (selectedState === "Haryana") {
+            partnerMap.setView([29.5, 76.5], 8);
+        } else if (selectedState === "Delhi") {
+            partnerMap.setView([28.65, 77.15], 10);
+        } else if (selectedState === "Uttar Pradesh") {
+            partnerMap.setView([27.0, 80.5], 7);
+        } else if (selectedState === "Punjab") {
+            partnerMap.setView([31.0, 75.5], 8);
+        } else if (selectedState === "Rajasthan") {
+            partnerMap.setView([26.5, 74.5], 7);
+        } else if (selectedState === "Maharashtra") {
+            partnerMap.setView([19.5, 75.5], 7);
+        } else if (selectedState === "Karnataka") {
+            partnerMap.setView([14.5, 76.5], 7);
+        } else if (selectedState === "Tamil Nadu") {
+            partnerMap.setView([11.0, 78.5], 7);
+        } else {
+            partnerMap.setView([28.6139, 77.2090], 6);
+        }
     }
 
     // Refresh partner results
@@ -3339,32 +3359,48 @@ function handleCitySelectChange() {
     const select = document.getElementById("city-select");
     if (!select) return;
 
-    const [lat, lng] = select.value.split(",").map(Number);
-    userCoordinates = { lat, lng };
+    const val = select.value;
+    const isEn = currentLanguage && currentLanguage.startsWith("en");
 
-    const selectedOption = select.options[select.selectedIndex];
-    const selectedText = selectedOption ? selectedOption.text : "चयनित स्थान";
-    const cityNameOnly = selectedText.split("(")[0].trim();
+    if (val && val.includes(",")) {
+        const [lat, lng] = val.split(",").map(Number);
+        userCoordinates = { lat, lng };
 
-    const statusBadge = document.getElementById("geo-status-badge");
-    if (statusBadge) {
-        statusBadge.className = "geo-status-badge manual";
-        statusBadge.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${cityNameOnly}`;
-    }
+        const selectedOption = select.options[select.selectedIndex];
+        const selectedText = selectedOption ? selectedOption.text : "चयनित स्थान";
+        const cityNameOnly = selectedText.split("(")[0].trim();
 
-    // Pan map to chosen city
-    if (partnerMap && typeof partnerMap.setView === "function") {
-        partnerMap.setView([lat, lng], 11);
+        const statusBadge = document.getElementById("geo-status-badge");
+        if (statusBadge) {
+            statusBadge.className = "geo-status-badge manual";
+            statusBadge.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${cityNameOnly}`;
+        }
+
+        // Pan map to chosen city
+        if (partnerMap && typeof partnerMap.setView === "function") {
+            partnerMap.setView([lat, lng], 11);
+        }
+    } else {
+        // Reset to state-level view if placeholder chosen and no live GPS
+        if (!isLocationPermissionGranted) {
+            userCoordinates = null;
+            const statusBadge = document.getElementById("geo-status-badge");
+            if (statusBadge) {
+                statusBadge.className = "geo-status-badge waiting";
+                statusBadge.innerHTML = `<span class="pulse-dot"></span> ${isEn ? "Location Pending" : "स्थान प्रतीक्षित"}`;
+            }
+        }
     }
 
     fetchPartnersWithFilters();
 }
 
 async function loadDefaultPartners() {
-    initSavedUserLocation();
+    userCoordinates = null;
+    isLocationPermissionGranted = false;
     const stateSelect = document.getElementById("partner-state-select");
     const initialState = stateSelect ? stateSelect.value : "ALL";
-    updateCityDropdownForState(initialState);
+    updateCityDropdownForState(initialState, false);
     await fetchPartnersWithFilters();
 }
 
@@ -3392,6 +3428,8 @@ async function fetchPartnersWithFilters() {
     const sortBy = sortSelect ? sortSelect.value : "recommended";
     const partnerType = activePartnerTypeFilter || "ALL";
 
+    let effectiveCoords = userCoordinates;
+
     // Instant client-side geocoding check to center map and calculate accurate distance
     if (query) {
         const qLower = query.toLowerCase();
@@ -3414,7 +3452,7 @@ async function fetchPartnersWithFilters() {
         ];
         for (const gm of clientGeoMatches) {
             if (qLower.includes(gm.key)) {
-                userCoordinates = { lat: gm.lat, lng: gm.lng };
+                effectiveCoords = { lat: gm.lat, lng: gm.lng };
                 break;
             }
         }
@@ -3422,8 +3460,8 @@ async function fetchPartnersWithFilters() {
 
     try {
         const payload = {
-            latitude: userCoordinates.lat,
-            longitude: userCoordinates.lng,
+            latitude: effectiveCoords ? effectiveCoords.lat : undefined,
+            longitude: effectiveCoords ? effectiveCoords.lng : undefined,
             query: query || undefined,
             state: state !== "ALL" ? state : undefined,
             scheme_id: schemeId || undefined,
@@ -3452,10 +3490,9 @@ async function fetchPartnersWithFilters() {
         }
 
         renderPartnersList(partners);
-        renderPartnerMap(userCoordinates.lat, userCoordinates.lng, partners);
-
+        renderPartnerMap(effectiveCoords ? effectiveCoords.lat : null, effectiveCoords ? effectiveCoords.lng : null, partners);
     } catch (error) {
-        console.error("Partner locator error:", error);
+        console.error("Partner fetch error:", error);
         if (listContainer) {
             const isEn = currentLanguage && currentLanguage.startsWith("en");
             listContainer.innerHTML = `<div class="loading-placeholder" style="color: #ef4444;">⚠️ ${isEn ? 'Error fetching channel partners. Please verify backend status.' : 'चैनल पार्टनर प्राप्त करने में त्रुटि हुई। कृपया backend की स्थिति जाँचें।'}</div>`;
@@ -3627,14 +3664,20 @@ function renderPartnerMap(latitude, longitude, partners) {
     }
 
     try {
+        const hasUserLoc = (latitude !== null && latitude !== undefined && !isNaN(Number(latitude)) &&
+                            longitude !== null && longitude !== undefined && !isNaN(Number(longitude)));
+        const centerLat = hasUserLoc ? Number(latitude) : 28.6139;
+        const centerLng = hasUserLoc ? Number(longitude) : 77.2090;
+        const zoomLevel = hasUserLoc ? 11 : 6;
+
         if (!partnerMap) {
             if (mapElement._leaflet_id) {
                 mapElement._leaflet_id = null;
                 mapElement.innerHTML = "";
             }
             partnerMap = L.map(mapElement, {
-                center: [latitude, longitude],
-                zoom: 11,
+                center: [centerLat, centerLng],
+                zoom: zoomLevel,
                 scrollWheelZoom: false
             });
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -3643,28 +3686,30 @@ function renderPartnerMap(latitude, longitude, partners) {
             }).addTo(partnerMap);
             partnerMarkers = L.layerGroup().addTo(partnerMap);
         } else {
-            partnerMap.setView([latitude, longitude], 11);
+            partnerMap.setView([centerLat, centerLng], zoomLevel);
             if (partnerMarkers) partnerMarkers.clearLayers();
         }
 
         partnerMapMarkersDict = {};
+        const mapBounds = [];
 
-        // 1. User Marker (High-visibility pulsing blue beacon)
-        const isEn = currentLanguage && currentLanguage.startsWith("en");
-        const userPopupText = isEn
-            ? "<div style='text-align: center; font-weight: bold;'>📍 Your Current Location<br><span style='font-size: 11px; color: #64748b;'>Measuring distance from here</span></div>"
-            : "<div style='text-align: center; font-weight: bold;'>📍 आपका वर्तमान स्थान<br><span style='font-size: 11px; color: #64748b;'>यहाँ से दूरी मापी जा रही है</span></div>";
+        // 1. User Marker (High-visibility pulsing blue beacon - only when real location is known)
+        if (hasUserLoc) {
+            const isEn = currentLanguage && currentLanguage.startsWith("en");
+            const userPopupText = isEn
+                ? "<div style='text-align: center; font-weight: bold;'>📍 Your Current Location<br><span style='font-size: 11px; color: #64748b;'>Measuring distance from here</span></div>"
+                : "<div style='text-align: center; font-weight: bold;'>📍 आपका वर्तमान स्थान<br><span style='font-size: 11px; color: #64748b;'>यहाँ से दूरी मापी जा रही है</span></div>";
 
-        const userMarker = L.circleMarker([latitude, longitude], {
-            radius: 10,
-            color: "#ffffff",
-            weight: 3,
-            fillColor: "#0072bc",
-            fillOpacity: 1
-        }).bindPopup(userPopupText);
-        partnerMarkers.addLayer(userMarker);
-
-        const mapBounds = [[latitude, longitude]];
+            const userMarker = L.circleMarker([centerLat, centerLng], {
+                radius: 10,
+                color: "#ffffff",
+                weight: 3,
+                fillColor: "#0072bc",
+                fillOpacity: 1
+            }).bindPopup(userPopupText);
+            partnerMarkers.addLayer(userMarker);
+            mapBounds.push([centerLat, centerLng]);
+        }
 
         // 2. Add Partner Markers
         if (partners && partners.length > 0) {
@@ -4092,19 +4137,30 @@ let lastGeneratedOtp = "123456";
 function initAuthSystem() {
     setupOtpInputAutoAdvance();
 
-    // Check if user session exists in localStorage
+    // Check if user session exists in sessionStorage (active tab session only)
     try {
-        const storedUser = localStorage.getItem("yojnasetu_user");
+        const storedUser = sessionStorage.getItem("yojnasetu_user");
         if (storedUser) {
             currentUser = JSON.parse(storedUser);
-            console.log("Logged in user restored from localStorage:", currentUser.name);
+            console.log("Logged in user restored from sessionStorage:", currentUser.name);
             updateUserAuthUI();
             refreshUserAssessmentsCount();
+        } else {
+            currentUser = null;
+            updateUserAuthUI();
         }
     } catch (e) {
         console.warn("Failed to parse stored user profile:", e);
-        localStorage.removeItem("yojnasetu_user");
+        sessionStorage.removeItem("yojnasetu_user");
+        currentUser = null;
+        updateUserAuthUI();
     }
+
+    // Clean up any stale localStorage items from previous sessions to prevent ghost auto-login
+    try {
+        localStorage.removeItem("yojnasetu_user");
+        localStorage.removeItem("yojnasetu_user_location");
+    } catch (e) {}
 
     // Global listener for closing profile menu on outside click
     document.addEventListener("click", (e) => {
@@ -4486,7 +4542,10 @@ async function handleVerifyOtpSubmit() {
 
         if (response.ok && data.success && data.user) {
             currentUser = data.user;
-            localStorage.setItem("yojnasetu_user", JSON.stringify(currentUser));
+            sessionStorage.setItem("yojnasetu_user", JSON.stringify(currentUser));
+            try {
+                localStorage.removeItem("yojnasetu_user");
+            } catch (e) {}
 
             updateUserAuthUI();
             closeAuthModal();
@@ -4543,7 +4602,10 @@ async function handleResendOtp() {
  */
 function handleUserLogout() {
     currentUser = null;
-    localStorage.removeItem("yojnasetu_user");
+    sessionStorage.removeItem("yojnasetu_user");
+    try {
+        localStorage.removeItem("yojnasetu_user");
+    } catch (e) {}
     updateUserAuthUI();
 
     const menu = document.getElementById("header-user-profile-menu");
