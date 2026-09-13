@@ -3664,6 +3664,7 @@ function renderPartnerMap(latitude, longitude, partners) {
     }
 
     try {
+        const isEn = Boolean(currentLanguage && currentLanguage.startsWith("en"));
         const hasUserLoc = (latitude !== null && latitude !== undefined && !isNaN(Number(latitude)) &&
                             longitude !== null && longitude !== undefined && !isNaN(Number(longitude)));
         const centerLat = hasUserLoc ? Number(latitude) : 28.6139;
@@ -3680,9 +3681,10 @@ function renderPartnerMap(latitude, longitude, partners) {
                 zoom: zoomLevel,
                 scrollWheelZoom: false
             });
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
                 maxZoom: 19,
-                attribution: "&copy; OpenStreetMap contributors | NSFDC"
+                subdomains: "abcd",
+                attribution: "&copy; <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/\" target=\"_blank\">CARTO</a> | NSFDC"
             }).addTo(partnerMap);
             partnerMarkers = L.layerGroup().addTo(partnerMap);
         } else {
@@ -3695,7 +3697,6 @@ function renderPartnerMap(latitude, longitude, partners) {
 
         // 1. User Marker (High-visibility pulsing blue beacon - only when real location is known)
         if (hasUserLoc) {
-            const isEn = currentLanguage && currentLanguage.startsWith("en");
             const userPopupText = isEn
                 ? "<div style='text-align: center; font-weight: bold;'>📍 Your Current Location<br><span style='font-size: 11px; color: #64748b;'>Measuring distance from here</span></div>"
                 : "<div style='text-align: center; font-weight: bold;'>📍 आपका वर्तमान स्थान<br><span style='font-size: 11px; color: #64748b;'>यहाँ से दूरी मापी जा रही है</span></div>";
@@ -3722,7 +3723,7 @@ function renderPartnerMap(latitude, longitude, partners) {
                 const typeLabel = partner.type === "SCA" ? "🏛️ SCA" : partner.type === "PSB" ? "🏦 PSB" : "🌾 RRB";
 
                 const markerHtml = `
-                    <div style="background: ${typeColor}; color: #ffffff; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;">
+                    <div style="background: ${typeColor}; color: #ffffff; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.3); display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer;">
                         ${typeLabel}
                     </div>
                 `;
@@ -3766,7 +3767,10 @@ function renderPartnerMap(latitude, longitude, partners) {
 
         if (mapBounds.length > 1) {
             partnerMap.fitBounds(mapBounds, { padding: [40, 40], maxZoom: 14 });
+        } else if (mapBounds.length === 1) {
+            partnerMap.setView(mapBounds[0], 12);
         }
+
         setTimeout(() => {
             if (partnerMap) partnerMap.invalidateSize();
         }, 200);

@@ -185,26 +185,29 @@ SCHEMES_KNOWLEDGE_BASE = [
     },
     {
         "id": "education_loan",
-        "name": "Educational Loan Scheme (ELIS - India)",
-        "name_hi": "शिक्षा ऋण योजना (भारत में उच्च शिक्षा)",
+        "name": "Educational Loan Scheme (Domestic & Abroad)",
+        "name_hi": "शिक्षा ऋण योजना (घरेलू और विदेश)",
         "loan_type": "education",
-        "target_group": "SC Students pursuing higher professional / technical courses in India",
-        "description": "Concessional loans for SC students admitted to recognized Engineering, Medical, Law, Management, Nursing, Pharmacy, and Polytechnic degree courses in India.",
-        "description_hi": "भारत में इंजीनियरिंग, मेडिकल, एमबीए, लॉ, नर्सिंग, फार्मेसी आदि मान्यता प्राप्त उच्च तकनीकी पाठ्यक्रमों हेतु आसान शिक्षा ऋण।",
-        "max_loan": 2000000,
-        "unit_cost_limit": 2000000,
-        "interest_rate": 4.0,  # 3.5% for female students, 4.0% for male students
-        "moratorium_months": 12,  # Course duration + 6 to 12 months
-        "repayment_tenure_months": 120,
+        "target_group": "SC Students pursuing higher professional / technical courses in India or Abroad",
+        "description": "Concessional education loans for SC students admitted to recognized full-time professional/technical degree courses in India or abroad. Up to ₹40.00 Lakhs or 90% of course fee.",
+        "description_hi": "भारत या विदेश में सरकार द्वारा अनुमोदित नियमित पूर्णकालिक व्यावसायिक/तकनीकी मान्यता प्राप्त पाठ्यक्रमों हेतु 40.00 लाख रुपये तक या पाठ्यक्रम शुल्क का 90% (जो भी कम हो) रियायती शिक्षा ऋण।",
+        "max_loan": 4000000,
+        "unit_cost_limit": 4000000,
+        "interest_rate": 6.5,  # 6.5% p.a. for Beneficiary (2.5% p.a. for Channelizing Agency)
+        "channelizing_agency_rate": 2.5,
+        "moratorium_months": 12,  # Course duration + 1 year
+        "moratorium_details": "Course duration + 1 year (if repayment not started) / up to 6 months (if loan disbursed & repayment started)",
+        "repayment_tenure_months": 144,  # Up to 12 years
+        "repayment_tenure_details": "Up to 12 years (if repayment not started) / Up to 10 years (if loan disbursed & repayment started)",
         "subsidy_percentage": 100,
-        "subsidy_details": "Central Sector Interest Subsidy (CSIS) during moratorium period. 0.5% interest concession for girl students.",
+        "subsidy_details": "Central Sector Interest Subsidy (CSIS) during moratorium period. Up to 90% of course fee covered.",
         "eligibility": {
             "caste": "Scheduled Caste (SC)",
             "gender": "All",
             "age": "Below 35 years",
             "income_ceiling": 300000,
             "admission_mode": "Merit / Entrance exam clearance in recognized institution",
-            "courses": ["B.Tech", "MBBS", "BDS", "MBA", "LLB", "M.Tech", "B.Pharma", "Nursing", "Polytechnic"]
+            "courses": ["B.Tech", "MBBS", "BDS", "MBA", "LLB", "M.Tech", "B.Pharma", "Nursing", "Polytechnic", "MS", "PhD"]
         },
         "mandatory_documents": [
             "SC Caste Certificate of Student",
@@ -217,9 +220,10 @@ SCHEMES_KNOWLEDGE_BASE = [
         ],
         "keywords": [
             "education", "college", "study", "engineering", "btech", "medical", "mbbs",
-            "mba", "degree", "fees", "polytechnic", "nursing", "पढ़ाई", "कॉलेज", "इंजीनियरिंग", "मेडिकल", "शिक्षा ऋण"
+            "mba", "degree", "fees", "polytechnic", "nursing", "abroad", "foreign", "masters", "phd",
+            "पढ़ाई", "कॉलेज", "इंजीनियरिंग", "मेडिकल", "शिक्षा ऋण", "विदेश", "घरेलू और विदेश"
         ],
-        "tags": ["education", "domestic", "student", "concessional", "nsfdc"]
+        "tags": ["education", "domestic", "abroad", "student", "concessional", "nsfdc"]
     },
     {
         "id": "education_loan_abroad",
@@ -227,15 +231,17 @@ SCHEMES_KNOWLEDGE_BASE = [
         "name_hi": "विदेश अध्ययन शिक्षा ऋण योजना",
         "loan_type": "education",
         "target_group": "SC Students admitted to accredited universities abroad",
-        "description": "Financial support for SC students pursuing Masters, PhD, MS, or specialized STEM/Management postgraduate courses in top recognized foreign universities (USA, UK, Germany, Canada, Australia, etc.).",
-        "description_hi": "विदेश (USA, UK, जर्मनी, कनाडा आदि) के शीर्ष विश्वविद्यालयों में मास्टर्स, एमएस, पीएचडी व उच्च शिक्षा हेतु विशेष ऋण।",
-        "max_loan": 3000000,
-        "unit_cost_limit": 3000000,
-        "interest_rate": 4.0,
+        "description": "Financial support for SC students pursuing Masters, PhD, MS, or specialized STEM/Management postgraduate courses in top recognized foreign universities (USA, UK, Germany, Canada, Australia, etc.). Up to ₹40.00 Lakhs or 90% of course fee.",
+        "description_hi": "विदेश (USA, UK, जर्मनी, कनाडा आदि) के शीर्ष मान्यता प्राप्त विश्वविद्यालयों में मास्टर्स, एमएस, पीएचडी व उच्च शिक्षा हेतु ₹40.00 लाख तक (या 90% फीस) शिक्षा ऋण।",
+        "max_loan": 4000000,
+        "unit_cost_limit": 4000000,
+        "interest_rate": 6.5,  # 6.5% p.a. for Beneficiary (2.5% p.a. for Channelizing Agency)
+        "channelizing_agency_rate": 2.5,
         "moratorium_months": 12,
-        "repayment_tenure_months": 120,
+        "moratorium_details": "Course duration + 1 year",
+        "repayment_tenure_months": 144,
         "subsidy_percentage": 100,
-        "subsidy_details": "Interest subsidy during study moratorium. Special linkage with National Overseas Scholarship (NOS) guidance.",
+        "subsidy_details": "Interest subsidy during study moratorium. Special linkage with National Overseas Scholarship (NOS) guidance. 90% of course fee covered.",
         "eligibility": {
             "caste": "Scheduled Caste (SC)",
             "gender": "All",
@@ -254,7 +260,7 @@ SCHEMES_KNOWLEDGE_BASE = [
         ],
         "keywords": [
             "abroad", "foreign", "usa", "uk", "germany", "canada", "masters", "ms",
-            "phd", "overseas", "विदेश", "विदेश में पढ़ाई", "मास्टर्स", "इंटरनेशनल"
+            "phd", "overseas", "विदेश", "विदेश में पढ़ाई", "मास्टर्स", "इंटरनेशनल", "शिक्षा ऋण"
         ],
         "tags": ["education", "abroad", "overseas", "stem", "nsfdc"]
     },

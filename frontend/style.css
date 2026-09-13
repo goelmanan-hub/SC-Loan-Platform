@@ -3386,38 +3386,19 @@
     overflow: hidden;
 }
 
-/* Ensure Leaflet internal panes stay contained under topbar/sidebar */
-#partner-map .leaflet-pane {
-    z-index: 2 !important;
+/* Leaflet map isolation & custom pin styles */
+.partner-map-custom-pin {
+    background: transparent !important;
+    border: none !important;
 }
 
-#partner-map .leaflet-tile-pane {
-    z-index: 2 !important;
+.partner-map-custom-pin div {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-#partner-map .leaflet-overlay-pane {
-    z-index: 3 !important;
-}
-
-#partner-map .leaflet-shadow-pane {
-    z-index: 4 !important;
-}
-
-#partner-map .leaflet-marker-pane {
-    z-index: 5 !important;
-}
-
-#partner-map .leaflet-tooltip-pane {
-    z-index: 6 !important;
-}
-
-#partner-map .leaflet-popup-pane {
-    z-index: 7 !important;
-}
-
-#partner-map .leaflet-top,
-#partner-map .leaflet-bottom {
-    z-index: 8 !important;
+.partner-map-custom-pin:hover div {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* =====================================================
