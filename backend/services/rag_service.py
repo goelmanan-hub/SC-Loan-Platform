@@ -239,12 +239,14 @@ def retrieve_candidate_schemes(user_data: Dict[str, Any], top_k: int = 4) -> Lis
         elif loan_type == "education" and scheme["id"] == "education_loan" and not any(w in query_text.lower() for w in ["abroad", "foreign", "विदेश"]):
             base_score += 25.0
 
-        # E. High value commercial greenfield
+        # E. High value commercial greenfield & term loans
         if loan_required > 2000000 and scheme["id"] in ["stand_up_india_sc", "term_loan"]:
+            base_score += 20.0
+        elif loan_required > 140000 and loan_required <= 500000 and scheme["id"] in ["udyam_nidhi_yojana", "laghu_udhyami_yojana"]:
             base_score += 20.0
 
         # F. Micro amount matching
-        if loan_required > 0 and loan_required <= 140000 and scheme["id"] in ["micro_finance", "mahila_samriddhi_yojana"]:
+        if loan_required > 0 and loan_required <= 140000 and scheme["id"] in ["micro_finance", "mahila_samriddhi_yojana", "ajeevika_microfinance"]:
             base_score += 15.0
 
         candidates.append({

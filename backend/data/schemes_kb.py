@@ -15,8 +15,11 @@ SCHEMES_KNOWLEDGE_BASE = [
         "max_loan": 140000,
         "unit_cost_limit": 140000,
         "interest_rate": 4.0,  # Highly concessional for SC women
+        "channelizing_agency_rate": 1.5,
         "moratorium_months": 3,
+        "moratorium_details": "3 months moratorium included",
         "repayment_tenure_months": 36,
+        "repayment_tenure_details": "Up to 3 years in quarterly installments",
         "subsidy_percentage": 50,
         "subsidy_details": "Up to ₹10,000 or 50% capital subsidy through State Channelising Agencies (SCAs). 1% interest rebate on timely repayment.",
         "eligibility": {
@@ -41,19 +44,22 @@ SCHEMES_KNOWLEDGE_BASE = [
     },
     {
         "id": "micro_finance",
-        "name": "Micro Credit Finance Scheme (MCF)",
-        "name_hi": "सूक्ष्म ऋण वित्त योजना (MCF)",
+        "name": "Micro Finance Scheme (MFS)",
+        "name_hi": "सूक्ष्म वित्त योजना (MFS)",
         "loan_type": "business",
-        "target_group": "SC Individuals / Self Help Groups",
-        "description": "Fast-track micro finance for setting up small shops, repair services, food stalls, artisan units, or small transport businesses.",
-        "description_hi": "छोटे व्यवसाय, मरम्मत की दुकान, चाय-नाश्ता स्टॉल, कारीगरी और सूक्ष्म उद्यमों के लिए आसान और त्वरित ऋण।",
-        "max_loan": 140000,
+        "target_group": "SC Individuals / Self Help Groups / Micro Units",
+        "description": "NSFDC provides micro finance up to ₹1.25 Lakh (up to 90% of unit cost up to ₹1.40 Lakh) for small business, repair services, food stalls, artisan units, and income generation.",
+        "description_hi": "एनएसएफडीसी ₹1.40 लाख रुपये तक की लागत वाली इकाइयों के लिए परियोजना लागत का 90% तक ऋण (अधिकतम ₹1.25 लाख प्रति इकाई) प्रदान करता है।",
+        "max_loan": 125000,
         "unit_cost_limit": 140000,
-        "interest_rate": 5.0,
+        "interest_rate": 6.5,  # 6.5% p.a. for Beneficiaries (2.5% p.a. to Channelizing Agency)
+        "channelizing_agency_rate": 2.5,
         "moratorium_months": 3,
+        "moratorium_details": "3 months moratorium from date of disbursement",
         "repayment_tenure_months": 36,
+        "repayment_tenure_details": "Up to 3 years in quarterly installments including 3 months moratorium",
         "subsidy_percentage": 25,
-        "subsidy_details": "SCA margin money support available up to ₹10,000.",
+        "subsidy_details": "Up to 90% of project cost funded by NSFDC. SCA margin money support available.",
         "eligibility": {
             "caste": "Scheduled Caste (SC)",
             "gender": "All",
@@ -63,16 +69,130 @@ SCHEMES_KNOWLEDGE_BASE = [
         },
         "mandatory_documents": [
             "SC Caste Certificate",
-            "Family Income Certificate",
+            "Family Income Certificate (< ₹3 Lakh/yr)",
             "Aadhaar Card",
             "Bank Account Details",
             "Business Plan / Cost Estimation"
         ],
         "keywords": [
-            "micro", "small shop", "kirana", "repair", "tea", "food stall", "vendor",
-            "artisan", "दुकान", "सिलाई", "मरम्मत", "फल सब्जी", "छोटा व्यापार"
+            "micro", "mfs", "small shop", "kirana", "repair", "tea", "food stall", "vendor",
+            "artisan", "सूक्ष्म वित्त", "दुकान", "सिलाई", "मरम्मत", "फल सब्जी", "छोटा व्यापार"
         ],
-        "tags": ["micro", "business", "individual", "nsfdc"]
+        "tags": ["micro", "mfs", "business", "individual", "nsfdc"]
+    },
+    {
+        "id": "term_loan",
+        "name": "Term Loan Scheme",
+        "name_hi": "मियादी ऋण (Term Loan)",
+        "loan_type": "business",
+        "target_group": "SC Entrepreneurs establishing medium/larger business units (above ₹1.40 Lakh up to ₹50.00 Lakh)",
+        "description": "Term loan assistance for units costing between ₹1.40 Lakh and ₹50.00 Lakh. NSFDC provides up to 90% of project cost (from ₹1.25 Lakh up to ₹45.00 Lakh per unit).",
+        "description_hi": "एनएसएफडीसी ₹1.40 लाख से अधिक और ₹50.00 लाख रुपये तक की लागत वाली इकाइयों के लिए परियोजना लागत का 90% तक (₹1.25 लाख से अधिक और ₹45 लाख प्रति इकाई तक) मियादी ऋण प्रदान करता है।",
+        "max_loan": 4500000,
+        "unit_cost_limit": 5000000,
+        "interest_rate": 8.0,  # 8.0% p.a. for Beneficiaries (4.0% p.a. to Channelizing Agency)
+        "channelizing_agency_rate": 4.0,
+        "moratorium_months": 6,  # 6 months (12 months for plantation and construction activities)
+        "moratorium_details": "6 months moratorium (12 months for plantation and construction activities)",
+        "repayment_tenure_months": 84,  # Up to 7 years in quarterly installments
+        "repayment_tenure_details": "Up to 7 years in quarterly installments including moratorium",
+        "subsidy_percentage": 15,
+        "subsidy_details": "Up to 90% of project cost funded by NSFDC with 10% promoter contribution.",
+        "eligibility": {
+            "caste": "Scheduled Caste (SC)",
+            "gender": "All",
+            "age": "18 to 60 years",
+            "income_ceiling": 300000,
+            "project_types": ["manufacturing", "transport", "wholesale", "construction", "factory", "commercial_vehicle", "warehouse", "plantation"]
+        },
+        "mandatory_documents": [
+            "SC Caste Certificate",
+            "Income Certificate / ITR",
+            "Aadhaar Card & PAN Card",
+            "Bank Statements (6-12 months)",
+            "Detailed Project Report (DPR) with cash flows",
+            "Trade License / GST Registration / MSME Udyam"
+        ],
+        "keywords": [
+            "term loan", "factory", "manufacturing", "transport", "truck", "commercial vehicle", "warehouse",
+            "construction", "machinery", "large business", "मियादी ऋण", "टर्म लोन", "कारखाना", "ट्रांसपोर्ट", "गाड़ी", "मशीन", "व्यापार"
+        ],
+        "tags": ["term", "manufacturing", "transport", "large", "nsfdc"]
+    },
+    {
+        "id": "ajeevika_microfinance",
+        "name": "Ajeevika Microfinance Scheme",
+        "name_hi": "आजीविका माइक्रो-फाइनेंस योजना",
+        "loan_type": "business",
+        "target_group": "SC Individuals / SHGs pursuing micro-business activities through NBFCs / MFIs",
+        "description": "Quick, need-based micro finance for eligible SC individuals to pursue small/micro business activities through selected NBFCs/MFIs for units costing up to ₹1.40 Lakh (loan up to 90% / ₹1.25 Lakh).",
+        "description_hi": "पात्र अनुसूचित जाति के व्यक्तियों को छोटे/सूक्ष्म व्यवसाय हेतु चयनित एनबीएफसी/एमएफआई (NBFC/MFI) के माध्यम से ₹1.40 लाख तक की लागत वाली परियोजनाओं के लिए 90% तक (₹1.25 लाख तक) त्वरित ऋण।",
+        "max_loan": 125000,
+        "unit_cost_limit": 140000,
+        "interest_rate": 15.0,  # 15.0% p.a. for Beneficiaries (5.0% p.a. to NBFC/MFI)
+        "channelizing_agency_rate": 5.0,
+        "moratorium_months": 3,
+        "moratorium_details": "3 months moratorium from date of each disbursement",
+        "repayment_tenure_months": 36,
+        "repayment_tenure_details": "Up to 3 years in quarterly installments including 3 months moratorium",
+        "subsidy_percentage": 20,
+        "subsidy_details": "Need-based fast disbursement through accredited NBFC-MFI network.",
+        "eligibility": {
+            "caste": "Scheduled Caste (SC)",
+            "gender": "All",
+            "age": "18 to 60 years",
+            "income_ceiling": 300000,
+            "project_types": ["micro_enterprise", "handicrafts", "artisan", "small_trade", "vegetable_vendor", "kirana", "dairy"]
+        },
+        "mandatory_documents": [
+            "SC Caste Certificate",
+            "Income Certificate (< ₹3 Lakh/yr)",
+            "Aadhaar Card",
+            "Bank Account Passbook",
+            "NBFC/MFI Application Form"
+        ],
+        "keywords": [
+            "ajeevika", "microfinance", "nbfc", "mfi", "micro", "small shop", "आजीविका", "माइक्रो फाइनेंस", "एनबीएफसी", "एमएफआई", "ऋण"
+        ],
+        "tags": ["ajeevika", "microfinance", "nbfc", "mfi", "business", "nsfdc"]
+    },
+    {
+        "id": "udyam_nidhi_yojana",
+        "name": "Udyam Nidhi Yojana (UNY)",
+        "name_hi": "उद्यम निधि योजना (UNY)",
+        "loan_type": "business",
+        "target_group": "SC Entrepreneurs through Cooperative Societies, Cooperative Banks, and Small Finance Banks (SFBs)",
+        "description": "Financial assistance under Udyam Nidhi Yojana (UNY) for projects/units costing up to ₹5.00 Lakh through Cooperative Societies, Cooperative Banks, and Small Finance Banks (SFBs). Loan up to 90% (₹4.50 Lakh).",
+        "description_hi": "सहकारी समितियों, सहकारी बैंकों और लघु वित्त बैंकों (SFBs) के माध्यम से ₹5.00 लाख रुपये तक की लागत वाली परियोजनाओं/इकाइयों हेतु 90% यानी ₹4.50 लाख तक का ऋण।",
+        "max_loan": 450000,
+        "unit_cost_limit": 500000,
+        "interest_rate": 13.0,  # 13.0% for Coop Banks/Societies; 15.0% for SFBs (5.0% for NSFDC)
+        "channelizing_agency_rate": 5.0,
+        "interest_details": "13.0% p.a. via Cooperative Banks/Societies; 15.0% p.a. via Small Finance Banks (SFBs). NSFDC charges 5.0% p.a.",
+        "moratorium_months": 3,
+        "moratorium_details": "3 months moratorium included",
+        "repayment_tenure_months": 60,
+        "repayment_tenure_details": "Up to 5 years in quarterly or half-yearly installments including 3 months moratorium",
+        "subsidy_percentage": 20,
+        "subsidy_details": "90% of project cost funded by NSFDC.",
+        "eligibility": {
+            "caste": "Scheduled Caste (SC)",
+            "gender": "All",
+            "age": "18 to 60 years",
+            "income_ceiling": 300000,
+            "project_types": ["small_enterprise", "workshop", "retail", "service_unit", "dairy", "agriculture_allied", "cooperative"]
+        },
+        "mandatory_documents": [
+            "SC Caste Certificate",
+            "Income Certificate (< ₹3 Lakh/yr)",
+            "Aadhaar Card & PAN Card",
+            "Bank Account / Membership Proof in Cooperative / SFB",
+            "Quotation / Cost Estimate for Unit"
+        ],
+        "keywords": [
+            "udyam nidhi", "uny", "cooperative", "sfb", "small finance bank", "cooperative bank", "उद्यम निधि", "सहकारी बैंक", "लघु वित्त बैंक", "समिति"
+        ],
+        "tags": ["udyam_nidhi", "uny", "cooperative", "sfb", "business", "nsfdc"]
     },
     {
         "id": "laghu_udhyami_yojana",
@@ -85,8 +205,11 @@ SCHEMES_KNOWLEDGE_BASE = [
         "max_loan": 500000,
         "unit_cost_limit": 500000,
         "interest_rate": 6.0,
+        "channelizing_agency_rate": 3.0,
         "moratorium_months": 6,
+        "moratorium_details": "6 months moratorium included",
         "repayment_tenure_months": 60,
+        "repayment_tenure_details": "Up to 5 years in quarterly installments",
         "subsidy_percentage": 20,
         "subsidy_details": "Margin money and interest concession for certified trainees.",
         "eligibility": {
@@ -107,45 +230,9 @@ SCHEMES_KNOWLEDGE_BASE = [
         ],
         "keywords": [
             "skill", "iti", "polytechnic", "workshop", "mobile repair", "automobile",
-            "electrician", "fabrication", "service center", "वर्कशॉप", "कुशल", "सर्विस सेंटर"
+            "electrician", "fabrication", "service center", "वर्कशॉप", "कुशल", "सर्विस सेंटर", "लघु उद्यमी"
         ],
         "tags": ["skilled", "youth", "business", "nsfdc"]
-    },
-    {
-        "id": "term_loan",
-        "name": "Term Loan Scheme for SC Entrepreneurs",
-        "name_hi": "अनुसूचित जाति टर्म लोन योजना",
-        "loan_type": "business",
-        "target_group": "SC Entrepreneurs establishing medium/larger business units",
-        "description": "Financial assistance up to 95% of project cost for viable commercial projects in manufacturing, processing, wholesale trading, passenger/commercial transport, and service sectors.",
-        "description_hi": "मध्यम व बड़े व्यवसायों, विनिर्माण (मैन्युफैक्चरिंग), कमर्शियल वाहन, वेयरहाउस व प्रोसेसिंग यूनिट्स हेतु 95% तक की वित्तीय सहायता।",
-        "max_loan": 5000000,
-        "unit_cost_limit": 5000000,
-        "interest_rate": 7.0,
-        "moratorium_months": 6,
-        "repayment_tenure_months": 60,
-        "subsidy_percentage": 15,
-        "subsidy_details": "NSFDC covers up to 90-95% of project cost with 5-10% promoter contribution.",
-        "eligibility": {
-            "caste": "Scheduled Caste (SC)",
-            "gender": "All",
-            "age": "18 to 60 years",
-            "income_ceiling": 300000,
-            "project_types": ["manufacturing", "transport", "wholesale", "construction", "factory", "commercial_vehicle", "warehouse"]
-        },
-        "mandatory_documents": [
-            "SC Caste Certificate",
-            "Income Certificate / ITR",
-            "Aadhaar Card & PAN Card",
-            "Bank Statements (6-12 months)",
-            "Detailed Project Report (DPR) with cash flows",
-            "Trade License / GST Registration / MSME Udyam"
-        ],
-        "keywords": [
-            "factory", "manufacturing", "transport", "truck", "commercial vehicle", "warehouse",
-            "construction", "machinery", "large business", "कारखाना", "ट्रांसपोर्ट", "गाड़ी", "मशीन", "व्यापार"
-        ],
-        "tags": ["term", "manufacturing", "transport", "large", "nsfdc"]
     },
     {
         "id": "green_business_scheme",
@@ -158,8 +245,11 @@ SCHEMES_KNOWLEDGE_BASE = [
         "max_loan": 3000000,
         "unit_cost_limit": 3000000,
         "interest_rate": 6.0,
+        "channelizing_agency_rate": 3.0,
         "moratorium_months": 6,
+        "moratorium_details": "6 months moratorium included",
         "repayment_tenure_months": 60,
+        "repayment_tenure_details": "Up to 5 years in quarterly installments",
         "subsidy_percentage": 25,
         "subsidy_details": "Special interest subsidy and capital support for renewable energy adoption.",
         "eligibility": {
@@ -275,8 +365,11 @@ SCHEMES_KNOWLEDGE_BASE = [
         "max_loan": 10000000,
         "unit_cost_limit": 10000000,
         "interest_rate": 7.5,
+        "channelizing_agency_rate": 4.5,
         "moratorium_months": 18,
+        "moratorium_details": "Up to 18 months moratorium",
         "repayment_tenure_months": 84,
+        "repayment_tenure_details": "Up to 7 years repayment tenure",
         "subsidy_percentage": 15,
         "subsidy_details": "Credit Guarantee Scheme for Stand-Up India (CGSSI) provides collateral-free coverage. Convergence with state subsidies.",
         "eligibility": {
