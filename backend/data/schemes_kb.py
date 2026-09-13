@@ -235,45 +235,6 @@ SCHEMES_KNOWLEDGE_BASE = [
         "tags": ["skilled", "youth", "business", "nsfdc"]
     },
     {
-        "id": "green_business_scheme",
-        "name": "Green Business Scheme (GBS)",
-        "name_hi": "ग्रीन बिजनेस योजना (ई-रिक्शा व सौर ऊर्जा)",
-        "loan_type": "business",
-        "target_group": "SC Individuals & Green Entrepreneurs",
-        "description": "Financial assistance for eco-friendly, green energy and climate-positive businesses such as Battery Operated E-Rickshaws, Solar PV lighting, composting, and recycling units.",
-        "description_hi": "पर्यावरण-अनुकूल व्यवसाय जैसे ई-रिक्शा, सौर ऊर्जा उपकरण, अपशिष्ट प्रबंधन व रिसाइक्लिंग के लिए विशेष रियायती लोन।",
-        "max_loan": 3000000,
-        "unit_cost_limit": 3000000,
-        "interest_rate": 6.0,
-        "channelizing_agency_rate": 3.0,
-        "moratorium_months": 6,
-        "moratorium_details": "6 months moratorium included",
-        "repayment_tenure_months": 60,
-        "repayment_tenure_details": "Up to 5 years in quarterly installments",
-        "subsidy_percentage": 25,
-        "subsidy_details": "Special interest subsidy and capital support for renewable energy adoption.",
-        "eligibility": {
-            "caste": "Scheduled Caste (SC)",
-            "gender": "All",
-            "age": "18 to 60 years",
-            "income_ceiling": 300000,
-            "project_types": ["e_rickshaw", "electric_vehicle", "solar_panel", "solar_pump", "waste_recycling", "bio_fertilizer"]
-        },
-        "mandatory_documents": [
-            "SC Caste Certificate",
-            "Income Certificate",
-            "Aadhaar Card",
-            "Commercial Driving License (for E-Rickshaw)",
-            "Quotation from Authorized Solar / EV Dealer",
-            "Bank Passbook"
-        ],
-        "keywords": [
-            "e-rickshaw", "erickshaw", "solar", "solar panel", "green", "electric vehicle",
-            "battery", "ev", "ई-रिक्शा", "सौर ऊर्जा", "सोलर", "पर्यावरण", "इलेक्ट्रिक"
-        ],
-        "tags": ["green", "ev", "solar", "e-rickshaw", "nsfdc"]
-    },
-    {
         "id": "education_loan",
         "name": "Educational Loan Scheme (Domestic & Abroad)",
         "name_hi": "शिक्षा ऋण योजना (घरेलू और विदेश)",
@@ -353,45 +314,6 @@ SCHEMES_KNOWLEDGE_BASE = [
             "phd", "overseas", "विदेश", "विदेश में पढ़ाई", "मास्टर्स", "इंटरनेशनल", "शिक्षा ऋण"
         ],
         "tags": ["education", "abroad", "overseas", "stem", "nsfdc"]
-    },
-    {
-        "id": "stand_up_india_sc",
-        "name": "Stand-Up India Scheme (SC Category)",
-        "name_hi": "स्टैंड-अप इंडिया योजना (अनुसूचित जाति)",
-        "loan_type": "business",
-        "target_group": "SC Entrepreneurs establishing Greenfield ventures",
-        "description": "Bank loan facilitation between ₹10 Lakh and ₹1 Crore for setting up a greenfield (first-time) manufacturing, services, agri-allied, or trading enterprise by an SC borrower.",
-        "description_hi": "प्रथम बार विनिर्माण, सेवा, कृषि-संबद्ध या व्यापार उद्यम स्थापित करने वाले अनुसूचित जाति के उद्यमियों के लिए ₹10 लाख से ₹1 करोड़ तक का बैंक ऋण।",
-        "max_loan": 10000000,
-        "unit_cost_limit": 10000000,
-        "interest_rate": 7.5,
-        "channelizing_agency_rate": 4.5,
-        "moratorium_months": 18,
-        "moratorium_details": "Up to 18 months moratorium",
-        "repayment_tenure_months": 84,
-        "repayment_tenure_details": "Up to 7 years repayment tenure",
-        "subsidy_percentage": 15,
-        "subsidy_details": "Credit Guarantee Scheme for Stand-Up India (CGSSI) provides collateral-free coverage. Convergence with state subsidies.",
-        "eligibility": {
-            "caste": "Scheduled Caste (SC)",
-            "gender": "All",
-            "age": "Above 18 years",
-            "income_ceiling": 0,  # No strict cap for commercial greenfield
-            "project_types": ["greenfield", "manufacturing", "trading", "services", "agri_processing", "hospitality"]
-        },
-        "mandatory_documents": [
-            "SC Caste Certificate",
-            "PAN Card & Aadhaar Card",
-            "Project Report with Financial Projections (3-5 years)",
-            "Land / Lease Agreement for Unit",
-            "Pollution & Local Authority Clearances (if applicable)",
-            "Audited Financials / Bank Statements"
-        ],
-        "keywords": [
-            "stand up", "standup", "greenfield", "crore", "manufacturing", "industry",
-            "large enterprise", "agro", "स्टैंड-अप", "उद्योग", "बड़ा लोन", "कारोबार"
-        ],
-        "tags": ["standup", "greenfield", "commercial", "high_value"]
     }
 ]
 

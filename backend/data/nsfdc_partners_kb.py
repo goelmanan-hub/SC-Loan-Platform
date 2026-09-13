@@ -40,11 +40,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -85,11 +83,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -129,7 +125,6 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad"
@@ -172,9 +167,7 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business"],
         "special_services": [
@@ -214,11 +207,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -258,7 +249,6 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan"
         ],
@@ -300,8 +290,6 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc",
-            "green_business_scheme"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -341,8 +329,6 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc",
-            "green_business_scheme"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -381,7 +367,6 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
         "schemes": [
             "term_loan",
             "education_loan",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -424,11 +409,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -473,8 +456,6 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc",
-            "green_business_scheme"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -514,11 +495,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -558,11 +537,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -606,10 +583,8 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -649,11 +624,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -694,7 +667,6 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "micro_finance",
             "laghu_udhyami_yojana",
             "term_loan",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business"],
         "special_services": [
@@ -737,11 +709,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -781,9 +751,7 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business"],
         "special_services": [
@@ -826,11 +794,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -874,11 +840,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -962,11 +926,9 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
             "education_loan_abroad",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [
@@ -1006,10 +968,8 @@ NSFDC_CHANNEL_PARTNERS: List[Dict[str, Any]] = [
             "mahila_samriddhi_yojana",
             "micro_finance",
             "laghu_udhyami_yojana",
-            "green_business_scheme",
             "term_loan",
             "education_loan",
-            "stand_up_india_sc"
         ],
         "loan_types": ["business", "education"],
         "special_services": [

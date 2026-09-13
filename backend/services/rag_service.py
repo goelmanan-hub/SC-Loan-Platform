@@ -225,22 +225,18 @@ def retrieve_candidate_schemes(user_data: Dict[str, Any], top_k: int = 4) -> Lis
         if (gender in ["female", "woman", "महिला", "f"] or "mahila" in query_text.lower() or "महिला" in query_text) and scheme["id"] == "mahila_samriddhi_yojana":
             base_score += 30.0
 
-        # B. Green business / EV / Solar
-        if any(w in query_text.lower() for w in ["e-rickshaw", "erickshaw", "solar", "green", "ev", "ई-रिक्शा", "सोलर", "पर्यावरण"]) and scheme["id"] == "green_business_scheme":
-            base_score += 35.0
-
-        # C. Skilled / ITI / Polytechnic
+        # B. Skilled / ITI / Polytechnic
         if any(w in query_text.lower() for w in ["iti", "polytechnic", "skill", "technician", "repair", "service", "प्रशिक्षित", "कुशल"]) and scheme["id"] == "laghu_udhyami_yojana":
             base_score += 25.0
 
-        # D. Abroad Education
+        # C. Abroad Education
         if any(w in query_text.lower() for w in ["abroad", "foreign", "usa", "uk", "germany", "overseas", "विदेश"]) and scheme["id"] == "education_loan_abroad":
             base_score += 40.0
         elif loan_type == "education" and scheme["id"] == "education_loan" and not any(w in query_text.lower() for w in ["abroad", "foreign", "विदेश"]):
             base_score += 25.0
 
-        # E. High value commercial greenfield & term loans
-        if loan_required > 2000000 and scheme["id"] in ["stand_up_india_sc", "term_loan"]:
+        # D. High value commercial term loans & medium units
+        if loan_required > 2000000 and scheme["id"] == "term_loan":
             base_score += 20.0
         elif loan_required > 140000 and loan_required <= 500000 and scheme["id"] in ["udyam_nidhi_yojana", "laghu_udhyami_yojana"]:
             base_score += 20.0
