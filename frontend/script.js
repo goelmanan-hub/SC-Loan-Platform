@@ -3801,10 +3801,15 @@ function renderPartnerMap(latitude, longitude, partners) {
 }
 
 function escapeHtml(value) {
-    const element = document.createElement("div");
-    element.textContent = String(value || "");
-    return element.innerHTML;
+    if (value === null || value === undefined) return "";
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
+
 
 /* =====================================================
    FETCH ALL SCHEMES FOR SIDEBAR
