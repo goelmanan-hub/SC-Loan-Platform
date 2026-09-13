@@ -529,13 +529,23 @@ def retrieve_channel_partners(
         entry["rag_score"] = round(score, 2)
         entry["vector_similarity"] = round(sim_score, 4)
 
-        # Generate Google Maps directions URL with official institution name and full address
-        dest_query_parts = [partner.get('name', ''), partner.get('address', '')]
-        dest_query_str = ', '.join([p for p in dest_query_parts if p])
-        dest_query = urllib.parse.quote_plus(dest_query_str) if dest_query_str else f"{partner.get('latitude')},{partner.get('longitude')}"
-        entry["directions_url"] = (
-            f"https://www.google.com/maps/dir/?api=1&destination={dest_query}&travelmode=driving"
-        )
+        # Generate Google Maps directions URL with exact GPS coordinates
+        p_lat = partner.get('latitude')
+        p_lng = partner.get('longitude')
+        if p_lat is not None and p_lng is not None:
+            if has_coords:
+                entry["directions_url"] = (
+                    f"https://www.google.com/maps/dir/?api=1&origin={latitude},{longitude}&destination={p_lat},{p_lng}&travelmode=driving"
+                )
+            else:
+                entry["directions_url"] = (
+                    f"https://www.google.com/maps/dir/?api=1&destination={p_lat},{p_lng}&travelmode=driving"
+                )
+        else:
+            dest_query = urllib.parse.quote_plus(partner.get('address', partner.get('name', '')))
+            entry["directions_url"] = (
+                f"https://www.google.com/maps/dir/?api=1&destination={dest_query}&travelmode=driving"
+            )
 
         results.append(entry)
 

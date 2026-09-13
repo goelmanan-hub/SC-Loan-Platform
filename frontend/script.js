@@ -3544,8 +3544,19 @@ function renderPartnersList(partners) {
         const pLat = Number(p.latitude) || 29.9695;
         const pLng = Number(p.longitude) || 76.8783;
 
-        const destQuery = encodeURIComponent(`${p.name || ''}, ${p.address || p.city || ''}`);
-        const directionsHref = p.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${destQuery}&travelmode=driving`;
+        let directionsHref = p.directions_url;
+        if (!directionsHref || directionsHref.includes("destination=null")) {
+            if (pLat && pLng) {
+                if (userCoordinates && userCoordinates.lat && userCoordinates.lng) {
+                    directionsHref = `https://www.google.com/maps/dir/?api=1&origin=${userCoordinates.lat},${userCoordinates.lng}&destination=${pLat},${pLng}&travelmode=driving`;
+                } else {
+                    directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${pLat},${pLng}&travelmode=driving`;
+                }
+            } else {
+                const destQuery = encodeURIComponent(`${p.name || ''}, ${p.address || p.city || ''}`);
+                directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${destQuery}&travelmode=driving`;
+            }
+        }
 
         const npaPct = p.npa_rate_pct !== undefined && p.npa_rate_pct !== null ? Number(p.npa_rate_pct) : 2.0;
         const recPct = p.recovery_rate_pct !== undefined && p.recovery_rate_pct !== null ? Number(p.recovery_rate_pct) : 95.0;
@@ -3735,8 +3746,14 @@ function renderPartnerMap(latitude, longitude, partners) {
                     iconAnchor: [30, 12]
                 });
 
-                const popupDestQuery = encodeURIComponent(`${partner.name || ''}, ${partner.address || partner.city || ''}`);
-                const popupDirectionsUrl = partner.directions_url || `https://www.google.com/maps/dir/?api=1&destination=${popupDestQuery}&travelmode=driving`;
+                let popupDirectionsUrl = partner.directions_url;
+                if (!popupDirectionsUrl || popupDirectionsUrl.includes("destination=null")) {
+                    if (hasUserLoc) {
+                        popupDirectionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${centerLat},${centerLng}&destination=${pLat},${pLng}&travelmode=driving`;
+                    } else {
+                        popupDirectionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${pLat},${pLng}&travelmode=driving`;
+                    }
+                }
                 const npaPct = partner.npa_rate_pct !== undefined && partner.npa_rate_pct !== null ? partner.npa_rate_pct : 2.0;
                 const recPct = partner.recovery_rate_pct !== undefined && partner.recovery_rate_pct !== null ? partner.recovery_rate_pct : 95.0;
 
