@@ -3478,27 +3478,36 @@ async function fetchPartnersWithFilters() {
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error("Failed to fetch channel partners");
-
         const data = await response.json();
         const partners = data.partners || [];
         lastFetchedPartners = partners;
 
+        const isEn = Boolean(currentLanguage && currentLanguage.startsWith("en"));
         const t = TRANSLATIONS[currentLanguage] || TRANSLATIONS["hi-IN"];
         if (countText) {
-            countText.textContent = `${partners.length} ${t.partnerCountSuffix || 'आधिकारिक NSFDC चैनल पार्टनर उपलब्ध'}`;
+            countText.textContent = `${partners.length} ${t.partnerCountSuffix || (isEn ? 'Official NSFDC Channel Partners Available' : 'आधिकारिक NSFDC चैनल पार्टनर उपलब्ध')}`;
         }
 
-        renderPartnersList(partners);
-        renderPartnerMap(effectiveCoords ? effectiveCoords.lat : null, effectiveCoords ? effectiveCoords.lng : null, partners);
+        try {
+            renderPartnersList(partners);
+        } catch (renderErr) {
+            console.error("Error rendering partners list:", renderErr);
+        }
+
+        try {
+            renderPartnerMap(effectiveCoords ? effectiveCoords.lat : null, effectiveCoords ? effectiveCoords.lng : null, partners);
+        } catch (mapErr) {
+            console.error("Error rendering partner map:", mapErr);
+        }
     } catch (error) {
         console.error("Partner fetch error:", error);
         if (listContainer) {
-            const isEn = currentLanguage && currentLanguage.startsWith("en");
+            const isEn = Boolean(currentLanguage && currentLanguage.startsWith("en"));
             listContainer.innerHTML = `<div class="loading-placeholder" style="color: #ef4444;">⚠️ ${isEn ? 'Error fetching channel partners. Please verify backend status.' : 'चैनल पार्टनर प्राप्त करने में त्रुटि हुई। कृपया backend की स्थिति जाँचें।'}</div>`;
         }
     }
 }
+
 
 function renderPartnersList(partners) {
     const listContainer = document.getElementById("partners-list");

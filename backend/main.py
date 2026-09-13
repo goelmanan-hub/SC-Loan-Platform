@@ -321,6 +321,47 @@ def find_partners_api(
     }
 
 
+@app.get("/api/find-partners")
+def find_partners_get_api(
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    loan_type: Optional[str] = None,
+    scheme_id: Optional[str] = None,
+    state: Optional[str] = None,
+    city: Optional[str] = None,
+    partner_type: Optional[str] = None,
+    query: Optional[str] = None,
+    npa_filter: Optional[str] = None,
+    min_recovery_rate: Optional[float] = None,
+    sort_by: Optional[str] = "recommended",
+    radius_km: Optional[float] = None,
+    top_k: int = 10
+):
+    """GET query-params variant of find-partners."""
+    partners = find_suitable_partners(
+        latitude=latitude,
+        longitude=longitude,
+        loan_type=loan_type,
+        scheme_id=scheme_id,
+        state=state,
+        city=city,
+        partner_type=partner_type,
+        query=query,
+        npa_filter=npa_filter,
+        min_recovery_rate=min_recovery_rate,
+        sort_by=sort_by,
+        radius_km=radius_km,
+        top_k=top_k
+    )
+
+    return {
+        "success": True,
+        "count": len(partners),
+        "partners": partners
+    }
+
+
+
 @app.post("/api/partners/rag-search")
 def partner_rag_search_api(
     request: PartnerSearchRequest
