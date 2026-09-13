@@ -73,10 +73,10 @@ def test_scheme_and_partner_crawlers():
     print(f"  --> Passed! Parsed {len(schemes)} schemes and {len(partners)} channel partners.")
 
 
-def test_crawler_orchestration_and_db_persistence():
+async def test_crawler_orchestration_and_db_persistence():
     print("\n[TEST 3] Testing Crawler Orchestrator & SQLite Persistence...")
     orchestrator = CrawlerOrchestrator()
-    result = asyncio.run(orchestrator.run_crawl_and_sync(trigger_source="test_suite"))
+    result = await orchestrator.run_crawl_and_sync(trigger_source="test_suite")
 
     assert result["status"] == "SUCCESS", f"Crawl failed: {result.get('error_message')}"
     assert result["schemes_checked"] >= 8

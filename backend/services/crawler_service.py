@@ -31,6 +31,7 @@ from data.schemes_kb import SCHEMES_KNOWLEDGE_BASE
 from data.nsfdc_partners_kb import NSFDC_CHANNEL_PARTNERS
 from services.rag_service import VECTOR_STORE
 from services.partner_rag_service import PARTNER_VECTOR_STORE
+from services.geocoding_service import resolve_partner_geocoding
 
 
 def compute_content_hash(data: Dict[str, Any]) -> str:
@@ -120,13 +121,19 @@ class PartnerCrawler:
     def parse_partners(self, raw_html: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Parses and standardizes channel partner directory data.
+        Dynamically geocodes and resolves coordinates and verified address for each partner.
         """
         crawled_partners = []
 
         for partner in NSFDC_CHANNEL_PARTNERS:
             p_copy = dict(partner)
-            p_copy["latitude"] = float(p_copy.get("latitude", 0.0))
-            p_copy["longitude"] = float(p_copy.get("longitude", 0.0))
+            # Dynamically resolve latitude, longitude and formatted address via search & geocoding
+            lat, lng, formatted_addr = resolve_partner_geocoding(p_copy)
+            p_copy["latitude"] = float(lat)
+            p_copy["longitude"] = float(lng)
+            if formatted_addr:
+                p_copy["address"] = p_copy.get("address") or formatted_addr
+                p_copy["formatted_address"] = formatted_addr
             crawled_partners.append(p_copy)
 
         return crawled_partners

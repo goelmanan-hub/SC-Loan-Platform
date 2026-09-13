@@ -19,7 +19,7 @@ def test_partner_kb():
     print(f"[OK] Total Official NSFDC Channel Partners Loaded: {len(partners)}")
     assert len(partners) >= 10, "Expected at least 10 partners in the knowledge base"
     for p in partners:
-        assert "name" in p and "latitude" in p and "longitude" in p and "type" in p
+        assert "name" in p and "type" in p and "address" in p
         assert len(p["schemes"]) > 0
         assert "recovery_rate_pct" in p, f"Missing recovery_rate_pct in {p['id']}"
         assert "npa_rate_pct" in p, f"Missing npa_rate_pct in {p['id']}"

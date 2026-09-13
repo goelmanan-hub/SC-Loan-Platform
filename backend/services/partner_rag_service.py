@@ -10,6 +10,7 @@ import urllib.parse
 from typing import List, Dict, Any, Optional
 from data.nsfdc_partners_kb import get_all_channel_partners_kb, get_channel_partner_by_id_kb
 from database.db import get_all_stored_partners
+from services.geocoding_service import resolve_partner_geocoding
 
 
 # =====================================================
@@ -203,6 +204,15 @@ class PartnerVectorStore:
                 partners = db_partners if db_partners else get_all_channel_partners_kb()
             except Exception:
                 partners = get_all_channel_partners_kb()
+
+        # Ensure dynamic coordinates are resolved for all loaded partners
+        for p in partners:
+            if not p.get("latitude") or not p.get("longitude") or p.get("latitude") == 0.0:
+                lat, lng, formatted_addr = resolve_partner_geocoding(p)
+                p["latitude"] = float(lat)
+                p["longitude"] = float(lng)
+                if formatted_addr and not p.get("address"):
+                    p["address"] = formatted_addr
 
         self.partners = partners
         num_docs = len(partners)
@@ -529,10 +539,12 @@ def retrieve_channel_partners(
         entry["rag_score"] = round(score, 2)
         entry["vector_similarity"] = round(sim_score, 4)
 
-        # Generate Google Maps directions URL with exact GPS coordinates
+        # Generate Google Maps directions URL & Maps Search URL
         p_lat = partner.get('latitude')
         p_lng = partner.get('longitude')
-        if p_lat is not None and p_lng is not None:
+        p_addr = partner.get('address', partner.get('name', ''))
+        
+        if p_lat is not None and p_lng is not None and p_lat != 0.0:
             if has_coords:
                 entry["directions_url"] = (
                     f"https://www.google.com/maps/dir/?api=1&origin={latitude},{longitude}&destination={p_lat},{p_lng}&travelmode=driving"
@@ -542,10 +554,18 @@ def retrieve_channel_partners(
                     f"https://www.google.com/maps/dir/?api=1&destination={p_lat},{p_lng}&travelmode=driving"
                 )
         else:
-            dest_query = urllib.parse.quote_plus(partner.get('address', partner.get('name', '')))
-            entry["directions_url"] = (
-                f"https://www.google.com/maps/dir/?api=1&destination={dest_query}&travelmode=driving"
-            )
+            dest_query = urllib.parse.quote_plus(f"{partner.get('name', '')}, {p_addr}")
+            if has_coords:
+                entry["directions_url"] = (
+                    f"https://www.google.com/maps/dir/?api=1&origin={latitude},{longitude}&destination={dest_query}&travelmode=driving"
+                )
+            else:
+                entry["directions_url"] = (
+                    f"https://www.google.com/maps/dir/?api=1&destination={dest_query}&travelmode=driving"
+                )
+
+        search_query = urllib.parse.quote_plus(f"{partner.get('name', '')}, {p_addr}")
+        entry["google_maps_url"] = f"https://www.google.com/maps/search/?api=1&query={search_query}"
 
         results.append(entry)
 

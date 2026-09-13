@@ -188,6 +188,20 @@ def init_db():
         )
     """)
 
+    # 8. Geocoding Cache Table (Dynamic Search & Map Resolutions)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS geocoding_cache (
+            query_key TEXT PRIMARY KEY,
+            query_text TEXT,
+            latitude REAL NOT NULL,
+            longitude REAL NOT NULL,
+            formatted_address TEXT,
+            display_name TEXT,
+            provider TEXT DEFAULT 'google_osm',
+            last_updated TEXT NOT NULL
+        )
+    """)
+
     conn.commit()
     conn.close()
     print(f"[DB] SQLite Database initialized at: {DB_PATH}")
