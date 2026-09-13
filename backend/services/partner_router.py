@@ -24,15 +24,18 @@ def calculate_distance(
 
 
 def find_suitable_partners(
-    latitude: float,
-    longitude: float,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
     loan_type: Optional[str] = None,
     scheme_id: Optional[str] = None,
+    state: Optional[str] = None,
+    city: Optional[str] = None,
     partner_type: Optional[str] = None,
     query: Optional[str] = None,
     npa_filter: Optional[str] = None,
     min_recovery_rate: Optional[float] = None,
     sort_by: Optional[str] = "recommended",
+    radius_km: Optional[float] = None,
     top_k: int = 10
 ) -> List[Dict[str, Any]]:
     """
@@ -45,9 +48,12 @@ def find_suitable_partners(
         longitude=longitude,
         loan_type=loan_type,
         scheme_id=scheme_id,
+        state=state,
+        city=city,
         partner_type=partner_type,
         npa_filter=npa_filter,
         min_recovery_rate=min_recovery_rate,
         sort_by=sort_by,
+        radius_km=radius_km,
         top_k=top_k
     )

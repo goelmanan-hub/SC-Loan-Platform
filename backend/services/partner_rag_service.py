@@ -565,7 +565,13 @@ def retrieve_channel_partners(
         ))
     else:
         # Default "recommended": Multi-factor composite ranking balancing distance + low NPA + recovery rate
-        results.sort(key=lambda x: -x["rag_score"])
+        if has_coords:
+            results.sort(key=lambda x: (
+                x.get("distance_km") if x.get("distance_km") is not None else 999999,
+                -x.get("rag_score", 0.0)
+            ))
+        else:
+            results.sort(key=lambda x: -x["rag_score"])
 
     return results[:top_k]
 

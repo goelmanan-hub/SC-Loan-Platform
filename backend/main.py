@@ -303,11 +303,14 @@ def find_partners_api(
         longitude=request.longitude,
         loan_type=request.loan_type,
         scheme_id=request.scheme_id,
+        state=request.state,
+        city=request.city,
         partner_type=request.partner_type,
         query=request.query,
         npa_filter=request.npa_filter,
         min_recovery_rate=request.min_recovery_rate,
         sort_by=request.sort_by,
+        radius_km=request.radius_km,
         top_k=request.top_k or 10
     )
 
