@@ -3684,10 +3684,10 @@ function renderPartnerMap(latitude, longitude, partners) {
                 zoom: zoomLevel,
                 scrollWheelZoom: false
             });
-            L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 maxZoom: 19,
-                subdomains: "abcd",
-                attribution: "&copy; <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/\" target=\"_blank\">CARTO</a> | NSFDC"
+                subdomains: "abc",
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors | NSFDC'
             }).addTo(partnerMap);
             partnerMarkers = L.layerGroup().addTo(partnerMap);
         } else {
