@@ -632,9 +632,10 @@ def loan_chat(
     # Core parameters needed to evaluate scheme recommendation:
     # 1. loan_type
     # 2. loan_required
-    # 3. income
+    # 3. business_type (or education_course)
+    # 4. income
     is_fully_collected = bool(
-        loan_type and loan_required and income
+        loan_type and loan_required and business_or_edu and income
     )
 
     # Readiness parameters (strictly user provided, no assumptions)
